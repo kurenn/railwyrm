@@ -61,6 +61,14 @@ RSpec.describe Railwyrm::Generator do
       expect(session_view).to include("Ui::Checkbox::Component")
       expect(session_view).not_to include("Google")
 
+      registration_view = File.read(File.join(configuration.app_path, "app/views/devise/registrations/new.html.erb"))
+      expect(registration_view).to include("Ui::Input::Component")
+      expect(registration_view).to include("Create account")
+      expect(registration_view).to include("Railwyrm Access")
+
+      password_view = File.read(File.join(configuration.app_path, "app/views/devise/passwords/new.html.erb"))
+      expect(password_view).to include("Send reset instructions")
+
       app_layout = File.read(File.join(configuration.app_path, "app/views/layouts/application.html.erb"))
       expect(app_layout).to include("justify-center")
       expect(app_layout).to include("w-full")
@@ -70,7 +78,7 @@ RSpec.describe Railwyrm::Generator do
     end
   end
 
-  it "applies the selected sign-in layout template" do
+  it "applies the selected devise auth template pack" do
     Dir.mktmpdir do |workspace|
       configuration = Railwyrm::Configuration.new(
         name: "split_layout_app",
@@ -82,10 +90,28 @@ RSpec.describe Railwyrm::Generator do
 
       described_class.new(configuration, ui: ui, shell: shell).run!
 
+      expected_views = %w[
+        sessions/new
+        registrations/new
+        registrations/edit
+        passwords/new
+        passwords/edit
+        confirmations/new
+        unlocks/new
+      ]
+
+      expected_views.each do |view_name|
+        expect(File).to exist(File.join(configuration.app_path, "app/views/devise/#{view_name}.html.erb"))
+      end
+
       session_view = File.read(File.join(configuration.app_path, "app/views/devise/sessions/new.html.erb"))
       expect(session_view).to include("Trusted by teams")
       expect(session_view).to include("Ui::Input::Component")
       expect(session_view).not_to include("Google")
+
+      registration_view = File.read(File.join(configuration.app_path, "app/views/devise/registrations/new.html.erb"))
+      expect(registration_view).to include("Trusted by teams")
+      expect(registration_view).to include("Create account")
     end
   end
 

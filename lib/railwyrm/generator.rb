@@ -41,8 +41,8 @@ module Railwyrm
         normalize_application_main_layout!
       end
 
-      ui.step("Apply Devise sign-in layout") do
-        apply_sign_in_layout_template!
+      ui.step("Apply Devise auth view templates") do
+        apply_devise_view_templates!
       end
 
       ui.success("Rails realm forged at #{configuration.app_path}")
@@ -89,30 +89,33 @@ module Railwyrm
       ui.success("Gemfile updated with Rails starter stack.")
     end
 
-    def apply_sign_in_layout_template!
+    def apply_devise_view_templates!
       if configuration.dry_run
-        ui.info("Dry run enabled: sign-in template copy skipped.")
+        ui.info("Dry run enabled: Devise template copy skipped.")
         return
       end
 
-      source = File.join(
+      source_root = File.join(
         File.expand_path("..", __dir__),
         "railwyrm",
         "templates",
         "devise",
         "sign_in",
-        configuration.sign_in_layout,
-        "sessions",
-        "new.html.erb"
+        configuration.sign_in_layout
       )
 
-      unless File.exist?(source)
-        raise InvalidConfiguration, "Sign-in template not found for '#{configuration.sign_in_layout}'"
+      unless Dir.exist?(source_root)
+        raise InvalidConfiguration, "Devise templates not found for '#{configuration.sign_in_layout}'"
       end
 
-      destination = File.join(configuration.app_path, "app/views/devise/sessions/new.html.erb")
-      FileUtils.mkdir_p(File.dirname(destination))
-      FileUtils.cp(source, destination)
+      destination_root = File.join(configuration.app_path, "app/views/devise")
+
+      Dir.glob(File.join(source_root, "**", "*.erb")).sort.each do |source|
+        relative_path = source.delete_prefix("#{source_root}/")
+        destination = File.join(destination_root, relative_path)
+        FileUtils.mkdir_p(File.dirname(destination))
+        FileUtils.cp(source, destination)
+      end
     end
 
     def normalize_application_main_layout!

@@ -1,0 +1,39 @@
+<% email_value = params.dig(resource_name, :email) || params.dig(resource_name, "email") || resource&.email %>
+
+<div class="w-full bg-secondary_subtle px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+  <div class="mx-auto flex w-full max-w-3xl flex-col justify-center gap-6 sm:gap-8 lg:max-w-4xl">
+    <div class="space-y-2 text-center">
+      <p class="text-sm font-semibold uppercase tracking-wide text-brand-secondary">Unlock account</p>
+      <h1 class="text-display-sm font-semibold text-primary">Resend unlock instructions</h1>
+      <p class="text-sm text-tertiary">Get a new link to unlock your account.</p>
+    </div>
+
+    <div class="rounded-2xl bg-primary p-6 shadow-xl ring-1 ring-secondary sm:p-8 lg:p-10 xl:p-12">
+      <% if resource.errors.any? %>
+        <div class="mb-4 rounded-lg bg-error-primary px-3 py-2 text-sm text-error-primary">
+          <ul class="space-y-1">
+            <% resource.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <%= form_for(resource, as: resource_name, url: unlock_path(resource_name), html: { method: :post, class: "space-y-5 sm:space-y-6" }) do |f| %>
+        <%= render Ui::Input::Component.new(
+          label: "Email",
+          type: "email",
+          name: "#{resource_name}[email]",
+          value: email_value,
+          placeholder: "you@company.com",
+          required: true,
+          size: :md
+        ) %>
+
+        <%= render Ui::Button::Component.new(type: "submit", size: :md, class: "w-full justify-center") do %>
+          Resend unlock instructions
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>

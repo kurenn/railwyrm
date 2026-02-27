@@ -1,0 +1,44 @@
+<% email_value = params.dig(resource_name, :email) || params.dig(resource_name, "email") || resource&.email %>
+
+<div class="w-full bg-primary px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+  <div class="mx-auto flex w-full max-w-4xl items-center justify-center lg:max-w-5xl">
+    <div class="w-full rounded-2xl bg-secondary_subtle p-2 shadow-2xl ring-1 ring-secondary sm:p-3 lg:p-4">
+      <div class="mx-auto rounded-xl bg-primary px-5 py-7 sm:px-8 sm:py-10 lg:max-w-3xl lg:px-12 lg:py-12">
+        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p class="text-sm font-semibold text-brand-secondary">Email confirmation</p>
+            <h1 class="mt-1 text-display-sm font-semibold text-primary">Resend confirmation</h1>
+            <p class="mt-1 text-sm text-tertiary">Get a new account confirmation link.</p>
+          </div>
+          <div class="rounded-lg bg-brand-primary_alt px-3 py-1 text-xs font-semibold text-brand-secondary">Secure</div>
+        </div>
+
+        <% if resource.errors.any? %>
+          <div class="mb-4 rounded-lg bg-error-primary px-3 py-2 text-sm text-error-primary">
+            <ul class="space-y-1">
+              <% resource.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <%= form_for(resource, as: resource_name, url: confirmation_path(resource_name), html: { method: :post, class: "space-y-5 sm:space-y-6" }) do |f| %>
+          <%= render Ui::Input::Component.new(
+            label: "Email",
+            type: "email",
+            name: "#{resource_name}[email]",
+            value: email_value,
+            placeholder: "you@company.com",
+            required: true,
+            size: :md
+          ) %>
+
+          <%= render Ui::Button::Component.new(type: "submit", size: :md, class: "w-full justify-center") do %>
+            Resend confirmation
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

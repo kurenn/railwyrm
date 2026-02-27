@@ -20,7 +20,7 @@ Every generated app includes:
 - PostgreSQL (`rails new --database=postgresql`)
 - RSpec (`gem "rspec-rails"` + `bin/rails generate rspec:install`)
 - Devise sessions (`gem "devise"` + `bin/rails generate devise:install` + `bin/rails generate devise User`)
-- Selectable Devise sign-in layouts (generated with Untitled UI view components, no social login buttons):
+- Selectable Devise auth layouts (sessions, registrations, passwords, confirmations, unlocks) generated with Untitled UI view components and no social login buttons:
   - `simple_minimal`
   - `card_combined`
   - `split_mockup_quote`

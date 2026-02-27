@@ -1,0 +1,52 @@
+<% email_value = params.dig(resource_name, :email) || params.dig(resource_name, "email") || resource&.email %>
+
+<div class="w-full bg-secondary_subtle px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+  <div class="mx-auto grid w-full max-w-7xl overflow-hidden rounded-2xl bg-primary shadow-2xl ring-1 ring-secondary lg:min-h-[44rem] lg:grid-cols-2">
+    <section class="flex items-center px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12">
+      <div class="w-full max-w-lg">
+        <p class="text-sm font-semibold uppercase tracking-wide text-brand-secondary">Unlock account</p>
+        <h1 class="mt-2 text-display-sm font-semibold text-primary">Resend unlock instructions</h1>
+        <p class="mt-2 text-sm text-tertiary">We will send a new unlock link to your email.</p>
+
+        <% if resource.errors.any? %>
+          <div class="mt-5 rounded-lg bg-error-primary px-3 py-2 text-sm text-error-primary">
+            <ul class="space-y-1">
+              <% resource.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <%= form_for(resource, as: resource_name, url: unlock_path(resource_name), html: { method: :post, class: "mt-5 space-y-5" }) do |f| %>
+          <%= render Ui::Input::Component.new(
+            label: "Email",
+            type: "email",
+            name: "#{resource_name}[email]",
+            value: email_value,
+            placeholder: "you@company.com",
+            required: true,
+            size: :md
+          ) %>
+
+          <%= render Ui::Button::Component.new(type: "submit", size: :md, class: "w-full justify-center") do %>
+            Resend unlock instructions
+          <% end %>
+        <% end %>
+      </div>
+    </section>
+
+    <aside class="relative flex flex-col gap-8 border-t border-white/20 bg-brand-section px-6 py-8 text-white sm:px-8 sm:py-10 lg:justify-between lg:border-l lg:border-t-0 lg:px-10 lg:py-12">
+      <div>
+        <p class="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">Account security</p>
+        <h2 class="mt-6 text-display-xs font-semibold text-white">“Unlock flows should feel calm, clear, and secure across every device.”</h2>
+        <p class="mt-4 text-sm text-white/80">Strong security patterns without sacrificing usability.</p>
+      </div>
+
+      <div class="rounded-xl border border-white/20 bg-white/10 p-5">
+        <p class="text-sm font-semibold text-white">Riley Morgan</p>
+        <p class="mt-1 text-xs text-white/70">Platform PM, Northline</p>
+      </div>
+    </aside>
+  </div>
+</div>

@@ -1,0 +1,47 @@
+<div class="w-full bg-secondary_subtle px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+  <div class="mx-auto flex w-full max-w-3xl flex-col justify-center gap-6 sm:gap-8 lg:max-w-4xl">
+    <div class="space-y-2 text-center">
+      <p class="text-sm font-semibold uppercase tracking-wide text-brand-secondary">Choose a new password</p>
+      <h1 class="text-display-sm font-semibold text-primary">Set your new password</h1>
+      <p class="text-sm text-tertiary">Use a strong password you haven't used before.</p>
+    </div>
+
+    <div class="rounded-2xl bg-primary p-6 shadow-xl ring-1 ring-secondary sm:p-8 lg:p-10 xl:p-12">
+      <% if resource.errors.any? %>
+        <div class="mb-4 rounded-lg bg-error-primary px-3 py-2 text-sm text-error-primary">
+          <ul class="space-y-1">
+            <% resource.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :put, class: "space-y-5 sm:space-y-6" }) do |f| %>
+        <%= f.hidden_field :reset_password_token %>
+
+        <%= render Ui::Input::Component.new(
+          label: "New password",
+          type: "password",
+          name: "#{resource_name}[password]",
+          placeholder: "Enter new password",
+          required: true,
+          size: :md
+        ) %>
+
+        <%= render Ui::Input::Component.new(
+          label: "Confirm new password",
+          type: "password",
+          name: "#{resource_name}[password_confirmation]",
+          placeholder: "Repeat new password",
+          required: true,
+          size: :md
+        ) %>
+
+        <%= render Ui::Button::Component.new(type: "submit", size: :md, class: "w-full justify-center") do %>
+          Update password
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>
