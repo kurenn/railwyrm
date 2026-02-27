@@ -1,7 +1,7 @@
 # Railwyrm 🐉
 
 Railwyrm is an epic, colorful, interactive CLI for forging new Rails apps with a production-friendly default stack.
-It is inspired by the feel of Claude CLI, and it can also run as a web server so apps can be created from a browser/API.
+It is inspired by the feel of Claude CLI.
 
 Mascot: **Emberclaw**, the forge-dragon.
 
@@ -10,7 +10,6 @@ Mascot: **Emberclaw**, the forge-dragon.
 - Interactive wizard for fast app setup
 - Colorized terminal output, icons, and animated step feedback
 - Opinionated Rails bootstrap defaults for modern apps
-- Web/API mode for remote app creation workflows
 - Built as a Ruby gem-style CLI project
 
 ## Default Rails Stack
@@ -37,7 +36,7 @@ Every generated app includes:
 ## Quick Start
 
 ```bash
-cd /Users/abrahamkuri/workspace/workspace/railwyrm
+cd /path/to/railwyrm
 bundle install
 ```
 
@@ -74,7 +73,7 @@ bundle exec ruby exe/railwyrm new
 Run non-interactive mode:
 
 ```bash
-bundle exec ruby exe/railwyrm new my_new_app --interactive=false --path /Users/abrahamkuri/workspace/workspace
+bundle exec ruby exe/railwyrm new my_new_app --interactive=false --path /path/to/workspace
 
 # choose a layout non-interactively
 bundle exec ruby exe/railwyrm new my_new_app --interactive=false --sign_in_layout split_mockup_quote
@@ -84,7 +83,6 @@ bundle exec ruby exe/railwyrm new my_new_app --interactive=false --sign_in_layou
 
 ```bash
 bundle exec ruby exe/railwyrm new [APP_NAME]
-bundle exec ruby exe/railwyrm serve --host 0.0.0.0 --port 4567 --workspace /Users/abrahamkuri/workspace/workspace
 bundle exec ruby exe/railwyrm doctor
 bundle exec ruby exe/railwyrm version
 ```
@@ -95,34 +93,6 @@ Common flags:
 - `--verbose` show underlying command output
 - `--dry_run` print commands without executing
 - `--sign_in_layout` choose auth page layout (`simple_minimal`, `card_combined`, `split_mockup_quote`)
-
-## Web Forge Mode
-
-Start the server:
-
-```bash
-bundle exec ruby exe/railwyrm serve --workspace /Users/abrahamkuri/workspace/workspace
-```
-
-Then open:
-
-- [http://localhost:4567](http://localhost:4567)
-
-API endpoints:
-
-- `GET /health`
-- `POST /api/apps` with JSON payload:
-
-```json
-{
-  "name": "my_web_app",
-  "workspace": "/Users/abrahamkuri/workspace/workspace",
-  "devise_user_model": "User",
-  "sign_in_layout": "card_combined"
-}
-```
-
-- `GET /api/jobs/:id`
 
 ## Development
 
@@ -139,7 +109,6 @@ bundle exec rspec
 - `lib/railwyrm/cli.rb` Thor CLI commands
 - `lib/railwyrm/generator.rb` Rails app creation workflow
 - `lib/railwyrm/rails_blueprint.rb` default stack definition and setup steps
-- `lib/railwyrm/server.rb` web/API mode
 - `.codex/skills/*` project-local Codex skills
 - `AGENTS.md` Codex-focused repo instructions
 

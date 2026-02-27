@@ -1,4 +1,4 @@
-# AGENTS.md instructions for /Users/abrahamkuri/workspace/workspace/railwyrm
+# AGENTS.md instructions for <repo-root>
 
 ## Project intent
 
@@ -11,8 +11,8 @@ A skill is a local instruction package in a `SKILL.md` file.
 
 ### Available skills
 
-- ruby-cli-implementation: Implement and maintain Thor-based Ruby CLI workflows, terminal UX, and command orchestration. (file: /Users/abrahamkuri/workspace/workspace/railwyrm/.codex/skills/ruby-cli-implementation/SKILL.md)
-- rails-kickstart-stack: Maintain the Rails bootstrap blueprint and post-generation install pipeline for default gems/features. (file: /Users/abrahamkuri/workspace/workspace/railwyrm/.codex/skills/rails-kickstart-stack/SKILL.md)
+- ruby-cli-implementation: Implement and maintain Thor-based Ruby CLI workflows, terminal UX, and command orchestration. (file: .codex/skills/ruby-cli-implementation/SKILL.md)
+- rails-kickstart-stack: Maintain the Rails bootstrap blueprint and post-generation install pipeline for default gems/features. (file: .codex/skills/rails-kickstart-stack/SKILL.md)
 
 ### Skill trigger rules
 
