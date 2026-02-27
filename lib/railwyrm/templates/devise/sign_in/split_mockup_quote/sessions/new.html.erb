@@ -1,0 +1,87 @@
+<% email_value = params.dig(resource_name, :email) || params.dig(resource_name, "email") || resource&.email %>
+<% remember_checked = params.dig(resource_name, :remember_me).to_s == "1" || params.dig(resource_name, "remember_me").to_s == "1" %>
+
+<div class="flex min-h-screen items-center justify-center bg-secondary_subtle px-4 sm:px-6 lg:px-8">
+  <div class="mx-auto grid w-full max-w-6xl overflow-hidden rounded-2xl bg-primary shadow-2xl ring-1 ring-secondary lg:min-h-[42rem] lg:grid-cols-2">
+    <section class="flex items-center px-6 py-8 sm:px-10">
+      <div class="w-full max-w-md">
+        <p class="text-sm font-semibold uppercase tracking-wide text-brand-secondary">Welcome back</p>
+        <h1 class="mt-2 text-display-sm font-semibold text-primary">Sign in</h1>
+        <p class="mt-2 text-sm text-tertiary">Access your workspace and continue building.</p>
+
+        <% if flash[:alert].present? %>
+          <div class="mt-5 rounded-lg bg-error-primary px-3 py-2 text-sm text-error-primary">
+            <%= flash[:alert] %>
+          </div>
+        <% end %>
+
+        <% if flash[:notice].present? %>
+          <div class="mt-5 rounded-lg bg-success-primary px-3 py-2 text-sm text-success-primary">
+            <%= flash[:notice] %>
+          </div>
+        <% end %>
+
+        <%= form_for(resource, as: resource_name, url: session_path(resource_name), html: { class: "space-y-5" }) do |f| %>
+          <%= render Ui::Input::Component.new(
+            label: "Email",
+            type: "email",
+            name: "#{resource_name}[email]",
+            value: email_value,
+            placeholder: "you@company.com",
+            required: true,
+            size: :md
+          ) %>
+
+          <%= render Ui::Input::Component.new(
+            label: "Password",
+            type: "password",
+            name: "#{resource_name}[password]",
+            placeholder: "••••••••",
+            required: true,
+            size: :md
+          ) %>
+
+          <div class="flex items-center justify-between gap-3">
+            <% if devise_mapping.rememberable? %>
+              <%= render Ui::Checkbox::Component.new(
+                label: "Remember me",
+                name: "#{resource_name}[remember_me]",
+                value: "1",
+                checked: remember_checked,
+                size: :sm
+              ) %>
+            <% end %>
+
+            <% if devise_mapping.recoverable? %>
+              <%= link_to "Forgot password?", new_password_path(resource_name), class: "text-sm font-medium text-brand-secondary hover:text-brand-secondary_hover" %>
+            <% end %>
+          </div>
+
+          <%= render Ui::Button::Component.new(type: "submit", size: :md, class: "w-full justify-center") do %>
+            Sign in
+          <% end %>
+        <% end %>
+
+        <% if devise_mapping.registerable? %>
+          <p class="mt-6 text-sm text-tertiary">
+            Don’t have an account?
+            <%= link_to "Sign up", new_registration_path(resource_name), class: "font-semibold text-brand-secondary hover:text-brand-secondary_hover" %>
+          </p>
+        <% end %>
+      </div>
+    </section>
+
+    <aside class="relative hidden bg-brand-section px-8 py-10 text-white lg:flex lg:flex-col lg:justify-between">
+      <div>
+        <p class="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">Trusted by teams</p>
+        <h2 class="mt-6 text-display-xs font-semibold text-white">“Railwyrm helped us go from idea to deployed app in a single afternoon.”</h2>
+        <p class="mt-4 text-sm text-white/80">A clean auth flow and consistent UI tokens, out of the box.</p>
+      </div>
+
+      <div class="rounded-xl border border-white/20 bg-white/10 p-5">
+        <p class="text-sm font-semibold text-white">Morgan Lee</p>
+        <p class="mt-1 text-xs text-white/70">Head of Product, Northstar Labs</p>
+      </div>
+    </aside>
+  </div>
+</div>
