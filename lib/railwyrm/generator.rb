@@ -4,6 +4,8 @@ require "fileutils"
 
 module Railwyrm
   class Generator
+    RESPONSIVE_MAIN_CLASSES = "w-full min-h-screen flex justify-center".freeze
+
     def initialize(configuration, ui:, shell: nil, blueprint: RailsBlueprint.new)
       @configuration = configuration
       @ui = ui
@@ -123,16 +125,15 @@ module Railwyrm
       return unless File.exist?(layout_path)
 
       layout = File.read(layout_path)
-      match = layout.match(/<main\s+class="([^"]*)">/)
-      return unless match
+      updated = if layout.match?(/<main\s+class="[^"]*">/)
+                  layout.sub(/<main\s+class="[^"]*">/, %(<main class="#{RESPONSIVE_MAIN_CLASSES}">))
+                elsif layout.match?(/<main>/)
+                  layout.sub(/<main>/, %(<main class="#{RESPONSIVE_MAIN_CLASSES}">))
+                else
+                  layout
+                end
 
-      classes = match[1].split(/\s+/)
-      classes.reject! { |klass| klass.start_with?("mt-") }
-      classes << "flex" unless classes.include?("flex")
-      classes << "justify-center" unless classes.include?("justify-center")
-
-      updated = layout.sub(/<main\s+class="[^"]*">/, %(<main class="#{classes.join(' ')}">))
-      File.write(layout_path, updated)
+      File.write(layout_path, updated) unless updated == layout
     end
   end
 end

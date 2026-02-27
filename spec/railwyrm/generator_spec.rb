@@ -63,7 +63,10 @@ RSpec.describe Railwyrm::Generator do
 
       app_layout = File.read(File.join(configuration.app_path, "app/views/layouts/application.html.erb"))
       expect(app_layout).to include("justify-center")
+      expect(app_layout).to include("w-full")
+      expect(app_layout).to include("min-h-screen")
       expect(app_layout).not_to include("mt-28")
+      expect(app_layout).not_to include("container")
     end
   end
 

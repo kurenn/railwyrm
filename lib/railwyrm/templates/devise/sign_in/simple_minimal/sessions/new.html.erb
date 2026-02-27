@@ -1,15 +1,15 @@
 <% email_value = params.dig(resource_name, :email) || params.dig(resource_name, "email") || resource&.email %>
 <% remember_checked = params.dig(resource_name, :remember_me).to_s == "1" || params.dig(resource_name, "remember_me").to_s == "1" %>
 
-<div class="min-h-screen bg-secondary_subtle px-4 sm:px-6 lg:px-8">
-  <div class="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center gap-8">
+<div class="w-full bg-secondary_subtle px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+  <div class="mx-auto flex w-full max-w-3xl flex-col justify-center gap-6 sm:gap-8 lg:max-w-4xl">
     <div class="space-y-2 text-center">
       <p class="text-sm font-semibold uppercase tracking-wide text-brand-secondary">Welcome back</p>
       <h1 class="text-display-sm font-semibold text-primary">Sign in to your account</h1>
       <p class="text-sm text-tertiary">Use your email and password to continue.</p>
     </div>
 
-    <div class="rounded-2xl bg-primary p-8 shadow-xl ring-1 ring-secondary sm:p-10">
+    <div class="rounded-2xl bg-primary p-6 shadow-xl ring-1 ring-secondary sm:p-8 lg:p-10 xl:p-12">
       <% if flash[:alert].present? %>
         <div class="mb-4 rounded-lg bg-error-primary px-3 py-2 text-sm text-error-primary">
           <%= flash[:alert] %>
@@ -22,7 +22,7 @@
         </div>
       <% end %>
 
-      <%= form_for(resource, as: resource_name, url: session_path(resource_name), html: { class: "space-y-6" }) do |f| %>
+      <%= form_for(resource, as: resource_name, url: session_path(resource_name), html: { class: "space-y-5 sm:space-y-6" }) do |f| %>
         <%= render Ui::Input::Component.new(
           label: "Email",
           type: "email",
@@ -42,7 +42,7 @@
           size: :md
         ) %>
 
-        <div class="flex items-center justify-between gap-3">
+        <div class="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <% if devise_mapping.rememberable? %>
             <%= render Ui::Checkbox::Component.new(
               label: "Remember me",
