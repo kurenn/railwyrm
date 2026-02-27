@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ruby CLI Implementation"
+  short_description: "Thor CLI architecture and terminal UX"
+  default_prompt: "Implement or refactor Ruby CLI commands, prompts, and UX in this repository while preserving testability and deterministic behavior."

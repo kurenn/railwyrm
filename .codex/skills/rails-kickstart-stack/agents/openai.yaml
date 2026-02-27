@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rails Kickstart Stack"
+  short_description: "Rails app bootstrap defaults and setup pipeline"
+  default_prompt: "Update the Rails kickstart stack defaults and post-generation setup commands while keeping specs and docs aligned."
