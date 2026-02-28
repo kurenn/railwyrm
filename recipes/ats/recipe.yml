@@ -1,0 +1,298 @@
+id: ats
+name: Applicant Tracking System
+version: 0.1.0
+status: draft
+description: >
+  ATS recipe overlay for Railwyrm-generated apps. Applies hiring workflows,
+  pipeline entities, role-based access foundations, and responsive starter UI.
+
+base_stack:
+  source: railwyrm_default
+  requires:
+    - devise
+    - rspec
+    - tailwindcss
+    - untitled_ui
+
+inputs:
+  organization_name:
+    type: string
+    required: false
+    default: Acme Recruiting
+  with_modules:
+    type: array
+    required: false
+    default: []
+    allowed:
+      - email_provider_sendgrid
+      - background_jobs
+      - resume_parsing
+      - calendar_integration
+      - advanced_reports
+  default_timezone:
+    type: string
+    required: false
+    default: UTC
+
+roles:
+  - admin
+  - recruiter
+  - hiring_manager
+  - interviewer
+
+gems:
+  required:
+    - name: pundit
+    - name: friendly_id
+    - name: rank_model
+  optional_by_module:
+    background_jobs:
+      - name: sidekiq
+    resume_parsing:
+      - name: pdf-reader
+    advanced_reports:
+      - name: groupdate
+
+data_model:
+  enums:
+    job_status:
+      - draft
+      - open
+      - closed
+      - archived
+    application_status:
+      - applied
+      - screening
+      - interview
+      - offer
+      - hired
+      - rejected
+    interview_kind:
+      - phone_screen
+      - technical
+      - hiring_manager
+      - final_round
+      - culture
+  models:
+    company:
+      fields:
+        - name:string
+        - slug:string:index:uniq
+    team:
+      fields:
+        - company:references
+        - name:string
+    membership:
+      fields:
+        - user:references
+        - team:references
+        - role:integer
+    department:
+      fields:
+        - company:references
+        - name:string
+    job_posting:
+      fields:
+        - company:references
+        - department:references
+        - title:string
+        - slug:string:index:uniq
+        - location:string
+        - employment_type:string
+        - salary_min:integer
+        - salary_max:integer
+        - status:integer:default(0)
+        - description:text
+        - requirements:text
+        - opened_at:datetime
+        - closed_at:datetime
+    pipeline_stage:
+      fields:
+        - job_posting:references
+        - name:string
+        - position:integer
+        - kind:integer
+    candidate:
+      fields:
+        - company:references
+        - first_name:string
+        - last_name:string
+        - email:string:index
+        - phone:string
+        - location:string
+        - linkedin_url:string
+        - portfolio_url:string
+        - source:string
+        - notes:text
+    application:
+      fields:
+        - candidate:references
+        - job_posting:references
+        - pipeline_stage:references
+        - owner:references{to_table=users}
+        - status:integer:default(0)
+        - applied_at:datetime
+        - rejected_at:datetime
+        - hired_at:datetime
+    application_event:
+      fields:
+        - application:references
+        - actor:references{to_table=users}
+        - event_type:string
+        - metadata:jsonb
+        - occurred_at:datetime
+    interview:
+      fields:
+        - application:references
+        - interviewer:references{to_table=users}
+        - kind:integer
+        - starts_at:datetime
+        - ends_at:datetime
+        - location:string
+        - meeting_url:string
+    feedback:
+      fields:
+        - interview:references
+        - reviewer:references{to_table=users}
+        - score:integer
+        - recommendation:string
+        - strengths:text
+        - concerns:text
+        - summary:text
+    offer:
+      fields:
+        - application:references
+        - salary:integer
+        - equity:string
+        - starts_on:date
+        - status:string
+        - sent_at:datetime
+        - responded_at:datetime
+    candidate_tag:
+      fields:
+        - company:references
+        - name:string
+        - color:string
+    candidate_taggings:
+      fields:
+        - candidate:references
+        - candidate_tag:references
+
+scaffolding_plan:
+  migrations:
+    strategy: explicit_generators_then_manual_tuning
+  commands:
+    - bin/rails generate pundit:install
+    - bin/rails generate model Company name:string slug:string:index{unique}
+    - bin/rails generate model Team company:references name:string
+    - bin/rails generate model Membership user:references team:references role:integer
+    - bin/rails generate model Department company:references name:string
+    - bin/rails generate model JobPosting company:references department:references title:string slug:string:index{unique} location:string employment_type:string salary_min:integer salary_max:integer status:integer description:text requirements:text opened_at:datetime closed_at:datetime
+    - bin/rails generate model PipelineStage job_posting:references name:string position:integer kind:integer
+    - bin/rails generate model Candidate company:references first_name:string last_name:string email:string:index phone:string location:string linkedin_url:string portfolio_url:string source:string notes:text
+    - bin/rails generate model Application candidate:references job_posting:references pipeline_stage:references owner:references{polymorphic} status:integer applied_at:datetime rejected_at:datetime hired_at:datetime
+    - bin/rails generate model ApplicationEvent application:references actor:references{polymorphic} event_type:string metadata:jsonb occurred_at:datetime
+    - bin/rails generate model Interview application:references interviewer:references{polymorphic} kind:integer starts_at:datetime ends_at:datetime location:string meeting_url:string
+    - bin/rails generate model Feedback interview:references reviewer:references{polymorphic} score:integer recommendation:string strengths:text concerns:text summary:text
+    - bin/rails generate model Offer application:references salary:integer equity:string starts_on:date status:string sent_at:datetime responded_at:datetime
+    - bin/rails generate model CandidateTag company:references name:string color:string
+    - bin/rails generate model CandidateTagging candidate:references candidate_tag:references
+    - bin/rails db:migrate
+
+ui_overlays:
+  copies:
+    - from: recipes/ats/templates/views
+      to: app/views
+    - from: recipes/ats/templates/components
+      to: app/components
+  starter_pages:
+    - dashboard
+    - jobs index/show
+    - pipeline board
+    - candidates index/show
+    - interviews calendar/list
+    - reports overview
+
+routes:
+  authenticated:
+    - type: root
+      to: ats/dashboard#show
+      as: authenticated_root
+    - type: resources
+      name: job_postings
+      nested:
+        - type: resources
+          name: pipeline_stages
+          only: [create, update, destroy]
+        - type: resources
+          name: applications
+          only: [index, create]
+    - type: resources
+      name: candidates
+      nested:
+        - type: resources
+          name: applications
+          only: [index]
+    - type: resources
+      name: applications
+      only: [show, update]
+      nested:
+        - type: resources
+          name: interviews
+          only: [create, update, destroy]
+        - type: resources
+          name: feedbacks
+          only: [create, update]
+        - type: resources
+          name: offers
+          only: [create, update]
+    - type: get
+      path: reports
+      to: ats/reports#index
+  public:
+    - type: resources
+      name: careers
+      only: [index, show]
+      controller: public/careers
+
+authorization:
+  policy_system: pundit
+  baseline_policies:
+    - job_posting_policy
+    - candidate_policy
+    - application_policy
+    - interview_policy
+    - report_policy
+
+seed_data:
+  create_demo_data: true
+  fixtures:
+    - 1 company
+    - 5 users across roles
+    - 4 job postings
+    - 25 candidates
+    - 40 applications with stage distribution
+    - 12 interviews
+    - 8 feedback entries
+  file: recipes/ats/templates/seeds/ats.seeds.rb
+
+ai_assets:
+  agents:
+    - recipes/ats/agents/README.md
+  skills:
+    - recipes/ats/skills/README.md
+  prompts:
+    - recipes/ats/prompt.md
+  playbooks:
+    - recipes/ats/playbooks/README.md
+
+quality_gates:
+  required_commands:
+    - bundle exec rspec
+    - bin/rails routes
+    - bin/rails zeitwerk:check
+  acceptance_checks:
+    - "Auth works for recruiter role"
+    - "Pipeline stage movement persists"
+    - "Application status transitions are audited"
+    - "All ATS pages are responsive (mobile + desktop)"

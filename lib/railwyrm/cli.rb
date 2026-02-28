@@ -4,11 +4,34 @@ require "open3"
 
 module Railwyrm
   class CLI < Thor
+    class Recipes < Thor
+      package_name "railwyrm recipes"
+
+      desc "validate [RECIPE_PATH]", "Validate a recipe.yml file against Railwyrm schema v0"
+      def validate(recipe_path = "recipe.yml")
+        ui = UI::Console.new(verbose: false)
+        path = File.expand_path(recipe_path)
+        result = RecipeSchema.new.validate_file(path)
+
+        if result.valid?
+          ui.success("Recipe is valid: #{path}")
+          return
+        end
+
+        ui.error("Recipe validation failed: #{path}")
+        result.errors.each { |error| ui.warn(error) }
+        exit(1)
+      end
+    end
+
     package_name "railwyrm"
 
     class_option :no_banner, type: :boolean, default: false, desc: "Hide banner"
     class_option :verbose, type: :boolean, default: false, desc: "Stream command output"
     class_option :dry_run, type: :boolean, default: false, desc: "Print commands without executing"
+
+    desc "recipes SUBCOMMAND ...ARGS", "Recipe definition commands"
+    subcommand "recipes", Recipes
 
     desc "new [APP_NAME]", "Create a new Rails app with the Railwyrm default stack"
     option :path, aliases: "-p", type: :string, default: Dir.pwd, desc: "Workspace path"

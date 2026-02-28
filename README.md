@@ -93,6 +93,7 @@ bundle exec ruby exe/railwyrm new my_new_app --interactive=false --sign_in_layou
 
 ```bash
 bundle exec ruby exe/railwyrm new [APP_NAME]
+bundle exec ruby exe/railwyrm recipes validate [RECIPE_PATH]
 bundle exec ruby exe/railwyrm doctor
 bundle exec ruby exe/railwyrm version
 ```
@@ -142,3 +143,31 @@ Draft recipe specs and prompt-driven test harnesses live under `recipes/`.
 
 These are currently design-time assets for planning and prompt testing before
 native recipe execution is added to the CLI.
+
+### Recipe Schema v0
+
+`railwyrm recipes validate` enforces a strict top-level `recipe.yml` contract.
+
+Required top-level keys:
+
+- `id`
+- `name`
+- `version`
+- `status`
+- `description`
+- `base_stack`
+- `inputs`
+- `roles`
+- `gems`
+- `data_model`
+- `scaffolding_plan`
+- `ui_overlays`
+- `routes`
+- `authorization`
+- `seed_data`
+- `quality_gates`
+- `ai_assets`
+
+The validator also enforces key nested structures for deterministic recipes,
+including `base_stack.requires`, `scaffolding_plan.commands`, and
+`ai_assets` (`agents`, `skills`, `prompts`, `playbooks`).
