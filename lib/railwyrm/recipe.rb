@@ -47,6 +47,26 @@ module Railwyrm
       data.fetch("seed_data").fetch("file")
     end
 
+    def quality_gate_commands
+      quality_gates = data["quality_gates"]
+      return [] unless quality_gates.is_a?(Hash)
+
+      commands = quality_gates["required_commands"]
+      return [] unless commands.is_a?(Array)
+
+      commands
+    end
+
+    def metadata
+      {
+        "id" => data["id"],
+        "name" => data["name"],
+        "version" => data["version"],
+        "status" => data["status"],
+        "description" => data["description"]
+      }
+    end
+
     def resolve_reference_path(reference)
       return File.expand_path(reference) if reference.start_with?("/", "./", "../")
 

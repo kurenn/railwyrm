@@ -40,6 +40,8 @@ module Railwyrm
         install_seed_data!
       end
 
+      run_quality_gates!
+
       ui.success("Recipe apply complete for #{recipe.id}")
       true
     end
@@ -106,6 +108,18 @@ module Railwyrm
       joined = seeds_content.rstrip
       updated = joined.empty? ? "#{loader_line}\n" : "#{joined}\n#{loader_line}\n"
       File.write(seeds_path, updated)
+    end
+
+    def run_quality_gates!
+      commands = recipe.quality_gate_commands
+      return if commands.empty?
+
+      ui.headline("Running quality gates for #{recipe.id}")
+      commands.each_with_index do |command, index|
+        ui.step("Quality gate #{index + 1}/#{commands.length}") do
+          shell.run!(*Shellwords.split(command), chdir: workspace)
+        end
+      end
     end
   end
 end

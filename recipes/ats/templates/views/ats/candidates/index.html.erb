@@ -1,0 +1,23 @@
+<section class="mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p class="text-sm font-medium text-brand-secondary">Candidates</p>
+      <h1 class="mt-1 text-display-sm font-semibold text-primary">Candidate directory</h1>
+      <p class="mt-2 text-sm text-tertiary">Review candidate profiles and current stage assignment.</p>
+    </div>
+    <%= render Ui::Button::Component.new(size: :sm) do %>
+      Add candidate
+    <% end %>
+  </header>
+
+  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <% [["Sam Rivera", "sam@example.com", "Interview"], ["Mina Park", "mina@example.com", "Screening"], ["Jordan Lee", "jordan@example.com", "Offer"]].each do |candidate| %>
+      <article class="rounded-xl border border-secondary bg-primary p-5 shadow-sm">
+        <h2 class="text-base font-semibold text-primary"><%= candidate[0] %></h2>
+        <p class="mt-1 text-sm text-secondary"><%= candidate[1] %></p>
+        <p class="mt-3 text-xs font-medium uppercase tracking-wide text-tertiary">Current stage</p>
+        <p class="text-sm font-semibold text-brand-secondary"><%= candidate[2] %></p>
+      </article>
+    <% end %>
+  </div>
+</section>

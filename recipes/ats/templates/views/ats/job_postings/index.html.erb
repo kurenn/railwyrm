@@ -1,0 +1,35 @@
+<section class="mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p class="text-sm font-medium text-brand-secondary">Jobs</p>
+      <h1 class="mt-1 text-display-sm font-semibold text-primary">Open job postings</h1>
+      <p class="mt-2 text-sm text-tertiary">Manage open roles and stage throughput.</p>
+    </div>
+    <%= render Ui::Button::Component.new(size: :sm) do %>
+      New job posting
+    <% end %>
+  </header>
+
+  <div class="overflow-hidden rounded-xl border border-secondary bg-primary shadow-sm">
+    <table class="min-w-full divide-y divide-secondary">
+      <thead class="bg-secondary_subtle">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-tertiary">Role</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-tertiary">Department</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-tertiary">Location</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-tertiary">Pipeline</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-secondary">
+        <% [["Staff Engineer", "Engineering", "Remote", "24 active"], ["Product Designer", "Design", "New York", "11 active"], ["Account Executive", "Sales", "Austin", "16 active"]].each do |row| %>
+          <tr>
+            <td class="px-4 py-3 text-sm font-medium text-primary"><%= row[0] %></td>
+            <td class="px-4 py-3 text-sm text-secondary"><%= row[1] %></td>
+            <td class="px-4 py-3 text-sm text-secondary"><%= row[2] %></td>
+            <td class="px-4 py-3 text-sm text-secondary"><%= row[3] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

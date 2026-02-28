@@ -76,6 +76,14 @@ RSpec.describe Railwyrm::CLI do
     end
   end
 
+  it "lists available recipes" do
+    expect { described_class.start(["recipes", "list"]) }.not_to raise_error
+  end
+
+  it "shows a recipe by name" do
+    expect { described_class.start(["recipes", "show", "ats"]) }.not_to raise_error
+  end
+
   it "passes dry-run mode to shell when applying recipes" do
     Dir.mktmpdir do |dir|
       path = File.join(dir, "recipe.yml")
@@ -105,6 +113,11 @@ RSpec.describe Railwyrm::CLI do
       expect { described_class.start(["recipes", "validate", path]) }
         .to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
     end
+  end
+
+  it "exits with a non-zero status for unknown recipe in show" do
+    expect { described_class.start(["recipes", "show", "does_not_exist"]) }
+      .to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
   end
 
   it "applies a named recipe during new flow" do

@@ -16,7 +16,7 @@ RSpec.describe Railwyrm::RecipeExecutor do
     end
   end
 
-  def recipe_with_commands(commands)
+  def recipe_with_commands(commands, quality_gates: [])
     Railwyrm::Recipe.new(
       path: "/tmp/recipe.yml",
       data: {
@@ -25,20 +25,21 @@ RSpec.describe Railwyrm::RecipeExecutor do
         "version" => "0.1.0",
         "scaffolding_plan" => { "commands" => commands },
         "ui_overlays" => { "copies" => [] },
-        "seed_data" => { "file" => __FILE__ }
+        "seed_data" => { "file" => __FILE__ },
+        "quality_gates" => { "required_commands" => quality_gates }
       }
     )
   end
 
   it "produces a deterministic plan in recipe order" do
     recipe = recipe_with_commands(["echo first", "echo second"])
-      executor = described_class.new(
-        recipe,
-        workspace: "/tmp",
-        ui: Railwyrm::UI::Buffer.new,
-        shell: RecipeExecutorFakeShell.new,
-        dry_run: true
-      )
+    executor = described_class.new(
+      recipe,
+      workspace: "/tmp",
+      ui: Railwyrm::UI::Buffer.new,
+      shell: RecipeExecutorFakeShell.new,
+      dry_run: true
+    )
 
     plan = executor.plan
 
@@ -137,7 +138,8 @@ RSpec.describe Railwyrm::RecipeExecutor do
                 { "from" => "recipes/ats/templates/views", "to" => "app/views" }
               ]
             },
-            "seed_data" => { "file" => "recipes/ats/templates/seeds/ats.seeds.rb" }
+            "seed_data" => { "file" => "recipes/ats/templates/seeds/ats.seeds.rb" },
+            "quality_gates" => { "required_commands" => [] }
           }
         )
 
@@ -159,6 +161,25 @@ RSpec.describe Railwyrm::RecipeExecutor do
         expect(File).to exist(copied_seed)
         expect(seeds_rb).to include("load Rails.root.join(\"db/seeds/ats.seeds.rb\")")
       end
+    end
+  end
+
+  it "runs quality gate commands after scaffold commands" do
+    Dir.mktmpdir do |workspace|
+      shell = RecipeExecutorFakeShell.new
+      recipe = recipe_with_commands(["echo build"], quality_gates: ["echo gate_one", "echo gate_two"])
+      executor = described_class.new(
+        recipe,
+        workspace: workspace,
+        ui: Railwyrm::UI::Buffer.new,
+        shell: shell,
+        dry_run: false
+      )
+
+      executor.apply!
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed).to eq(["echo build", "echo gate_one", "echo gate_two"])
     end
   end
 end

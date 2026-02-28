@@ -7,10 +7,70 @@ module Railwyrm
     class Recipes < Thor
       package_name "railwyrm recipes"
 
+      desc "list", "List available recipes"
+      def list
+        ui = UI::Console.new(verbose: false)
+        recipes = discover_recipe_paths.sort.filter_map do |recipe_path|
+          begin
+            recipe = Recipe.load(recipe_path)
+            {
+              id: recipe.id,
+              name: recipe.metadata["name"],
+              version: recipe.version,
+              status: recipe.metadata["status"],
+              path: recipe.path
+            }
+          rescue StandardError => e
+            ui.warn("Skipping invalid recipe at #{recipe_path}: #{e.message}")
+            nil
+          end
+        end
+
+        if recipes.empty?
+          ui.warn("No recipes found.")
+          return
+        end
+
+        ui.headline("Available recipes")
+        recipes.each do |recipe|
+          ui.info("#{recipe[:id]}@#{recipe[:version]} [#{recipe[:status]}] - #{recipe[:name]}")
+          ui.info("  #{recipe[:path]}")
+        end
+      end
+
+      desc "show RECIPE", "Show recipe metadata, modules, commands, and quality gates"
+      def show(recipe_ref)
+        ui = UI::Console.new(verbose: false)
+        recipe = load_recipe(recipe_ref)
+        data = recipe.data
+
+        ui.headline("#{recipe.id}@#{recipe.version}")
+        ui.info("Name: #{data['name']}")
+        ui.info("Status: #{data['status']}")
+        ui.info("Path: #{recipe.path}")
+        ui.info("Description: #{data['description']}")
+
+        modules = data.dig("inputs", "with_modules", "allowed")
+        if modules.is_a?(Array) && !modules.empty?
+          ui.info("Modules: #{modules.join(', ')}")
+        end
+
+        commands = recipe.scaffolding_commands
+        ui.info("Scaffolding commands: #{commands.length}")
+        commands.each_with_index { |command, index| ui.info("  #{index + 1}. #{command}") }
+
+        gates = recipe.quality_gate_commands
+        ui.info("Quality gates: #{gates.length}")
+        gates.each_with_index { |command, index| ui.info("  #{index + 1}. #{command}") }
+      rescue StandardError => e
+        ui.error(e.message)
+        exit(1)
+      end
+
       desc "validate [RECIPE_PATH]", "Validate a recipe.yml file against Railwyrm schema v0"
       def validate(recipe_path = "recipe.yml")
         ui = UI::Console.new(verbose: false)
-        path = File.expand_path(recipe_path)
+        path = resolve_recipe_path(recipe_path)
         result = RecipeSchema.new.validate_file(path)
 
         if result.valid?
@@ -67,7 +127,7 @@ module Railwyrm
       private
 
       def load_recipe(recipe_path)
-        Recipe.load(recipe_path)
+        Recipe.load(resolve_recipe_path(recipe_path))
       end
 
       def effective_dry_run?
@@ -80,6 +140,35 @@ module Railwyrm
 
       def truthy_option?(value)
         value == true
+      end
+
+      def discover_recipe_paths
+        Dir.glob(File.join(recipes_root, "*", "recipe.yml"))
+      end
+
+      def recipes_root
+        File.join(repo_root, "recipes")
+      end
+
+      def repo_root
+        File.expand_path("../..", __dir__)
+      end
+
+      def resolve_recipe_path(recipe_ref)
+        raw = recipe_ref.to_s.strip
+        raise InvalidConfiguration, "Recipe value cannot be empty" if raw.empty?
+
+        if raw.end_with?(".yml") || raw.include?(File::SEPARATOR) || raw.start_with?(".", "~")
+          path = File.expand_path(raw)
+          raise InvalidConfiguration, "Recipe file not found: #{path}" unless File.exist?(path)
+
+          return path
+        end
+
+        named_path = File.join(recipes_root, raw, "recipe.yml")
+        raise InvalidConfiguration, "Unknown recipe '#{raw}'. Expected #{named_path}" unless File.exist?(named_path)
+
+        named_path
       end
     end
 

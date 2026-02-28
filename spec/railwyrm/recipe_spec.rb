@@ -74,6 +74,13 @@ RSpec.describe Railwyrm::Recipe do
       expect(recipe.path).to eq(File.expand_path(path))
       expect(recipe.ui_overlay_copies).to eq([{ "from" => "recipes/ats/templates/views", "to" => "app/views" }])
       expect(recipe.seed_data_file).to eq("recipes/ats/templates/seeds/ats.seeds.rb")
+      expect(recipe.quality_gate_commands).to eq(["bundle exec rspec"])
+      expect(recipe.metadata).to include(
+        "id" => "ats",
+        "name" => "Applicant Tracking System",
+        "version" => "0.1.0",
+        "status" => "draft"
+      )
     end
   end
 

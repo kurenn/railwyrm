@@ -1,0 +1,16 @@
+<section class="mx-auto w-full max-w-6xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
+  <header class="space-y-2">
+    <p class="text-sm font-medium text-brand-secondary">Careers</p>
+    <h1 class="text-display-md font-semibold text-primary">Join our team</h1>
+    <p class="text-sm text-tertiary">Open opportunities across product, engineering, and operations.</p>
+  </header>
+
+  <div class="space-y-4">
+    <% [["Staff Engineer", "Remote", "Engineering"], ["Product Designer", "New York", "Design"], ["Account Executive", "Austin", "Sales"]].each do |role| %>
+      <article class="rounded-xl border border-secondary bg-primary p-5 shadow-sm">
+        <h2 class="text-lg font-semibold text-primary"><%= role[0] %></h2>
+        <p class="mt-1 text-sm text-secondary"><%= role[2] %> • <%= role[1] %></p>
+      </article>
+    <% end %>
+  </div>
+</section>

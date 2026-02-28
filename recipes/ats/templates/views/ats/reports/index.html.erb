@@ -1,0 +1,19 @@
+<section class="mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-sm font-medium text-brand-secondary">Reports</p>
+      <h1 class="mt-1 text-display-sm font-semibold text-primary">Hiring performance</h1>
+      <p class="mt-2 text-sm text-tertiary">Review funnel conversion and team-level throughput.</p>
+    </div>
+    <%= render Ui::Button::Component.new(variant: :secondary, size: :sm) do %>
+      Export CSV
+    <% end %>
+  </header>
+
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <%= render "ats/shared/metric_card", title: "Applications", value: "214", subtitle: "Last 30 days" %>
+    <%= render "ats/shared/metric_card", title: "Interview pass rate", value: "42%", subtitle: "+4% vs previous" %>
+    <%= render "ats/shared/metric_card", title: "Offer acceptance", value: "78%", subtitle: "7 offers accepted" %>
+    <%= render "ats/shared/metric_card", title: "Median time-to-hire", value: "26 days", subtitle: "Across open roles" %>
+  </div>
+</section>

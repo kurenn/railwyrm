@@ -1,0 +1,54 @@
+<section class="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p class="text-sm font-medium text-brand-secondary">ATS Dashboard</p>
+      <h1 class="mt-1 text-display-sm font-semibold text-primary">Hiring operations at a glance</h1>
+      <p class="mt-2 text-sm text-tertiary">Track pipeline health, active roles, and hiring velocity.</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <%= render Ui::Button::Component.new(variant: :secondary, size: :sm) do %>
+        Invite interviewer
+      <% end %>
+      <%= render Ui::Button::Component.new(size: :sm) do %>
+        Create job posting
+      <% end %>
+    </div>
+  </header>
+
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <%= render "ats/shared/metric_card", title: "Open roles", value: "12", subtitle: "+2 this week" %>
+    <%= render "ats/shared/metric_card", title: "Active candidates", value: "87", subtitle: "Across all stages" %>
+    <%= render "ats/shared/metric_card", title: "Interviews this week", value: "26", subtitle: "9 pending feedback" %>
+    <%= render "ats/shared/metric_card", title: "Time to hire", value: "24 days", subtitle: "-3 days vs last month" %>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-2">
+    <section class="rounded-xl border border-secondary bg-primary p-5 shadow-sm">
+      <h2 class="text-lg font-semibold text-primary">Pipeline movement</h2>
+      <p class="mt-1 text-sm text-tertiary">Candidates moved in the last 7 days.</p>
+      <ul class="mt-4 space-y-3">
+        <li class="flex items-center justify-between">
+          <span class="text-sm text-secondary">Applied → Screening</span>
+          <span class="text-sm font-semibold text-primary">18</span>
+        </li>
+        <li class="flex items-center justify-between">
+          <span class="text-sm text-secondary">Screening → Interview</span>
+          <span class="text-sm font-semibold text-primary">12</span>
+        </li>
+        <li class="flex items-center justify-between">
+          <span class="text-sm text-secondary">Interview → Offer</span>
+          <span class="text-sm font-semibold text-primary">4</span>
+        </li>
+      </ul>
+    </section>
+
+    <section class="rounded-xl border border-secondary bg-primary p-5 shadow-sm">
+      <h2 class="text-lg font-semibold text-primary">Recent activity</h2>
+      <ul class="mt-4 space-y-3 text-sm text-secondary">
+        <li>Offer accepted by <strong class="text-primary">Sam Rivera</strong> for Senior Designer.</li>
+        <li>New application from <strong class="text-primary">Jordan Lee</strong> for Staff Engineer.</li>
+        <li>Interview feedback submitted for <strong class="text-primary">Mina Park</strong>.</li>
+      </ul>
+    </section>
+  </div>
+</section>

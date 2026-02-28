@@ -94,6 +94,8 @@ bundle exec ruby exe/railwyrm new my_new_app --interactive=false --sign_in_layou
 ```bash
 bundle exec ruby exe/railwyrm new [APP_NAME]
 bundle exec ruby exe/railwyrm new [APP_NAME] --recipe ats
+bundle exec ruby exe/railwyrm recipes list
+bundle exec ruby exe/railwyrm recipes show ats
 bundle exec ruby exe/railwyrm recipes validate [RECIPE_PATH]
 bundle exec ruby exe/railwyrm recipes plan [RECIPE_PATH] --workspace /path/to/app
 bundle exec ruby exe/railwyrm recipes apply [RECIPE_PATH] --workspace /path/to/app
@@ -189,7 +191,13 @@ including `base_stack.requires`, `scaffolding_plan.commands`, and
 - `apply` also executes recipe file operations:
   - copies `ui_overlays.copies[*]` sources into target app paths
   - installs `seed_data.file` into `db/seeds/<recipe>.seeds.rb` and loads it from `db/seeds.rb`
+- `apply` runs `quality_gates.required_commands` after scaffolding and asset install
 - Use `--dry_run` with `apply` to preview command execution without running commands
+
+### Recipe Discovery
+
+- `railwyrm recipes list` shows available recipes under `recipes/*/recipe.yml`
+- `railwyrm recipes show <recipe>` shows metadata, modules, scaffold command list, and quality gates
 
 ### ATS Reference Flow
 

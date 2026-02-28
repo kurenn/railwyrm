@@ -1,0 +1,30 @@
+<section class="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+  <header>
+    <p class="text-sm font-medium text-brand-secondary">Candidate profile</p>
+    <h1 class="mt-1 text-display-sm font-semibold text-primary">Sam Rivera</h1>
+    <p class="mt-2 text-sm text-tertiary">sam@example.com • San Francisco, CA</p>
+  </header>
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <section class="rounded-xl border border-secondary bg-primary p-5 shadow-sm lg:col-span-2">
+      <h2 class="text-lg font-semibold text-primary">Application timeline</h2>
+      <ol class="mt-4 space-y-3 text-sm text-secondary">
+        <li><strong class="text-primary">Applied</strong> — 7 days ago</li>
+        <li><strong class="text-primary">Screening completed</strong> — 5 days ago</li>
+        <li><strong class="text-primary">Technical interview</strong> — scheduled tomorrow</li>
+      </ol>
+    </section>
+
+    <aside class="rounded-xl border border-secondary bg-primary p-5 shadow-sm">
+      <h2 class="text-base font-semibold text-primary">Actions</h2>
+      <div class="mt-4 space-y-3">
+        <%= render Ui::Button::Component.new(size: :sm, class: "w-full justify-center") do %>
+          Move to next stage
+        <% end %>
+        <%= render Ui::Button::Component.new(variant: :secondary, size: :sm, class: "w-full justify-center") do %>
+          Request feedback
+        <% end %>
+      </div>
+    </aside>
+  </div>
+</section>

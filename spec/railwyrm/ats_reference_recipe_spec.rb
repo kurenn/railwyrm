@@ -49,6 +49,29 @@ RSpec.describe "ATS reference recipe" do
     end
   end
 
+  it "ships real starter ats view overlays and seeds" do
+    expected_files = [
+      "recipes/ats/templates/views/ats/dashboard/show.html.erb",
+      "recipes/ats/templates/views/ats/job_postings/index.html.erb",
+      "recipes/ats/templates/views/ats/job_postings/show.html.erb",
+      "recipes/ats/templates/views/ats/candidates/index.html.erb",
+      "recipes/ats/templates/views/ats/candidates/show.html.erb",
+      "recipes/ats/templates/views/ats/pipeline_board/show.html.erb",
+      "recipes/ats/templates/views/ats/reports/index.html.erb",
+      "recipes/ats/templates/views/public/careers/index.html.erb",
+      "recipes/ats/templates/views/public/careers/show.html.erb",
+      "recipes/ats/templates/seeds/ats.seeds.rb"
+    ]
+
+    expected_files.each do |relative_path|
+      full_path = File.join(repo_root, relative_path)
+      expect(File).to exist(full_path), "Expected starter asset to exist: #{relative_path}"
+    end
+
+    seeds_content = File.read(File.join(repo_root, "recipes/ats/templates/seeds/ats.seeds.rb"))
+    expect(seeds_content).to include("AtsSeeds.run")
+  end
+
   it "supports dry-run apply without mutating workspace" do
     recipe = Railwyrm::Recipe.load(recipe_path)
 
