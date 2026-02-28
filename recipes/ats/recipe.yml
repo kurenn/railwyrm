@@ -47,7 +47,7 @@ gems:
     - name: rank_model
   optional_by_module:
     background_jobs:
-      - name: sidekiq
+      - name: solid_queue
     resume_parsing:
       - name: pdf-reader
     advanced_reports:

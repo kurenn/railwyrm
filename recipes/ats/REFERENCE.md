@@ -5,6 +5,8 @@ This recipe is the Railwyrm reference implementation for recipe-driven app expan
 ## Acceptance Contract
 
 - Recipe validates with `railwyrm recipes validate recipes/ats/recipe.yml`
+- UI baseline uses `untitled_ui` components
+- Background jobs module uses Solid Queue (`solid_queue`)
 - Recipe plan is deterministic and stable:
   - first command: `bin/rails generate pundit:install`
   - last command: `bin/rails db:migrate`

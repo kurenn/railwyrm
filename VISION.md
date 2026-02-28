@@ -46,9 +46,10 @@ Each recipe must ship with:
 - Deterministic scaffold and install flow
 - Core domain schema, routes, and seed data
 - Authentication and role baseline
-- Responsive UI baseline with accessibility sanity checks
+- Responsive UI baseline with accessibility sanity checks using `untitled_ui`
 - Test suite and validation checks that pass on generation
 - Deployment and observability baseline
+- Background jobs module standard based on Solid Queue (`solid_queue`)
 - AI assets organized by convention (`agents/`, `skills/`, `prompts/`, `playbooks/`)
 
 ## Operating Cadence

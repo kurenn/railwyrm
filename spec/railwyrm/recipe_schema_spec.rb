@@ -21,7 +21,7 @@ RSpec.describe Railwyrm::RecipeSchema do
       "gems" => {
         "required" => [{ "name" => "pundit" }],
         "optional_by_module" => {
-          "background_jobs" => [{ "name" => "sidekiq" }]
+          "background_jobs" => [{ "name" => "solid_queue" }]
         }
       },
       "data_model" => {

@@ -147,6 +147,11 @@ Recipe specs and prompt-driven harnesses live under `recipes/`.
 ATS is the reference implementation for recipe contract, plan/apply flow, and
 asset structure.
 
+Recipe standards:
+
+- UI assets in recipes should be implemented with `untitled_ui` components.
+- Background jobs modules should use Solid Queue (`solid_queue`).
+
 ### Recipe Schema v0
 
 `railwyrm recipes validate` enforces a strict top-level `recipe.yml` contract.

@@ -22,10 +22,11 @@ Hard requirements:
    - candidates index/show
    - application pipeline board
    - reports overview
-4) Use Untitled UI view components where possible.
+4) Use Untitled UI view components for ATS pages.
 5) Keep pages fully responsive (mobile-first Tailwind classes).
 6) Add seed data for realistic local demo.
 7) Keep implementation explicit and maintainable; avoid giant monolithic files.
+8) If background jobs are needed, use Solid Queue (`solid_queue`) instead of Sidekiq.
 
 Delivery constraints:
 - No inline CSS.
@@ -62,4 +63,3 @@ cd /tmp/ats_test
 
 # 3) paste the prompt above into Codex/Claude and execute
 ```
-
