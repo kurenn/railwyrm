@@ -12,6 +12,16 @@ Mascot: **Emberclaw**, the forge-dragon.
 - Opinionated Rails bootstrap defaults for modern apps
 - Built as a Ruby gem-style CLI project
 
+## Product Vision
+
+Railwyrm's north star is to kickstart production-ready Rails apps and make feature expansion AI-native with recipe-specific expert assets.
+
+- Reproducible base apps first
+- AI-assisted feature delivery second
+- Safe, versioned evolution over one-off generation
+
+See [VISION.md](VISION.md) for scope, principles, metrics, and recipe contract.
+
 ## Default Rails Stack
 
 Every generated app includes:

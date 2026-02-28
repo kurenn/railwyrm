@@ -5,6 +5,12 @@
 Railwyrm is a Ruby CLI + web API that bootstraps Rails apps with an opinionated default stack.
 Keep UX interactive, command flow deterministic, and generated output reproducible.
 
+## Canonical product reference
+
+- Treat `VISION.md` as the source of truth for product direction.
+- When proposing roadmap items, recipe changes, or feature workflow behavior, align decisions to `VISION.md` (scope, principles, metrics, recipe contract).
+- If a request conflicts with `VISION.md`, call out the conflict and propose a `VISION.md` update or an explicit exception.
+
 ## Skills
 
 A skill is a local instruction package in a `SKILL.md` file.
