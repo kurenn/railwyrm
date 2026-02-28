@@ -99,12 +99,15 @@ module Railwyrm
     option :sign_in_layout, type: :string, default: "card_combined",
                             desc: "Sign-in layout: simple_minimal, card_combined, split_mockup_quote"
     option :skip_devise_user, type: :boolean, default: false, desc: "Skip creating the Devise model"
+    option :recipe, type: :string, desc: "Recipe name (e.g. ats) or path to recipe.yml"
     def new(app_name = nil)
       ui = UI::Console.new(verbose: options[:verbose])
       UI::Banner.new.render unless options[:no_banner]
 
       config = build_configuration(app_name, ui: ui)
+      recipe = load_recipe_for_new(options[:recipe], ui: ui)
       Generator.new(config, ui: ui).run!
+      apply_recipe_for_new(recipe, config, ui: ui) if recipe
 
       ui.success("Next steps:")
       ui.info("cd #{config.app_path}")
@@ -175,6 +178,51 @@ module Railwyrm
       else
         Open3.capture2e(command)
       end
+    end
+
+    def load_recipe_for_new(recipe_option, ui:)
+      return nil if recipe_option.to_s.strip.empty?
+
+      recipe_path = resolve_recipe_path(recipe_option)
+      recipe = Recipe.load(recipe_path)
+      ui.info("Recipe preflight passed: #{recipe.id}@#{recipe.version} (#{recipe.path})")
+      recipe
+    end
+
+    def apply_recipe_for_new(recipe, configuration, ui:)
+      ui.headline("Applying recipe #{recipe.id}@#{recipe.version}")
+      shell = Shell.new(ui: ui, dry_run: configuration.dry_run, verbose: configuration.verbose)
+      executor = RecipeExecutor.new(
+        recipe,
+        workspace: configuration.app_path,
+        ui: ui,
+        shell: shell,
+        dry_run: configuration.dry_run
+      )
+
+      executor.plan.each do |step|
+        ui.info("#{step.index}. #{step.command}")
+      end
+
+      executor.apply!
+    end
+
+    def resolve_recipe_path(recipe_option)
+      raw = recipe_option.to_s.strip
+      raise InvalidConfiguration, "Recipe value cannot be empty" if raw.empty?
+
+      if raw.end_with?(".yml") || raw.include?(File::SEPARATOR) || raw.start_with?(".", "~")
+        path = File.expand_path(raw)
+        raise InvalidConfiguration, "Recipe file not found: #{path}" unless File.exist?(path)
+
+        return path
+      end
+
+      repo_root = File.expand_path("../..", __dir__)
+      named_path = File.join(repo_root, "recipes", raw, "recipe.yml")
+      raise InvalidConfiguration, "Unknown recipe '#{raw}'. Expected #{named_path}" unless File.exist?(named_path)
+
+      named_path
     end
 
     def build_configuration(app_name, ui:)

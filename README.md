@@ -93,6 +93,7 @@ bundle exec ruby exe/railwyrm new my_new_app --interactive=false --sign_in_layou
 
 ```bash
 bundle exec ruby exe/railwyrm new [APP_NAME]
+bundle exec ruby exe/railwyrm new [APP_NAME] --recipe ats
 bundle exec ruby exe/railwyrm recipes validate [RECIPE_PATH]
 bundle exec ruby exe/railwyrm recipes plan [RECIPE_PATH] --workspace /path/to/app
 bundle exec ruby exe/railwyrm recipes apply [RECIPE_PATH] --workspace /path/to/app
@@ -106,6 +107,7 @@ Common flags:
 - `--verbose` show underlying command output
 - `--dry_run` print commands without executing
 - `--sign_in_layout` choose auth page layout (`simple_minimal`, `card_combined`, `split_mockup_quote`)
+- `--recipe` apply a recipe by name (e.g. `ats`) or `recipe.yml` path during `new`
 
 ## Development
 
@@ -191,7 +193,8 @@ including `base_stack.requires`, `scaffolding_plan.commands`, and
 
 ### ATS Reference Flow
 
-1. Generate a base app with `railwyrm new`.
+1. Generate a base app with `railwyrm new` (or directly with recipe):
+   - `bundle exec ruby exe/railwyrm new ats_app --interactive=false --path /tmp --recipe ats`
 2. Validate ATS recipe:
    - `bundle exec ruby exe/railwyrm recipes validate recipes/ats/recipe.yml`
 3. Preview ATS command plan:

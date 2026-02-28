@@ -74,7 +74,7 @@ RSpec.describe Railwyrm::RecipeExecutor do
       workspace: missing_workspace,
       ui: Railwyrm::UI::Buffer.new,
       shell: RecipeExecutorFakeShell.new,
-      dry_run: true
+      dry_run: false
     )
 
     expect { executor.apply! }
@@ -93,6 +93,22 @@ RSpec.describe Railwyrm::RecipeExecutor do
 
       expect(File).not_to exist(marker)
     end
+  end
+
+  it "allows dry-run apply when workspace does not exist" do
+    missing_workspace = File.join(Dir.tmpdir, "missing-workspace-dry-run-#{Process.pid}")
+    recipe = recipe_with_commands(["echo one"])
+    ui = Railwyrm::UI::Buffer.new
+    shell = Railwyrm::Shell.new(ui: ui, dry_run: true, verbose: false)
+    executor = described_class.new(
+      recipe,
+      workspace: missing_workspace,
+      ui: ui,
+      shell: shell,
+      dry_run: true
+    )
+
+    expect { executor.apply! }.not_to raise_error
   end
 
   it "copies overlay assets and installs seed loader during apply" do

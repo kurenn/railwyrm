@@ -49,6 +49,8 @@ module Railwyrm
     attr_reader :recipe, :workspace, :ui, :shell, :dry_run
 
     def ensure_workspace!
+      return if dry_run
+
       raise InvalidConfiguration, "Workspace does not exist: #{workspace}" unless Dir.exist?(workspace)
     end
 

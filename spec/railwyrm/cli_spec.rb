@@ -106,4 +106,95 @@ RSpec.describe Railwyrm::CLI do
         .to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
     end
   end
+
+  it "applies a named recipe during new flow" do
+    Dir.mktmpdir do |workspace|
+      app_name = "ats_app"
+      app_path = File.join(workspace, app_name)
+      generator = instance_double(Railwyrm::Generator, run!: app_path)
+      recipe = instance_double(Railwyrm::Recipe, id: "ats", version: "0.1.0", path: "/tmp/ats.yml")
+      step = Railwyrm::RecipeExecutor::Step.new(index: 1, command: "echo recipe_step")
+      executor = instance_double(Railwyrm::RecipeExecutor, plan: [step], apply!: true)
+
+      allow(Railwyrm::Generator).to receive(:new).and_return(generator)
+      allow(Railwyrm::Recipe).to receive(:load).and_return(recipe)
+      allow(Railwyrm::RecipeExecutor).to receive(:new).and_return(executor)
+
+      expect do
+        described_class.start(
+          [
+            "new",
+            app_name,
+            "--interactive=false",
+            "--path",
+            workspace,
+            "--recipe",
+            "ats",
+            "--no-banner"
+          ]
+        )
+      end.not_to raise_error
+
+      expect(Railwyrm::Recipe).to have_received(:load)
+        .with(File.expand_path("../../recipes/ats/recipe.yml", __dir__))
+      expect(Railwyrm::RecipeExecutor).to have_received(:new)
+        .with(recipe, hash_including(workspace: app_path, dry_run: false))
+      expect(executor).to have_received(:apply!)
+    end
+  end
+
+  it "applies an explicit recipe path during new flow" do
+    Dir.mktmpdir do |workspace|
+      app_name = "custom_recipe_app"
+      app_path = File.join(workspace, app_name)
+      recipe_path = File.join(workspace, "recipe.yml")
+      File.write(recipe_path, YAML.dump(valid_recipe_hash))
+      generator = instance_double(Railwyrm::Generator, run!: app_path)
+      recipe = instance_double(Railwyrm::Recipe, id: "ats", version: "0.1.0", path: recipe_path)
+      executor = instance_double(Railwyrm::RecipeExecutor, plan: [], apply!: true)
+
+      allow(Railwyrm::Generator).to receive(:new).and_return(generator)
+      allow(Railwyrm::Recipe).to receive(:load).and_return(recipe)
+      allow(Railwyrm::RecipeExecutor).to receive(:new).and_return(executor)
+
+      expect do
+        described_class.start(
+          [
+            "new",
+            app_name,
+            "--interactive=false",
+            "--path",
+            workspace,
+            "--recipe",
+            recipe_path,
+            "--no-banner"
+          ]
+        )
+      end.not_to raise_error
+
+      expect(Railwyrm::Recipe).to have_received(:load).with(File.expand_path(recipe_path))
+      expect(executor).to have_received(:apply!)
+    end
+  end
+
+  it "fails new flow for unknown recipe names before generation" do
+    Dir.mktmpdir do |workspace|
+      expect(Railwyrm::Generator).not_to receive(:new)
+
+      expect do
+        described_class.start(
+          [
+            "new",
+            "unknown_recipe_app",
+            "--interactive=false",
+            "--path",
+            workspace,
+            "--recipe",
+            "does_not_exist",
+            "--no-banner"
+          ]
+        )
+      end.to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
+    end
+  end
 end
