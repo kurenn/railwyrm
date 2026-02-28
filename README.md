@@ -125,6 +125,10 @@ Run ATS end-to-end generation test (opt-in):
 RUN_E2E=1 bundle exec rspec spec/e2e/ats_generation_spec.rb
 ```
 
+CI note:
+
+- GitHub Actions runs ATS E2E on pull requests and `main` pushes in addition to the regular spec suite.
+
 ## Project Layout
 
 - `exe/railwyrm` executable entrypoint
