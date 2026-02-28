@@ -32,7 +32,8 @@ module Railwyrm
           recipe,
           workspace: options[:workspace],
           ui: ui,
-          shell: Shell.new(ui: ui, dry_run: true, verbose: false)
+          shell: Shell.new(ui: ui, dry_run: true, verbose: false),
+          dry_run: true
         )
 
         ui.headline("Plan for #{recipe.id}@#{recipe.version}")
@@ -54,8 +55,9 @@ module Railwyrm
       def apply(recipe_path = "recipe.yml")
         ui = UI::Console.new(verbose: effective_verbose?)
         recipe = load_recipe(recipe_path)
-        shell = Shell.new(ui: ui, dry_run: effective_dry_run?, verbose: effective_verbose?)
-        executor = RecipeExecutor.new(recipe, workspace: options[:workspace], ui: ui, shell: shell)
+        dry_run = effective_dry_run?
+        shell = Shell.new(ui: ui, dry_run: dry_run, verbose: effective_verbose?)
+        executor = RecipeExecutor.new(recipe, workspace: options[:workspace], ui: ui, shell: shell, dry_run: dry_run)
         executor.apply!
       rescue StandardError => e
         ui.error(e.message)

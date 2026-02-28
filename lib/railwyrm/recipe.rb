@@ -38,5 +38,33 @@ module Railwyrm
     def scaffolding_commands
       data.fetch("scaffolding_plan").fetch("commands")
     end
+
+    def ui_overlay_copies
+      data.fetch("ui_overlays").fetch("copies")
+    end
+
+    def seed_data_file
+      data.fetch("seed_data").fetch("file")
+    end
+
+    def resolve_reference_path(reference)
+      return File.expand_path(reference) if reference.start_with?("/", "./", "../")
+
+      if reference.start_with?("recipes/")
+        File.expand_path(reference, repository_root)
+      else
+        File.expand_path(reference, File.dirname(path))
+      end
+    end
+
+    private
+
+    def repository_root
+      marker = "#{File::SEPARATOR}recipes#{File::SEPARATOR}"
+      marker_index = path.index(marker)
+      return File.dirname(path) unless marker_index
+
+      path[0...marker_index]
+    end
   end
 end

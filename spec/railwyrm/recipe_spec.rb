@@ -72,6 +72,8 @@ RSpec.describe Railwyrm::Recipe do
       expect(recipe.version).to eq("0.1.0")
       expect(recipe.scaffolding_commands).to eq(["echo one", "echo two"])
       expect(recipe.path).to eq(File.expand_path(path))
+      expect(recipe.ui_overlay_copies).to eq([{ "from" => "recipes/ats/templates/views", "to" => "app/views" }])
+      expect(recipe.seed_data_file).to eq("recipes/ats/templates/seeds/ats.seeds.rb")
     end
   end
 
@@ -83,5 +85,16 @@ RSpec.describe Railwyrm::Recipe do
       expect { described_class.load(path) }
         .to raise_error(Railwyrm::InvalidConfiguration, /Invalid recipe/)
     end
+  end
+
+  it "resolves repository-relative references from recipes path" do
+    recipe = described_class.new(
+      path: "/tmp/demo-repo/recipes/ats/recipe.yml",
+      data: {}
+    )
+
+    resolved = recipe.resolve_reference_path("recipes/ats/templates/views")
+
+    expect(resolved).to eq("/tmp/demo-repo/recipes/ats/templates/views")
   end
 end

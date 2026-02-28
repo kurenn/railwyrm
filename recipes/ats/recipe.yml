@@ -1,7 +1,7 @@
 id: ats
 name: Applicant Tracking System
 version: 0.1.0
-status: draft
+status: reference
 description: >
   ATS recipe overlay for Railwyrm-generated apps. Applies hiring workflows,
   pipeline entities, role-based access foundations, and responsive starter UI.

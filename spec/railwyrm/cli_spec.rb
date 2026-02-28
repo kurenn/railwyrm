@@ -81,10 +81,15 @@ RSpec.describe Railwyrm::CLI do
       path = File.join(dir, "recipe.yml")
       File.write(path, YAML.dump(valid_recipe_hash))
       shell = instance_double(Railwyrm::Shell, run!: true)
+      executor = instance_double(Railwyrm::RecipeExecutor, apply!: true)
       allow(Railwyrm::Shell).to receive(:new).and_return(shell)
+      allow(Railwyrm::RecipeExecutor).to receive(:new).and_return(executor)
       expect(Railwyrm::Shell).to receive(:new)
         .with(hash_including(dry_run: true, verbose: false))
         .and_return(shell)
+      expect(Railwyrm::RecipeExecutor).to receive(:new)
+        .with(instance_of(Railwyrm::Recipe), hash_including(shell: shell, dry_run: true))
+        .and_return(executor)
 
       expect do
         described_class.start(["recipes", "apply", path, "--workspace", dir, "--dry-run"])

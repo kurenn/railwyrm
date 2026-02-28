@@ -136,15 +136,16 @@ This repo includes:
 
 These help Codex quickly make consistent, testable changes without rediscovering conventions.
 
-## Recipe Drafts
+## Recipes
 
-Draft recipe specs and prompt-driven test harnesses live under `recipes/`.
+Recipe specs and prompt-driven harnesses live under `recipes/`.
 
-- ATS recipe spec: `recipes/ats/recipe.yml`
+- ATS reference recipe spec: `recipes/ats/recipe.yml`
+- ATS reference contract: `recipes/ats/REFERENCE.md`
 - ATS test prompt: `recipes/ats/prompt.md`
 
-These are currently design-time assets for planning and prompt testing before
-native recipe execution is added to the CLI.
+ATS is the reference implementation for recipe contract, plan/apply flow, and
+asset structure.
 
 ### Recipe Schema v0
 
@@ -178,4 +179,19 @@ including `base_stack.requires`, `scaffolding_plan.commands`, and
 
 - `railwyrm recipes plan` prints the exact command order from `scaffolding_plan.commands`
 - `railwyrm recipes apply` runs those commands in that same order
+- `apply` also executes recipe file operations:
+  - copies `ui_overlays.copies[*]` sources into target app paths
+  - installs `seed_data.file` into `db/seeds/<recipe>.seeds.rb` and loads it from `db/seeds.rb`
 - Use `--dry_run` with `apply` to preview command execution without running commands
+
+### ATS Reference Flow
+
+1. Generate a base app with `railwyrm new`.
+2. Validate ATS recipe:
+   - `bundle exec ruby exe/railwyrm recipes validate recipes/ats/recipe.yml`
+3. Preview ATS command plan:
+   - `bundle exec ruby exe/railwyrm recipes plan recipes/ats/recipe.yml --workspace /path/to/app`
+4. Dry run apply:
+   - `bundle exec ruby exe/railwyrm recipes apply recipes/ats/recipe.yml --workspace /path/to/app --dry_run`
+5. Apply for real after review:
+   - `bundle exec ruby exe/railwyrm recipes apply recipes/ats/recipe.yml --workspace /path/to/app`
