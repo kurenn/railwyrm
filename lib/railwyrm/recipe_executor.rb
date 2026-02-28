@@ -8,30 +8,39 @@ module Railwyrm
   class RecipeExecutor
     Step = Struct.new(:index, :command, keyword_init: true)
 
-    def initialize(recipe, workspace:, ui:, shell:, dry_run: false)
+    def initialize(recipe, workspace:, ui:, shell:, dry_run: false, selected_modules: [], deploy_preset: nil)
       @recipe = recipe
       @workspace = File.expand_path(workspace)
       @ui = ui
       @shell = shell
       @dry_run = dry_run
+      @selected_modules = recipe.resolve_modules(selected_modules)
+      @deploy_preset = normalized_deploy_preset(deploy_preset)
+      recipe.deploy_preset(@deploy_preset) if @deploy_preset
     end
 
     def plan
-      recipe.scaffolding_commands.each_with_index.map do |command, index|
+      command_list.each_with_index.map do |command, index|
         Step.new(index: index + 1, command: command)
       end
     end
 
     def apply!
       ensure_workspace!
-      steps = plan
+      scaffold_steps = recipe.scaffolding_commands
 
       ui.headline("Applying recipe #{recipe.id}@#{recipe.version} in #{workspace}")
-      steps.each do |step|
-        ui.step("Recipe step #{step.index}/#{steps.length}") do
-          shell.run!(*Shellwords.split(step.command), chdir: workspace)
+      scaffold_steps.each_with_index do |command, index|
+        ui.step("Recipe step #{index + 1}/#{scaffold_steps.length}") do
+          shell.run!(*Shellwords.split(command), chdir: workspace)
         end
       end
+
+      ui.step("Install module gems") do
+        apply_module_gems!
+      end
+
+      run_module_setup_commands!
 
       ui.step("Apply recipe UI overlays") do
         apply_ui_overlays!
@@ -45,7 +54,12 @@ module Railwyrm
         apply_app_wiring!
       end
 
+      ui.step("Apply deploy preset") do
+        apply_deploy_preset!
+      end
+
       run_quality_gates!
+      run_deploy_smoke_checks!
 
       ui.success("Recipe apply complete for #{recipe.id}")
       true
@@ -53,7 +67,24 @@ module Railwyrm
 
     private
 
-    attr_reader :recipe, :workspace, :ui, :shell, :dry_run
+    attr_reader :recipe, :workspace, :ui, :shell, :dry_run, :selected_modules, :deploy_preset
+
+    def command_list
+      commands = []
+      commands.concat(recipe.scaffolding_commands)
+
+      commands << "bundle install" unless recipe.module_gems(selected_modules).empty?
+      commands.concat(recipe.module_setup_commands(selected_modules))
+      commands.concat(recipe.quality_gate_commands)
+      commands.concat(recipe.deploy_smoke_commands(deploy_preset)) if deploy_preset
+
+      commands
+    end
+
+    def normalized_deploy_preset(deploy_name)
+      value = deploy_name.to_s.strip
+      value.empty? ? nil : value
+    end
 
     def ensure_workspace!
       return if dry_run
@@ -61,33 +92,65 @@ module Railwyrm
       raise InvalidConfiguration, "Workspace does not exist: #{workspace}" unless Dir.exist?(workspace)
     end
 
-    def apply_ui_overlays!
-      recipe.ui_overlay_copies.each do |copy|
-        source = recipe.resolve_reference_path(copy.fetch("from"))
-        destination_root = File.join(workspace, copy.fetch("to"))
-        raise InvalidConfiguration, "UI overlay source does not exist: #{source}" unless Dir.exist?(source)
+    def apply_module_gems!
+      gems = recipe.module_gems(selected_modules)
+      if gems.empty?
+        ui.info("No module gems selected")
+        return
+      end
 
-        if dry_run
-          ui.info("Dry run: copy #{source} -> #{destination_root}")
-          next
-        end
+      gemfile_path = File.join(workspace, "Gemfile")
+      unless dry_run || File.exist?(gemfile_path)
+        raise InvalidConfiguration, "Gemfile not found at #{gemfile_path}"
+      end
 
-        FileUtils.mkdir_p(destination_root)
-        Dir.glob(File.join(source, "**", "*"), File::FNM_DOTMATCH).sort.each do |entry|
-          basename = File.basename(entry)
-          next if basename == "." || basename == ".."
+      if dry_run
+        ui.info("Dry run: ensure gems #{gems.join(', ')} in Gemfile")
+        ui.info("Dry run: run bundle install for selected modules")
+        return
+      end
 
-          relative_path = entry.delete_prefix("#{source}/")
-          destination = File.join(destination_root, relative_path)
+      gemfile = File.read(gemfile_path)
+      missing = gems.reject { |name| gemfile.match?(/^\s*gem\s+['"]#{Regexp.escape(name)}['"]/) }
+      if missing.empty?
+        ui.info("Module gems already present in Gemfile")
+      else
+        updated = "#{gemfile.rstrip}\n\n#{missing.map { |name| %(gem "#{name}") }.join("\n")}\n"
+        File.write(gemfile_path, updated)
+      end
 
-          if File.directory?(entry)
-            FileUtils.mkdir_p(destination)
-          else
-            FileUtils.mkdir_p(File.dirname(destination))
-            FileUtils.cp(entry, destination)
-          end
+      shell.run!("bundle", "install", chdir: workspace)
+    end
+
+    def run_module_setup_commands!
+      commands = recipe.module_setup_commands(selected_modules)
+      return if commands.empty?
+
+      ui.headline("Running module setup for #{recipe.id}")
+      commands.each_with_index do |command, index|
+        ui.step("Module setup #{index + 1}/#{commands.length}") do
+          shell.run!(*Shellwords.split(command), chdir: workspace)
         end
       end
+    end
+
+    def apply_ui_overlays!
+      copy_reference_entries!(recipe.ui_overlay_copies, label: "UI overlay")
+    end
+
+    def apply_deploy_preset!
+      unless deploy_preset
+        ui.info("No deploy preset selected")
+        return
+      end
+
+      copies = recipe.deploy_copy_entries(deploy_preset)
+      if copies.empty?
+        ui.info("Deploy preset #{deploy_preset} has no file copies")
+        return
+      end
+
+      copy_reference_entries!(copies, label: "deploy preset #{deploy_preset}")
     end
 
     def install_seed_data!
@@ -123,6 +186,60 @@ module Railwyrm
       commands.each_with_index do |command, index|
         ui.step("Quality gate #{index + 1}/#{commands.length}") do
           shell.run!(*Shellwords.split(command), chdir: workspace)
+        end
+      end
+    end
+
+    def run_deploy_smoke_checks!
+      return unless deploy_preset
+
+      commands = recipe.deploy_smoke_commands(deploy_preset)
+      return if commands.empty?
+
+      ui.headline("Running deploy smoke checks for #{deploy_preset}")
+      commands.each_with_index do |command, index|
+        ui.step("Deploy smoke #{index + 1}/#{commands.length}") do
+          shell.run!(*Shellwords.split(command), chdir: workspace)
+        end
+      end
+    end
+
+    def copy_reference_entries!(copies, label:)
+      copies.each do |copy|
+        source = recipe.resolve_reference_path(copy.fetch("from"))
+        destination_root = File.join(workspace, copy.fetch("to"))
+        unless File.exist?(source)
+          raise InvalidConfiguration, "#{label} source does not exist: #{source}"
+        end
+
+        if dry_run
+          ui.info("Dry run: copy #{source} -> #{destination_root}")
+          next
+        end
+
+        if File.directory?(source)
+          copy_directory_contents(source, destination_root)
+        else
+          FileUtils.mkdir_p(File.dirname(destination_root))
+          FileUtils.cp(source, destination_root)
+        end
+      end
+    end
+
+    def copy_directory_contents(source, destination_root)
+      FileUtils.mkdir_p(destination_root)
+      Dir.glob(File.join(source, "**", "*"), File::FNM_DOTMATCH).sort.each do |entry|
+        basename = File.basename(entry)
+        next if basename == "." || basename == ".."
+
+        relative_path = entry.delete_prefix("#{source}/")
+        destination = File.join(destination_root, relative_path)
+
+        if File.directory?(entry)
+          FileUtils.mkdir_p(destination)
+        else
+          FileUtils.mkdir_p(File.dirname(destination))
+          FileUtils.cp(entry, destination)
         end
       end
     end

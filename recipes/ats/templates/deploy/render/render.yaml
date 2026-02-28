@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: railwyrm-ats
+    env: ruby
+    plan: starter
+    buildCommand: "bundle install && bundle exec rails assets:precompile"
+    startCommand: "bundle exec rails server"
+    healthCheckPath: "/careers"

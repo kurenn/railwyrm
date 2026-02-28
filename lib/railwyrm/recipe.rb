@@ -81,6 +81,104 @@ module Railwyrm
       policies
     end
 
+    def allowed_modules
+      allowed = data.dig("inputs", "with_modules", "allowed")
+      return [] unless allowed.is_a?(Array)
+
+      allowed
+    end
+
+    def default_modules
+      defaults = data.dig("inputs", "with_modules", "default")
+      return [] unless defaults.is_a?(Array)
+
+      defaults
+    end
+
+    def resolve_modules(selection)
+      requested = normalize_module_selection(selection)
+      requested = default_modules if requested.empty?
+      return [] if requested.empty?
+
+      unknown = requested - allowed_modules
+      unless unknown.empty?
+        raise InvalidConfiguration,
+              "Unknown recipe module(s): #{unknown.join(', ')}. Allowed: #{allowed_modules.join(', ')}"
+      end
+
+      # Keep deterministic ordering aligned to recipe contract.
+      allowed_modules.select { |mod| requested.include?(mod) }
+    end
+
+    def module_gems(selected_modules)
+      selected = resolve_modules(selected_modules)
+      return [] if selected.empty?
+
+      optional = data.dig("gems", "optional_by_module")
+      return [] unless optional.is_a?(Hash)
+
+      selected.flat_map do |mod|
+        entries = optional[mod]
+        next [] unless entries.is_a?(Array)
+
+        entries.filter_map do |entry|
+          next unless entry.is_a?(Hash)
+
+          name = entry["name"].to_s.strip
+          name.empty? ? nil : name
+        end
+      end.uniq
+    end
+
+    def module_setup_commands(selected_modules)
+      selected = resolve_modules(selected_modules)
+      return [] if selected.empty?
+
+      setup = data["module_setup"]
+      return [] unless setup.is_a?(Hash)
+
+      selected.flat_map do |mod|
+        commands = setup.dig(mod, "commands")
+        commands.is_a?(Array) ? commands : []
+      end
+    end
+
+    def deploy_preset_names
+      presets = data.dig("deploy", "presets")
+      return [] unless presets.is_a?(Hash)
+
+      presets.keys
+    end
+
+    def deploy_preset(deploy_name)
+      name = deploy_name.to_s.strip
+      return nil if name.empty?
+
+      presets = data.dig("deploy", "presets")
+      unless presets.is_a?(Hash) && presets.key?(name)
+        raise InvalidConfiguration,
+              "Unknown deploy preset '#{name}'. Allowed: #{deploy_preset_names.join(', ')}"
+      end
+
+      presets[name]
+    end
+
+    def deploy_copy_entries(deploy_name)
+      preset = deploy_preset(deploy_name)
+      return [] unless preset.is_a?(Hash)
+
+      copies = preset["copies"]
+      copies.is_a?(Array) ? copies : []
+    end
+
+    def deploy_smoke_commands(deploy_name)
+      preset = deploy_preset(deploy_name)
+      return [] unless preset.is_a?(Hash)
+
+      commands = preset["smoke_commands"]
+      commands.is_a?(Array) ? commands : []
+    end
+
     def resolve_reference_path(reference)
       return File.expand_path(reference) if reference.start_with?("/", "./", "../")
 
@@ -92,6 +190,12 @@ module Railwyrm
     end
 
     private
+
+    def normalize_module_selection(selection)
+      Array(selection).flat_map do |entry|
+        entry.to_s.split(",")
+      end.map(&:strip).reject(&:empty?).uniq
+    end
 
     def repository_root
       marker = "#{File::SEPARATOR}recipes#{File::SEPARATOR}"

@@ -30,7 +30,12 @@ module Railwyrm
       ai_assets
     ].freeze
 
-    ALLOWED_TOP_LEVEL_KEYS = REQUIRED_TOP_LEVEL_KEYS
+    OPTIONAL_TOP_LEVEL_KEYS = %w[
+      module_setup
+      deploy
+    ].freeze
+
+    ALLOWED_TOP_LEVEL_KEYS = (REQUIRED_TOP_LEVEL_KEYS + OPTIONAL_TOP_LEVEL_KEYS).freeze
 
     def validate_file(path)
       data = YAML.safe_load(File.read(path), permitted_classes: [], aliases: false)
@@ -73,6 +78,8 @@ module Railwyrm
       validate_seed_data(data["seed_data"], errors)
       validate_quality_gates(data["quality_gates"], errors)
       validate_ai_assets(data["ai_assets"], errors)
+      validate_module_setup(data["module_setup"], errors)
+      validate_deploy(data["deploy"], errors)
 
       Result.new(errors: errors.uniq)
     end
@@ -134,6 +141,22 @@ module Railwyrm
         end
 
         errors << "inputs.#{input_name}.required must be boolean" unless [true, false].include?(required)
+
+        next unless input_name.to_s == "with_modules"
+
+        validate_string_array(spec["allowed"], "inputs.with_modules.allowed", errors, min_size: 1)
+
+        default = spec["default"]
+        unless default.is_a?(Array) && default.all? { |entry| entry.is_a?(String) && !entry.strip.empty? }
+          errors << "inputs.with_modules.default must be an array of non-empty strings"
+          next
+        end
+
+        allowed = spec["allowed"]
+        next unless allowed.is_a?(Array)
+
+        unknown = default - allowed
+        errors << "inputs.with_modules.default includes unknown module(s): #{unknown.join(', ')}" unless unknown.empty?
       end
     end
 
@@ -197,22 +220,7 @@ module Railwyrm
       end
 
       copies = value["copies"]
-      unless copies.is_a?(Array)
-        errors << "ui_overlays.copies must be an array"
-        return
-      end
-
-      copies.each_with_index do |copy, index|
-        unless copy.is_a?(Hash)
-          errors << "ui_overlays.copies[#{index}] must be a mapping"
-          next
-        end
-
-        from = copy["from"]
-        to = copy["to"]
-        errors << "ui_overlays.copies[#{index}].from must be a non-empty string" unless from.is_a?(String) && !from.strip.empty?
-        errors << "ui_overlays.copies[#{index}].to must be a non-empty string" unless to.is_a?(String) && !to.strip.empty?
-      end
+      validate_copy_entries(copies, "ui_overlays.copies", errors)
     end
 
     def validate_routes(value, errors)
@@ -234,6 +242,42 @@ module Railwyrm
       entries.each_with_index do |entry, index|
         unless entry.is_a?(Hash) && entry["type"].is_a?(String) && !entry["type"].strip.empty?
           errors << "#{key}[#{index}] must include a non-empty type"
+          next
+        end
+
+        type = entry["type"]
+        unless %w[root get resources].include?(type)
+          errors << "#{key}[#{index}].type must be one of: root, get, resources"
+          next
+        end
+
+        case type
+        when "root"
+          target = entry["to"]
+          errors << "#{key}[#{index}].to must be a non-empty string for root routes" unless target.is_a?(String) && !target.strip.empty?
+        when "get"
+          path = entry["path"]
+          target = entry["to"]
+          errors << "#{key}[#{index}].path must be a non-empty string for get routes" unless path.is_a?(String) && !path.strip.empty?
+          errors << "#{key}[#{index}].to must be a non-empty string for get routes" unless target.is_a?(String) && !target.strip.empty?
+        when "resources"
+          resource_name = entry["name"]
+          unless resource_name.is_a?(String) && !resource_name.strip.empty?
+            errors << "#{key}[#{index}].name must be a non-empty string for resources routes"
+          end
+
+          only = entry["only"]
+          validate_string_array(only, "#{key}[#{index}].only", errors, min_size: 1) if entry.key?("only")
+
+          controller = entry["controller"]
+          if entry.key?("controller") && !(controller.is_a?(String) && !controller.strip.empty?)
+            errors << "#{key}[#{index}].controller must be a non-empty string when present"
+          end
+
+          nested = entry["nested"]
+          if entry.key?("nested")
+            validate_route_entries(nested, "#{key}[#{index}].nested", errors)
+          end
         end
       end
     end
@@ -280,6 +324,81 @@ module Railwyrm
 
       %w[agents skills prompts playbooks].each do |key|
         validate_string_array(value[key], "ai_assets.#{key}", errors, min_size: 1)
+      end
+    end
+
+    def validate_module_setup(value, errors)
+      return if value.nil?
+
+      unless value.is_a?(Hash)
+        errors << "module_setup must be a mapping when present"
+        return
+      end
+
+      value.each do |module_name, spec|
+        unless spec.is_a?(Hash)
+          errors << "module_setup.#{module_name} must be a mapping"
+          next
+        end
+
+        validate_string_array(spec["commands"], "module_setup.#{module_name}.commands", errors, min_size: 1)
+      end
+    end
+
+    def validate_deploy(value, errors)
+      return if value.nil?
+
+      unless value.is_a?(Hash)
+        errors << "deploy must be a mapping when present"
+        return
+      end
+
+      presets = value["presets"]
+      unless presets.is_a?(Hash) && !presets.empty?
+        errors << "deploy.presets must be a non-empty mapping"
+        return
+      end
+
+      presets.each do |preset_name, spec|
+        unless spec.is_a?(Hash)
+          errors << "deploy.presets.#{preset_name} must be a mapping"
+          next
+        end
+
+        copies = spec["copies"]
+        smoke_commands = spec["smoke_commands"]
+
+        if copies.nil? && smoke_commands.nil?
+          errors << "deploy.presets.#{preset_name} must include copies and/or smoke_commands"
+          next
+        end
+
+        validate_copy_entries(copies, "deploy.presets.#{preset_name}.copies", errors) unless copies.nil?
+        validate_string_array(
+          smoke_commands,
+          "deploy.presets.#{preset_name}.smoke_commands",
+          errors,
+          min_size: 1
+        ) unless smoke_commands.nil?
+      end
+    end
+
+    def validate_copy_entries(copies, key, errors)
+      unless copies.is_a?(Array)
+        errors << "#{key} must be an array"
+        return
+      end
+
+      copies.each_with_index do |copy, index|
+        unless copy.is_a?(Hash)
+          errors << "#{key}[#{index}] must be a mapping"
+          next
+        end
+
+        from = copy["from"]
+        to = copy["to"]
+        errors << "#{key}[#{index}].from must be a non-empty string" unless from.is_a?(String) && !from.strip.empty?
+        errors << "#{key}[#{index}].to must be a non-empty string" unless to.is_a?(String) && !to.strip.empty?
       end
     end
   end

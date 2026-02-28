@@ -205,6 +205,10 @@ ui_overlays:
       to: app/views
     - from: recipes/ats/templates/components
       to: app/components
+    - from: recipes/ats/templates/controllers
+      to: app/controllers
+    - from: recipes/ats/templates/spec
+      to: spec
   starter_pages:
     - dashboard
     - jobs index/show
@@ -220,35 +224,47 @@ routes:
       as: authenticated_root
     - type: resources
       name: job_postings
+      controller: ats/job_postings
       nested:
         - type: resources
           name: pipeline_stages
           only: [create, update, destroy]
+          controller: ats/pipeline_stages
         - type: resources
           name: applications
           only: [index, create]
+          controller: ats/applications
     - type: resources
       name: candidates
+      controller: ats/candidates
       nested:
         - type: resources
           name: applications
           only: [index]
+          controller: ats/applications
     - type: resources
       name: applications
       only: [show, update]
+      controller: ats/applications
       nested:
         - type: resources
           name: interviews
           only: [create, update, destroy]
+          controller: ats/interviews
         - type: resources
           name: feedbacks
           only: [create, update]
+          controller: ats/feedbacks
         - type: resources
           name: offers
           only: [create, update]
+          controller: ats/offers
     - type: get
       path: reports
       to: ats/reports#index
+    - type: get
+      path: pipeline
+      to: ats/pipeline_board#show
   public:
     - type: resources
       name: careers
@@ -296,3 +312,24 @@ quality_gates:
     - "Pipeline stage movement persists"
     - "Application status transitions are audited"
     - "All ATS pages are responsive (mobile + desktop)"
+
+module_setup:
+  background_jobs:
+    commands:
+      - bin/rails generate solid_queue:install
+      - bin/rails db:migrate
+
+deploy:
+  presets:
+    render:
+      copies:
+        - from: recipes/ats/templates/deploy/render
+          to: .
+      smoke_commands:
+        - bin/rails runner "puts 'railwyrm_render_smoke_ok'"
+    fly:
+      copies:
+        - from: recipes/ats/templates/deploy/fly
+          to: .
+      smoke_commands:
+        - bin/rails runner "puts 'railwyrm_fly_smoke_ok'"

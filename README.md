@@ -98,7 +98,9 @@ bundle exec ruby exe/railwyrm recipes list
 bundle exec ruby exe/railwyrm recipes show ats
 bundle exec ruby exe/railwyrm recipes validate [RECIPE_PATH]
 bundle exec ruby exe/railwyrm recipes plan [RECIPE_PATH] --workspace /path/to/app
+bundle exec ruby exe/railwyrm recipes plan [RECIPE_PATH] --workspace /path/to/app --with background_jobs --deploy render
 bundle exec ruby exe/railwyrm recipes apply [RECIPE_PATH] --workspace /path/to/app
+bundle exec ruby exe/railwyrm recipes apply [RECIPE_PATH] --workspace /path/to/app --with background_jobs --deploy render
 bundle exec ruby exe/railwyrm doctor
 bundle exec ruby exe/railwyrm version
 ```
@@ -110,6 +112,8 @@ Common flags:
 - `--dry_run` print commands without executing
 - `--sign_in_layout` choose auth page layout (`simple_minimal`, `card_combined`, `split_mockup_quote`)
 - `--recipe` apply a recipe by name (e.g. `ats`) or `recipe.yml` path during `new`
+- `--with` enable optional recipe modules (for example `background_jobs`)
+- `--deploy` apply recipe deploy preset (for example `render`, `fly`)
 
 ## Development
 
@@ -203,6 +207,8 @@ including `base_stack.requires`, `scaffolding_plan.commands`, and
   - installs `seed_data.file` into `db/seeds/<recipe>.seeds.rb` and loads it from `db/seeds.rb`
   - wires `routes` into `config/routes.rb` and creates missing controller/policy stubs
 - `apply` runs `quality_gates.required_commands` after scaffolding and asset install
+- `apply` can install module gems and setup commands with `--with`
+- `apply` can install deploy preset files and run smoke commands with `--deploy`
 - Use `--dry_run` with `apply` to preview command execution without running commands
 
 ### Recipe Discovery

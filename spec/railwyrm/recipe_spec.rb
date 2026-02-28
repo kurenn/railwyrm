@@ -15,11 +15,21 @@ RSpec.describe Railwyrm::Recipe do
         "requires" => %w[devise rspec]
       },
       "inputs" => {
-        "organization_name" => { "type" => "string", "required" => false }
+        "organization_name" => { "type" => "string", "required" => false },
+        "with_modules" => {
+          "type" => "array",
+          "required" => false,
+          "default" => [],
+          "allowed" => ["background_jobs", "advanced_reports"]
+        }
       },
       "roles" => %w[admin recruiter],
       "gems" => {
-        "required" => [{ "name" => "pundit" }]
+        "required" => [{ "name" => "pundit" }],
+        "optional_by_module" => {
+          "background_jobs" => [{ "name" => "solid_queue" }],
+          "advanced_reports" => [{ "name" => "groupdate" }]
+        }
       },
       "data_model" => {
         "models" => {
@@ -52,6 +62,19 @@ RSpec.describe Railwyrm::Recipe do
         "required_commands" => ["bundle exec rspec"],
         "acceptance_checks" => ["Auth works for recruiter role"]
       },
+      "module_setup" => {
+        "background_jobs" => {
+          "commands" => ["bin/rails generate solid_queue:install"]
+        }
+      },
+      "deploy" => {
+        "presets" => {
+          "render" => {
+            "copies" => [{ "from" => "recipes/ats/templates/deploy/render", "to" => "." }],
+            "smoke_commands" => ["bin/rails runner \"puts 'ok'\""]
+          }
+        }
+      },
       "ai_assets" => {
         "agents" => ["recipes/ats/agents/expert.md"],
         "skills" => ["recipes/ats/skills/core/SKILL.md"],
@@ -83,6 +106,12 @@ RSpec.describe Railwyrm::Recipe do
       )
       expect(recipe.routes.keys).to contain_exactly("authenticated", "public")
       expect(recipe.authorization_policies).to eq(["job_posting_policy"])
+      expect(recipe.allowed_modules).to eq(["background_jobs", "advanced_reports"])
+      expect(recipe.resolve_modules(["advanced_reports", "background_jobs"])).to eq(%w[background_jobs advanced_reports])
+      expect(recipe.module_gems(["background_jobs"])).to eq(["solid_queue"])
+      expect(recipe.module_setup_commands(["background_jobs"])).to eq(["bin/rails generate solid_queue:install"])
+      expect(recipe.deploy_preset_names).to eq(["render"])
+      expect(recipe.deploy_smoke_commands("render")).to eq(["bin/rails runner \"puts 'ok'\""])
     end
   end
 
@@ -105,5 +134,17 @@ RSpec.describe Railwyrm::Recipe do
     resolved = recipe.resolve_reference_path("recipes/ats/templates/views")
 
     expect(resolved).to eq("/tmp/demo-repo/recipes/ats/templates/views")
+  end
+
+  it "raises a helpful error for unknown modules and deploy presets" do
+    recipe = described_class.new(
+      path: "/tmp/demo-repo/recipes/ats/recipe.yml",
+      data: valid_recipe_hash
+    )
+
+    expect { recipe.resolve_modules(["unknown_module"]) }
+      .to raise_error(Railwyrm::InvalidConfiguration, /Unknown recipe module/)
+    expect { recipe.deploy_preset("unknown_deploy") }
+      .to raise_error(Railwyrm::InvalidConfiguration, /Unknown deploy preset/)
   end
 end

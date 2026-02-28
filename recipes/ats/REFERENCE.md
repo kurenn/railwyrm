@@ -14,6 +14,9 @@ This recipe is the Railwyrm reference implementation for recipe-driven app expan
   - `railwyrm recipes apply recipes/ats/recipe.yml --workspace <path> --dry_run`
 - Recipe apply wires route entries and baseline controllers/policies from recipe spec
 - Recipe apply runs quality gates from `quality_gates.required_commands`
+- Recipe modules can be enabled via `--with` and install module gems/setup deterministically
+- Recipe deploy presets can be enabled via `--deploy` and run deploy smoke commands
+- Recipe includes generated ATS request/system smoke specs
 - Referenced assets exist for:
   - `ui_overlays.copies[*].from`
   - `seed_data.file`

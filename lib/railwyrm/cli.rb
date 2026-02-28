@@ -55,6 +55,11 @@ module Railwyrm
           ui.info("Modules: #{modules.join(', ')}")
         end
 
+        deploy_presets = recipe.deploy_preset_names
+        unless deploy_presets.empty?
+          ui.info("Deploy presets: #{deploy_presets.join(', ')}")
+        end
+
         commands = recipe.scaffolding_commands
         ui.info("Scaffolding commands: #{commands.length}")
         commands.each_with_index { |command, index| ui.info("  #{index + 1}. #{command}") }
@@ -85,6 +90,8 @@ module Railwyrm
 
       desc "plan [RECIPE_PATH]", "Show deterministic execution plan for a recipe"
       option :workspace, aliases: "-w", type: :string, default: Dir.pwd, desc: "Target workspace"
+      option :with, type: :array, default: [], desc: "Enable optional recipe modules"
+      option :deploy, type: :string, desc: "Deploy preset to apply in plan/apply (e.g. render)"
       def plan(recipe_path = "recipe.yml")
         ui = UI::Console.new(verbose: false)
         recipe = load_recipe(recipe_path)
@@ -93,12 +100,17 @@ module Railwyrm
           workspace: options[:workspace],
           ui: ui,
           shell: Shell.new(ui: ui, dry_run: true, verbose: false),
-          dry_run: true
+          dry_run: true,
+          selected_modules: normalized_modules_option(options[:with]),
+          deploy_preset: options[:deploy]
         )
 
         ui.headline("Plan for #{recipe.id}@#{recipe.version}")
         ui.info("Recipe file: #{recipe.path}")
         ui.info("Workspace: #{File.expand_path(options[:workspace])}")
+        selected = recipe.resolve_modules(normalized_modules_option(options[:with]))
+        ui.info("Modules: #{selected.join(', ')}") unless selected.empty?
+        ui.info("Deploy preset: #{options[:deploy]}") unless options[:deploy].to_s.strip.empty?
         executor.plan.each do |step|
           ui.info("#{step.index}. #{step.command}")
         end
@@ -112,12 +124,22 @@ module Railwyrm
       option :verbose, type: :boolean, default: false, desc: "Stream command output"
       option :dry_run, aliases: "--dry_run", type: :boolean, default: false,
                         desc: "Print commands without executing"
+      option :with, type: :array, default: [], desc: "Enable optional recipe modules"
+      option :deploy, type: :string, desc: "Deploy preset to apply (e.g. render)"
       def apply(recipe_path = "recipe.yml")
         ui = UI::Console.new(verbose: effective_verbose?)
         recipe = load_recipe(recipe_path)
         dry_run = effective_dry_run?
         shell = Shell.new(ui: ui, dry_run: dry_run, verbose: effective_verbose?)
-        executor = RecipeExecutor.new(recipe, workspace: options[:workspace], ui: ui, shell: shell, dry_run: dry_run)
+        executor = RecipeExecutor.new(
+          recipe,
+          workspace: options[:workspace],
+          ui: ui,
+          shell: shell,
+          dry_run: dry_run,
+          selected_modules: normalized_modules_option(options[:with]),
+          deploy_preset: options[:deploy]
+        )
         executor.apply!
       rescue StandardError => e
         ui.error(e.message)
@@ -140,6 +162,10 @@ module Railwyrm
 
       def truthy_option?(value)
         value == true
+      end
+
+      def normalized_modules_option(value)
+        Array(value).flat_map { |entry| entry.to_s.split(",") }.map(&:strip).reject(&:empty?).uniq
       end
 
       def discover_recipe_paths
@@ -189,6 +215,8 @@ module Railwyrm
                             desc: "Sign-in layout: simple_minimal, card_combined, split_mockup_quote"
     option :skip_devise_user, type: :boolean, default: false, desc: "Skip creating the Devise model"
     option :recipe, type: :string, desc: "Recipe name (e.g. ats) or path to recipe.yml"
+    option :with, type: :array, default: [], desc: "Enable optional recipe modules when applying a recipe"
+    option :deploy, type: :string, desc: "Deploy preset to apply with the recipe (e.g. render)"
     def new(app_name = nil)
       ui = UI::Console.new(verbose: options[:verbose])
       UI::Banner.new.render unless options[:no_banner]
@@ -196,7 +224,13 @@ module Railwyrm
       config = build_configuration(app_name, ui: ui)
       recipe = load_recipe_for_new(options[:recipe], ui: ui)
       Generator.new(config, ui: ui).run!
-      apply_recipe_for_new(recipe, config, ui: ui) if recipe
+      apply_recipe_for_new(
+        recipe,
+        config,
+        ui: ui,
+        selected_modules: normalized_modules_option(options[:with]),
+        deploy_preset: options[:deploy]
+      ) if recipe
 
       ui.success("Next steps:")
       ui.info("cd #{config.app_path}")
@@ -278,7 +312,7 @@ module Railwyrm
       recipe
     end
 
-    def apply_recipe_for_new(recipe, configuration, ui:)
+    def apply_recipe_for_new(recipe, configuration, ui:, selected_modules:, deploy_preset:)
       ui.headline("Applying recipe #{recipe.id}@#{recipe.version}")
       shell = Shell.new(ui: ui, dry_run: configuration.dry_run, verbose: configuration.verbose)
       executor = RecipeExecutor.new(
@@ -286,7 +320,9 @@ module Railwyrm
         workspace: configuration.app_path,
         ui: ui,
         shell: shell,
-        dry_run: configuration.dry_run
+        dry_run: configuration.dry_run,
+        selected_modules: selected_modules,
+        deploy_preset: deploy_preset
       )
 
       executor.plan.each do |step|
@@ -312,6 +348,10 @@ module Railwyrm
       raise InvalidConfiguration, "Unknown recipe '#{raw}'. Expected #{named_path}" unless File.exist?(named_path)
 
       named_path
+    end
+
+    def normalized_modules_option(value)
+      Array(value).flat_map { |entry| entry.to_s.split(",") }.map(&:strip).reject(&:empty?).uniq
     end
 
     def build_configuration(app_name, ui:)

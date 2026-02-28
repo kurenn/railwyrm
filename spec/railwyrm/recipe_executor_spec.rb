@@ -33,6 +33,43 @@ RSpec.describe Railwyrm::RecipeExecutor do
     )
   end
 
+  def recipe_with_modules_and_deploy(commands:, quality_gates:, module_setup:, deploy:)
+    Railwyrm::Recipe.new(
+      path: "/tmp/recipe.yml",
+      data: {
+        "id" => "ats",
+        "name" => "Applicant Tracking System",
+        "version" => "0.1.0",
+        "inputs" => {
+          "with_modules" => {
+            "type" => "array",
+            "required" => false,
+            "default" => [],
+            "allowed" => ["background_jobs"]
+          }
+        },
+        "gems" => {
+          "required" => [],
+          "optional_by_module" => {
+            "background_jobs" => [{ "name" => "solid_queue" }]
+          }
+        },
+        "module_setup" => {
+          "background_jobs" => {
+            "commands" => module_setup
+          }
+        },
+        "scaffolding_plan" => { "commands" => commands },
+        "ui_overlays" => { "copies" => [] },
+        "seed_data" => { "file" => __FILE__ },
+        "quality_gates" => { "required_commands" => quality_gates },
+        "routes" => {},
+        "authorization" => { "baseline_policies" => [] },
+        "deploy" => deploy
+      }
+    )
+  end
+
   it "produces a deterministic plan in recipe order" do
     recipe = recipe_with_commands(["echo first", "echo second"])
     executor = described_class.new(
@@ -183,6 +220,98 @@ RSpec.describe Railwyrm::RecipeExecutor do
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed).to eq(["echo build", "echo gate_one", "echo gate_two"])
     end
+  end
+
+  it "adds selected module gems and runs module setup commands" do
+    Dir.mktmpdir do |workspace|
+      File.write(File.join(workspace, "Gemfile"), "source 'https://rubygems.org'\n")
+      shell = RecipeExecutorFakeShell.new
+      recipe = recipe_with_modules_and_deploy(
+        commands: ["echo build"],
+        quality_gates: [],
+        module_setup: ["echo setup_background_jobs"],
+        deploy: {}
+      )
+      executor = described_class.new(
+        recipe,
+        workspace: workspace,
+        ui: Railwyrm::UI::Buffer.new,
+        shell: shell,
+        dry_run: false,
+        selected_modules: ["background_jobs"]
+      )
+
+      executor.apply!
+
+      gemfile = File.read(File.join(workspace, "Gemfile"))
+      expect(gemfile).to include('gem "solid_queue"')
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed).to eq(["echo build", "bundle install", "echo setup_background_jobs"])
+    end
+  end
+
+  it "applies deploy preset copies and runs deploy smoke commands" do
+    Dir.mktmpdir do |workspace|
+      source_file = File.join(workspace, "render-template.yaml")
+      File.write(source_file, "service: ats\n")
+      shell = RecipeExecutorFakeShell.new
+      recipe = recipe_with_modules_and_deploy(
+        commands: ["echo build"],
+        quality_gates: ["echo gate"],
+        module_setup: [],
+        deploy: {
+          "presets" => {
+            "render" => {
+              "copies" => [{ "from" => source_file, "to" => "render.yaml" }],
+              "smoke_commands" => ["echo deploy_smoke"]
+            }
+          }
+        }
+      )
+      executor = described_class.new(
+        recipe,
+        workspace: workspace,
+        ui: Railwyrm::UI::Buffer.new,
+        shell: shell,
+        dry_run: false,
+        deploy_preset: "render"
+      )
+
+      executor.apply!
+
+      expect(File.read(File.join(workspace, "render.yaml"))).to include("service: ats")
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed).to eq(["echo build", "echo gate", "echo deploy_smoke"])
+    end
+  end
+
+  it "includes module setup and deploy smoke commands in the plan order" do
+    recipe = recipe_with_modules_and_deploy(
+      commands: ["echo build"],
+      quality_gates: ["echo gate"],
+      module_setup: ["echo setup_background_jobs"],
+      deploy: {
+        "presets" => {
+          "render" => {
+            "smoke_commands" => ["echo deploy_smoke"]
+          }
+        }
+      }
+    )
+    executor = described_class.new(
+      recipe,
+      workspace: "/tmp",
+      ui: Railwyrm::UI::Buffer.new,
+      shell: RecipeExecutorFakeShell.new,
+      dry_run: true,
+      selected_modules: ["background_jobs"],
+      deploy_preset: "render"
+    )
+
+    expect(executor.plan.map(&:command)).to eq(
+      ["echo build", "bundle install", "echo setup_background_jobs", "echo gate", "echo deploy_smoke"]
+    )
   end
 
   it "writes recipe routes and creates controller/policy stubs" do

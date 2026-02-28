@@ -15,7 +15,13 @@ RSpec.describe Railwyrm::RecipeSchema do
         "requires" => %w[devise rspec]
       },
       "inputs" => {
-        "organization_name" => { "type" => "string", "required" => false, "default" => "Acme Recruiting" }
+        "organization_name" => { "type" => "string", "required" => false, "default" => "Acme Recruiting" },
+        "with_modules" => {
+          "type" => "array",
+          "required" => false,
+          "default" => [],
+          "allowed" => ["background_jobs"]
+        }
       },
       "roles" => %w[admin recruiter],
       "gems" => {
@@ -51,6 +57,19 @@ RSpec.describe Railwyrm::RecipeSchema do
       "quality_gates" => {
         "required_commands" => ["bundle exec rspec"],
         "acceptance_checks" => ["Auth works for recruiter role"]
+      },
+      "module_setup" => {
+        "background_jobs" => {
+          "commands" => ["bin/rails generate solid_queue:install"]
+        }
+      },
+      "deploy" => {
+        "presets" => {
+          "render" => {
+            "copies" => [{ "from" => "recipes/ats/templates/deploy/render", "to" => "." }],
+            "smoke_commands" => ["bin/rails runner \"puts 'ok'\""]
+          }
+        }
       },
       "ai_assets" => {
         "agents" => ["recipes/ats/agents/expert.md"],
@@ -98,6 +117,32 @@ RSpec.describe Railwyrm::RecipeSchema do
     expect(result).not_to be_valid
     expect(result.errors).to include("base_stack.requires must be an array")
     expect(result.errors).to include("routes.public must be an array")
+  end
+
+  it "rejects invalid route definitions" do
+    recipe = valid_recipe_hash.dup
+    recipe["routes"] = {
+      "authenticated" => [{ "type" => "root", "to" => "" }],
+      "public" => [{ "type" => "bogus", "name" => "careers" }]
+    }
+
+    result = described_class.new.validate(recipe)
+
+    expect(result).not_to be_valid
+    expect(result.errors).to include("routes.authenticated[0].to must be a non-empty string for root routes")
+    expect(result.errors).to include("routes.public[0].type must be one of: root, get, resources")
+  end
+
+  it "rejects invalid deploy and module setup sections" do
+    recipe = valid_recipe_hash.dup
+    recipe["module_setup"] = { "background_jobs" => { "commands" => "bin/rails x" } }
+    recipe["deploy"] = { "presets" => { "render" => {} } }
+
+    result = described_class.new.validate(recipe)
+
+    expect(result).not_to be_valid
+    expect(result.errors).to include("module_setup.background_jobs.commands must be an array")
+    expect(result.errors).to include("deploy.presets.render must include copies and/or smoke_commands")
   end
 
   it "returns a parse error for malformed yaml files" do

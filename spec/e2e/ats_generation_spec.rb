@@ -96,7 +96,9 @@ RSpec.describe "ATS e2e generation", :e2e do
         "app/views/ats/dashboard/show.html.erb",
         "app/views/ats/job_postings/index.html.erb",
         "app/views/public/careers/index.html.erb",
-        "db/seeds/ats.seeds.rb"
+        "db/seeds/ats.seeds.rb",
+        "spec/requests/public/careers_spec.rb",
+        "spec/system/public/careers_spec.rb"
       ]
       expected_paths.each do |relative_path|
         expect(File).to exist(File.join(app_path, relative_path)), "Missing generated path: #{relative_path}"
@@ -106,6 +108,7 @@ RSpec.describe "ATS e2e generation", :e2e do
       expect(routes_content).to include("# BEGIN railwyrm:recipe:ats")
       expect(routes_content).to include("authenticated :user do")
       expect(routes_content).to include("resources :careers")
+      expect(routes_content).to include("get \"pipeline\", to: \"ats/pipeline_board#show\"")
 
       rspec_output, rspec_status = run_command("bundle", "exec", "rspec", chdir: app_path)
       expect(rspec_status.success?).to be(true), "bundle exec rspec failed:\n#{rspec_output}"

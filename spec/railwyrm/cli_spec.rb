@@ -15,7 +15,13 @@ RSpec.describe Railwyrm::CLI do
         "requires" => %w[devise rspec]
       },
       "inputs" => {
-        "organization_name" => { "type" => "string", "required" => false }
+        "organization_name" => { "type" => "string", "required" => false },
+        "with_modules" => {
+          "type" => "array",
+          "required" => false,
+          "default" => [],
+          "allowed" => ["background_jobs"]
+        }
       },
       "roles" => %w[admin recruiter],
       "gems" => {
@@ -48,6 +54,19 @@ RSpec.describe Railwyrm::CLI do
       "quality_gates" => {
         "required_commands" => ["bundle exec rspec"],
         "acceptance_checks" => ["Auth works for recruiter role"]
+      },
+      "module_setup" => {
+        "background_jobs" => {
+          "commands" => ["bin/rails generate solid_queue:install"]
+        }
+      },
+      "deploy" => {
+        "presets" => {
+          "render" => {
+            "copies" => [{ "from" => "recipes/ats/templates/deploy/render", "to" => "." }],
+            "smoke_commands" => ["bin/rails runner \"puts 'ok'\""]
+          }
+        }
       },
       "ai_assets" => {
         "agents" => ["recipes/ats/agents/expert.md"],
@@ -104,6 +123,37 @@ RSpec.describe Railwyrm::CLI do
       expect do
         described_class.start(["recipes", "apply", path, "--workspace", dir, "--dry-run"])
       end.not_to raise_error
+    end
+  end
+
+  it "passes module and deploy options to recipe executor" do
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "recipe.yml")
+      File.write(path, YAML.dump(valid_recipe_hash))
+      shell = instance_double(Railwyrm::Shell, run!: true)
+      executor = instance_double(Railwyrm::RecipeExecutor, apply!: true)
+      allow(Railwyrm::Shell).to receive(:new).and_return(shell)
+      allow(Railwyrm::RecipeExecutor).to receive(:new).and_return(executor)
+
+      described_class.start(
+        [
+          "recipes",
+          "apply",
+          path,
+          "--workspace",
+          dir,
+          "--with",
+          "background_jobs",
+          "--deploy",
+          "render"
+        ]
+      )
+
+      expect(Railwyrm::RecipeExecutor).to have_received(:new)
+        .with(
+          instance_of(Railwyrm::Recipe),
+          hash_including(selected_modules: ["background_jobs"], deploy_preset: "render")
+        )
     end
   end
 
