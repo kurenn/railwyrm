@@ -77,11 +77,13 @@ RSpec.describe Railwyrm::CLI do
   end
 
   it "lists available recipes" do
-    expect { described_class.start(["recipes", "list"]) }.not_to raise_error
+    expect { described_class.start(["recipes", "list"]) }
+      .to output(/Available recipes.*ats@0\.1\.0/m).to_stdout
   end
 
   it "shows a recipe by name" do
-    expect { described_class.start(["recipes", "show", "ats"]) }.not_to raise_error
+    expect { described_class.start(["recipes", "show", "ats"]) }
+      .to output(/Applicant Tracking System/).to_stdout
   end
 
   it "passes dry-run mode to shell when applying recipes" do

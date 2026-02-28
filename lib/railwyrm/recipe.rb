@@ -67,6 +67,20 @@ module Railwyrm
       }
     end
 
+    def routes
+      routes_data = data["routes"]
+      return {} unless routes_data.is_a?(Hash)
+
+      routes_data
+    end
+
+    def authorization_policies
+      policies = data.dig("authorization", "baseline_policies")
+      return [] unless policies.is_a?(Array)
+
+      policies
+    end
+
     def resolve_reference_path(reference)
       return File.expand_path(reference) if reference.start_with?("/", "./", "../")
 

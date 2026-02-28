@@ -26,7 +26,9 @@ RSpec.describe Railwyrm::RecipeExecutor do
         "scaffolding_plan" => { "commands" => commands },
         "ui_overlays" => { "copies" => [] },
         "seed_data" => { "file" => __FILE__ },
-        "quality_gates" => { "required_commands" => quality_gates }
+        "quality_gates" => { "required_commands" => quality_gates },
+        "routes" => {},
+        "authorization" => { "baseline_policies" => [] }
       }
     )
   end
@@ -180,6 +182,68 @@ RSpec.describe Railwyrm::RecipeExecutor do
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed).to eq(["echo build", "echo gate_one", "echo gate_two"])
+    end
+  end
+
+  it "writes recipe routes and creates controller/policy stubs" do
+    Dir.mktmpdir do |workspace|
+      FileUtils.mkdir_p(File.join(workspace, "config"))
+      File.write(
+        File.join(workspace, "config/routes.rb"),
+        <<~RUBY
+          Rails.application.routes.draw do
+          end
+        RUBY
+      )
+
+      recipe = Railwyrm::Recipe.new(
+        path: "/tmp/recipe.yml",
+        data: {
+          "id" => "ats",
+          "name" => "Applicant Tracking System",
+          "version" => "0.1.0",
+          "scaffolding_plan" => { "commands" => [] },
+          "ui_overlays" => { "copies" => [] },
+          "seed_data" => { "file" => __FILE__ },
+          "quality_gates" => { "required_commands" => [] },
+          "routes" => {
+            "authenticated" => [
+              { "type" => "root", "to" => "ats/dashboard#show", "as" => "authenticated_root" },
+              { "type" => "resources", "name" => "job_postings", "only" => %w[index show] },
+              { "type" => "get", "path" => "reports", "to" => "ats/reports#index" }
+            ],
+            "public" => [
+              { "type" => "resources", "name" => "careers", "only" => %w[index show], "controller" => "public/careers" }
+            ]
+          },
+          "authorization" => { "baseline_policies" => %w[job_posting_policy report_policy] }
+        }
+      )
+
+      executor = described_class.new(
+        recipe,
+        workspace: workspace,
+        ui: Railwyrm::UI::Buffer.new,
+        shell: RecipeExecutorFakeShell.new,
+        dry_run: false
+      )
+
+      executor.apply!
+
+      routes_content = File.read(File.join(workspace, "config/routes.rb"))
+      expect(routes_content).to include("# BEGIN railwyrm:recipe:ats")
+      expect(routes_content).to include("authenticated :user do")
+      expect(routes_content).to include("root to: \"ats/dashboard#show\", as: :authenticated_root")
+      expect(routes_content).to include("resources :careers, only: [:index, :show], controller: \"public/careers\"")
+
+      expect(File).to exist(File.join(workspace, "app/controllers/ats/dashboard_controller.rb"))
+      expect(File).to exist(File.join(workspace, "app/controllers/ats/reports_controller.rb"))
+      expect(File).to exist(File.join(workspace, "app/controllers/job_postings_controller.rb"))
+      expect(File).to exist(File.join(workspace, "app/controllers/public/careers_controller.rb"))
+
+      policy_content = File.read(File.join(workspace, "app/policies/job_posting_policy.rb"))
+      expect(policy_content).to include("class JobPostingPolicy < ApplicationPolicy")
+      expect(File).to exist(File.join(workspace, "app/policies/report_policy.rb"))
     end
   end
 end

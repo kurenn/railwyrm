@@ -81,6 +81,8 @@ RSpec.describe Railwyrm::Recipe do
         "version" => "0.1.0",
         "status" => "draft"
       )
+      expect(recipe.routes.keys).to contain_exactly("authenticated", "public")
+      expect(recipe.authorization_policies).to eq(["job_posting_policy"])
     end
   end
 
