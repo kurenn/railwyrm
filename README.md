@@ -122,4 +122,13 @@ This repo includes:
   - `.codex/skills/rails-kickstart-stack/SKILL.md`
 
 These help Codex quickly make consistent, testable changes without rediscovering conventions.
-# railwyrm
+
+## Recipe Drafts
+
+Draft recipe specs and prompt-driven test harnesses live under `recipes/`.
+
+- ATS recipe spec: `recipes/ats/recipe.yml`
+- ATS test prompt: `recipes/ats/prompt.md`
+
+These are currently design-time assets for planning and prompt testing before
+native recipe execution is added to the CLI.
