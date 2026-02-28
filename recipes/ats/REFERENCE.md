@@ -17,6 +17,8 @@ This recipe is the Railwyrm reference implementation for recipe-driven app expan
 - Recipe modules can be enabled via `--with` and install module gems/setup deterministically
 - Recipe deploy presets can be enabled via `--deploy` and run deploy smoke commands
 - Recipe includes generated ATS request/system smoke specs
+- Recipe overlays include ATS model hardening and migration constraints
+- Deploy preset outputs include checklist artifacts for manual ship verification
 - Referenced assets exist for:
   - `ui_overlays.copies[*].from`
   - `seed_data.file`

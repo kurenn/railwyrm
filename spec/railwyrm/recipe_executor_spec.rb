@@ -33,7 +33,7 @@ RSpec.describe Railwyrm::RecipeExecutor do
     )
   end
 
-  def recipe_with_modules_and_deploy(commands:, quality_gates:, module_setup:, deploy:)
+  def recipe_with_modules_and_deploy(commands:, quality_gates:, module_setup:, deploy:, required_gems: [])
     Railwyrm::Recipe.new(
       path: "/tmp/recipe.yml",
       data: {
@@ -49,7 +49,7 @@ RSpec.describe Railwyrm::RecipeExecutor do
           }
         },
         "gems" => {
-          "required" => [],
+          "required" => required_gems.map { |name| { "name" => name } },
           "optional_by_module" => {
             "background_jobs" => [{ "name" => "solid_queue" }]
           }
@@ -230,7 +230,8 @@ RSpec.describe Railwyrm::RecipeExecutor do
         commands: ["echo build"],
         quality_gates: [],
         module_setup: ["echo setup_background_jobs"],
-        deploy: {}
+        deploy: {},
+        required_gems: ["pundit"]
       )
       executor = described_class.new(
         recipe,
@@ -244,10 +245,11 @@ RSpec.describe Railwyrm::RecipeExecutor do
       executor.apply!
 
       gemfile = File.read(File.join(workspace, "Gemfile"))
+      expect(gemfile).to include('gem "pundit"')
       expect(gemfile).to include('gem "solid_queue"')
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
-      expect(executed).to eq(["echo build", "bundle install", "echo setup_background_jobs"])
+      expect(executed).to eq(["bundle install", "echo build", "echo setup_background_jobs"])
     end
   end
 
@@ -310,7 +312,7 @@ RSpec.describe Railwyrm::RecipeExecutor do
     )
 
     expect(executor.plan.map(&:command)).to eq(
-      ["echo build", "bundle install", "echo setup_background_jobs", "echo gate", "echo deploy_smoke"]
+      ["bundle install", "echo build", "echo setup_background_jobs", "echo gate", "echo deploy_smoke"]
     )
   end
 

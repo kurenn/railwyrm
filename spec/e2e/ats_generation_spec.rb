@@ -7,17 +7,16 @@ require "timeout"
 
 RSpec.describe "ATS e2e generation", :e2e do
   let(:repo_root) { File.expand_path("../..", __dir__) }
-  let(:pg_host) { ENV.fetch("PGHOST", "127.0.0.1") }
-  let(:pg_user) { ENV.fetch("PGUSER", "postgres") }
-  let(:pg_password) { ENV.fetch("PGPASSWORD", "postgres") }
+  let(:pg_host) { ENV["PGHOST"] }
+  let(:pg_user) { ENV["PGUSER"] }
+  let(:pg_password) { ENV["PGPASSWORD"] }
   let(:e2e_timeout_seconds) { 1_200 } # 20 minutes
 
   def run_command(*command, chdir:, env: {})
-    full_env = {
-      "PGHOST" => pg_host,
-      "PGUSER" => pg_user,
-      "PGPASSWORD" => pg_password
-    }.merge(env)
+    full_env = env.dup
+    full_env["PGHOST"] = pg_host if pg_host
+    full_env["PGUSER"] = pg_user if pg_user
+    full_env["PGPASSWORD"] = pg_password if pg_password
 
     output = +""
     status = nil
@@ -37,19 +36,25 @@ RSpec.describe "ATS e2e generation", :e2e do
   def postgres_available?
     return false unless command_available?("pg_isready")
 
-    _output, status = Open3.capture2e(
-      { "PGHOST" => pg_host, "PGUSER" => pg_user, "PGPASSWORD" => pg_password },
-      "pg_isready",
-      "-h",
-      pg_host,
-      "-U",
-      pg_user
-    )
+    env = {}
+    env["PGHOST"] = pg_host if pg_host
+    env["PGUSER"] = pg_user if pg_user
+    env["PGPASSWORD"] = pg_password if pg_password
+
+    command = ["pg_isready"]
+    command += ["-h", pg_host] if pg_host
+    command += ["-U", pg_user] if pg_user
+
+    _output, status = Open3.capture2e(env, *command)
     status.success?
   end
 
   def rails_new_available?
-    _output, status = Open3.capture2e("rails", "new", "--help")
+    _output, status = if defined?(Bundler)
+                        Bundler.with_unbundled_env { Open3.capture2e("rails", "new", "--help") }
+                      else
+                        Open3.capture2e("rails", "new", "--help")
+                      end
     status.success?
   end
 
@@ -60,7 +65,7 @@ RSpec.describe "ATS e2e generation", :e2e do
     skip "postgres is unavailable for e2e run" unless postgres_available?
 
     Dir.mktmpdir("railwyrm-ats-e2e-") do |workspace|
-      app_name = "ats_e2e_app"
+      app_name = "ats_e2e_app_#{Process.pid}_#{Time.now.to_i}"
       app_path = File.join(workspace, app_name)
 
       output, status = run_command(
@@ -75,6 +80,10 @@ RSpec.describe "ATS e2e generation", :e2e do
         workspace,
         "--recipe",
         "ats",
+        "--with",
+        "background_jobs",
+        "--deploy",
+        "render",
         "--no-banner",
         chdir: repo_root
       )
@@ -92,13 +101,18 @@ RSpec.describe "ATS e2e generation", :e2e do
         "app/controllers/ats/dashboard_controller.rb",
         "app/controllers/ats/reports_controller.rb",
         "app/controllers/public/careers_controller.rb",
+        "app/models/job_posting.rb",
         "app/policies/job_posting_policy.rb",
         "app/views/ats/dashboard/show.html.erb",
         "app/views/ats/job_postings/index.html.erb",
         "app/views/public/careers/index.html.erb",
         "db/seeds/ats.seeds.rb",
+        "db/migrate/20260228000000_harden_ats_constraints.rb",
+        "render.yaml",
+        "CHECKLIST.md",
         "spec/requests/public/careers_spec.rb",
-        "spec/system/public/careers_spec.rb"
+        "spec/system/public/careers_spec.rb",
+        "spec/policies/job_posting_policy_spec.rb"
       ]
       expected_paths.each do |relative_path|
         expect(File).to exist(File.join(app_path, relative_path)), "Missing generated path: #{relative_path}"

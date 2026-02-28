@@ -30,14 +30,14 @@ module Railwyrm
       scaffold_steps = recipe.scaffolding_commands
 
       ui.headline("Applying recipe #{recipe.id}@#{recipe.version} in #{workspace}")
+      ui.step("Install recipe gems") do
+        apply_recipe_gems!
+      end
+
       scaffold_steps.each_with_index do |command, index|
         ui.step("Recipe step #{index + 1}/#{scaffold_steps.length}") do
           shell.run!(*Shellwords.split(command), chdir: workspace)
         end
-      end
-
-      ui.step("Install module gems") do
-        apply_module_gems!
       end
 
       run_module_setup_commands!
@@ -71,9 +71,8 @@ module Railwyrm
 
     def command_list
       commands = []
+      commands << "bundle install" unless recipe.recipe_gems(selected_modules).empty?
       commands.concat(recipe.scaffolding_commands)
-
-      commands << "bundle install" unless recipe.module_gems(selected_modules).empty?
       commands.concat(recipe.module_setup_commands(selected_modules))
       commands.concat(recipe.quality_gate_commands)
       commands.concat(recipe.deploy_smoke_commands(deploy_preset)) if deploy_preset
@@ -92,10 +91,10 @@ module Railwyrm
       raise InvalidConfiguration, "Workspace does not exist: #{workspace}" unless Dir.exist?(workspace)
     end
 
-    def apply_module_gems!
-      gems = recipe.module_gems(selected_modules)
+    def apply_recipe_gems!
+      gems = recipe.recipe_gems(selected_modules)
       if gems.empty?
-        ui.info("No module gems selected")
+        ui.info("No recipe gems to install")
         return
       end
 
@@ -106,7 +105,7 @@ module Railwyrm
 
       if dry_run
         ui.info("Dry run: ensure gems #{gems.join(', ')} in Gemfile")
-        ui.info("Dry run: run bundle install for selected modules")
+        ui.info("Dry run: run bundle install for recipe gems")
         return
       end
 

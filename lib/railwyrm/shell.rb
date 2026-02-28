@@ -18,18 +18,30 @@ module Railwyrm
       @ui.command(pretty_command, chdir: chdir)
       return true if @dry_run
 
-      Open3.popen2e(*command, chdir: chdir) do |_stdin, output, wait_thr|
-        output.each_line do |line|
-          next unless @verbose
+      with_unbundled_env do
+        Open3.popen2e(*command, chdir: chdir) do |_stdin, output, wait_thr|
+          output.each_line do |line|
+            next unless @verbose
 
-          stripped = line.rstrip
-          @ui.stream(stripped) unless stripped.empty?
+            stripped = line.rstrip
+            @ui.stream(stripped) unless stripped.empty?
+          end
+
+          status = wait_thr.value
+          return true if status.success?
+
+          raise CommandFailed, "Command failed with status #{status.exitstatus}: #{pretty_command}"
         end
+      end
+    end
 
-        status = wait_thr.value
-        return true if status.success?
+    private
 
-        raise CommandFailed, "Command failed with status #{status.exitstatus}: #{pretty_command}"
+    def with_unbundled_env
+      if defined?(Bundler)
+        Bundler.with_unbundled_env { yield }
+      else
+        yield
       end
     end
   end

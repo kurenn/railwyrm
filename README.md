@@ -206,6 +206,8 @@ including `base_stack.requires`, `scaffolding_plan.commands`, and
   - copies `ui_overlays.copies[*]` sources into target app paths
   - installs `seed_data.file` into `db/seeds/<recipe>.seeds.rb` and loads it from `db/seeds.rb`
   - wires `routes` into `config/routes.rb` and creates missing controller/policy stubs
+- ATS overlays also install starter models, policy classes, and hardening migrations
+- required recipe gems are inserted into Gemfile and installed before scaffold commands
 - `apply` runs `quality_gates.required_commands` after scaffolding and asset install
 - `apply` can install module gems and setup commands with `--with`
 - `apply` can install deploy preset files and run smoke commands with `--deploy`

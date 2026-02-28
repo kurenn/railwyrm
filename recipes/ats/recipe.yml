@@ -44,7 +44,8 @@ gems:
   required:
     - name: pundit
     - name: friendly_id
-    - name: rank_model
+    - name: ranked-model
+    - name: capybara
   optional_by_module:
     background_jobs:
       - name: solid_queue
@@ -183,11 +184,11 @@ scaffolding_plan:
     strategy: explicit_generators_then_manual_tuning
   commands:
     - bin/rails generate pundit:install
-    - bin/rails generate model Company name:string slug:string:index{unique}
+    - bin/rails generate model Company name:string slug:string
     - bin/rails generate model Team company:references name:string
     - bin/rails generate model Membership user:references team:references role:integer
     - bin/rails generate model Department company:references name:string
-    - bin/rails generate model JobPosting company:references department:references title:string slug:string:index{unique} location:string employment_type:string salary_min:integer salary_max:integer status:integer description:text requirements:text opened_at:datetime closed_at:datetime
+    - bin/rails generate model JobPosting company:references department:references title:string slug:string location:string employment_type:string salary_min:integer salary_max:integer status:integer description:text requirements:text opened_at:datetime closed_at:datetime
     - bin/rails generate model PipelineStage job_posting:references name:string position:integer kind:integer
     - bin/rails generate model Candidate company:references first_name:string last_name:string email:string:index phone:string location:string linkedin_url:string portfolio_url:string source:string notes:text
     - bin/rails generate model Application candidate:references job_posting:references pipeline_stage:references owner:references{polymorphic} status:integer applied_at:datetime rejected_at:datetime hired_at:datetime
@@ -207,6 +208,12 @@ ui_overlays:
       to: app/components
     - from: recipes/ats/templates/controllers
       to: app/controllers
+    - from: recipes/ats/templates/models
+      to: app/models
+    - from: recipes/ats/templates/policies
+      to: app/policies
+    - from: recipes/ats/templates/migrations
+      to: db/migrate
     - from: recipes/ats/templates/spec
       to: spec
   starter_pages:
@@ -304,6 +311,7 @@ ai_assets:
 
 quality_gates:
   required_commands:
+    - bin/rails db:migrate
     - bundle exec rspec
     - bin/rails routes
     - bin/rails zeitwerk:check
@@ -311,6 +319,7 @@ quality_gates:
     - "Auth works for recruiter role"
     - "Pipeline stage movement persists"
     - "Application status transitions are audited"
+    - "Pundit policy role checks pass for ATS baseline policies"
     - "All ATS pages are responsive (mobile + desktop)"
 
 module_setup:

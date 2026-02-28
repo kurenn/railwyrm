@@ -60,7 +60,13 @@ RSpec.describe "ATS reference recipe" do
       "recipes/ats/templates/views/ats/reports/index.html.erb",
       "recipes/ats/templates/views/public/careers/index.html.erb",
       "recipes/ats/templates/views/public/careers/show.html.erb",
-      "recipes/ats/templates/seeds/ats.seeds.rb"
+      "recipes/ats/templates/seeds/ats.seeds.rb",
+      "recipes/ats/templates/models/job_posting.rb",
+      "recipes/ats/templates/policies/job_posting_policy.rb",
+      "recipes/ats/templates/spec/policies/job_posting_policy_spec.rb",
+      "recipes/ats/templates/migrations/20260228000000_harden_ats_constraints.rb",
+      "recipes/ats/templates/deploy/render/CHECKLIST.md",
+      "recipes/ats/templates/deploy/fly/CHECKLIST.md"
     ]
 
     expected_files.each do |relative_path|

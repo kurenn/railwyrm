@@ -130,6 +130,22 @@ module Railwyrm
       end.uniq
     end
 
+    def required_gems
+      entries = data.dig("gems", "required")
+      return [] unless entries.is_a?(Array)
+
+      entries.filter_map do |entry|
+        next unless entry.is_a?(Hash)
+
+        name = entry["name"].to_s.strip
+        name.empty? ? nil : name
+      end.uniq
+    end
+
+    def recipe_gems(selected_modules)
+      (required_gems + module_gems(selected_modules)).uniq
+    end
+
     def module_setup_commands(selected_modules)
       selected = resolve_modules(selected_modules)
       return [] if selected.empty?
