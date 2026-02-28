@@ -119,6 +119,12 @@ Run tests:
 bundle exec rspec
 ```
 
+Run ATS end-to-end generation test (opt-in):
+
+```bash
+RUN_E2E=1 bundle exec rspec spec/e2e/ats_generation_spec.rb
+```
+
 ## Project Layout
 
 - `exe/railwyrm` executable entrypoint
