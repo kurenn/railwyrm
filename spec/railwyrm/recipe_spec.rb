@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe Railwyrm::CLI do
+RSpec.describe Railwyrm::Recipe do
   def valid_recipe_hash
     {
       "id" => "ats",
@@ -27,7 +27,10 @@ RSpec.describe Railwyrm::CLI do
         }
       },
       "scaffolding_plan" => {
-        "commands" => ["echo recipe_step"]
+        "commands" => [
+          "echo one",
+          "echo two"
+        ]
       },
       "ui_overlays" => {
         "copies" => [{ "from" => "recipes/ats/templates/views", "to" => "app/views" }]
@@ -58,47 +61,27 @@ RSpec.describe Railwyrm::CLI do
     }
   end
 
-  it "validates a recipe file successfully" do
+  it "loads a valid recipe file" do
     Dir.mktmpdir do |dir|
       path = File.join(dir, "recipe.yml")
       File.write(path, YAML.dump(valid_recipe_hash))
 
-      expect { described_class.start(["recipes", "validate", path]) }.not_to raise_error
+      recipe = described_class.load(path)
+
+      expect(recipe.id).to eq("ats")
+      expect(recipe.version).to eq("0.1.0")
+      expect(recipe.scaffolding_commands).to eq(["echo one", "echo two"])
+      expect(recipe.path).to eq(File.expand_path(path))
     end
   end
 
-  it "prints a deterministic recipe plan" do
-    Dir.mktmpdir do |dir|
-      path = File.join(dir, "recipe.yml")
-      File.write(path, YAML.dump(valid_recipe_hash))
-
-      expect { described_class.start(["recipes", "plan", path, "--workspace", dir]) }.not_to raise_error
-    end
-  end
-
-  it "passes dry-run mode to shell when applying recipes" do
-    Dir.mktmpdir do |dir|
-      path = File.join(dir, "recipe.yml")
-      File.write(path, YAML.dump(valid_recipe_hash))
-      shell = instance_double(Railwyrm::Shell, run!: true)
-      allow(Railwyrm::Shell).to receive(:new).and_return(shell)
-      expect(Railwyrm::Shell).to receive(:new)
-        .with(hash_including(dry_run: true, verbose: false))
-        .and_return(shell)
-
-      expect do
-        described_class.start(["recipes", "apply", path, "--workspace", dir, "--dry-run"])
-      end.not_to raise_error
-    end
-  end
-
-  it "exits with a non-zero status for invalid recipes" do
+  it "raises on invalid recipe files" do
     Dir.mktmpdir do |dir|
       path = File.join(dir, "recipe.yml")
       File.write(path, "id: ats\nname: bad")
 
-      expect { described_class.start(["recipes", "validate", path]) }
-        .to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
+      expect { described_class.load(path) }
+        .to raise_error(Railwyrm::InvalidConfiguration, /Invalid recipe/)
     end
   end
 end

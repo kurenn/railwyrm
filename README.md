@@ -94,6 +94,8 @@ bundle exec ruby exe/railwyrm new my_new_app --interactive=false --sign_in_layou
 ```bash
 bundle exec ruby exe/railwyrm new [APP_NAME]
 bundle exec ruby exe/railwyrm recipes validate [RECIPE_PATH]
+bundle exec ruby exe/railwyrm recipes plan [RECIPE_PATH] --workspace /path/to/app
+bundle exec ruby exe/railwyrm recipes apply [RECIPE_PATH] --workspace /path/to/app
 bundle exec ruby exe/railwyrm doctor
 bundle exec ruby exe/railwyrm version
 ```
@@ -171,3 +173,9 @@ Required top-level keys:
 The validator also enforces key nested structures for deterministic recipes,
 including `base_stack.requires`, `scaffolding_plan.commands`, and
 `ai_assets` (`agents`, `skills`, `prompts`, `playbooks`).
+
+### Deterministic Recipe Execution
+
+- `railwyrm recipes plan` prints the exact command order from `scaffolding_plan.commands`
+- `railwyrm recipes apply` runs those commands in that same order
+- Use `--dry_run` with `apply` to preview command execution without running commands

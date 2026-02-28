@@ -22,6 +22,63 @@ module Railwyrm
         result.errors.each { |error| ui.warn(error) }
         exit(1)
       end
+
+      desc "plan [RECIPE_PATH]", "Show deterministic execution plan for a recipe"
+      option :workspace, aliases: "-w", type: :string, default: Dir.pwd, desc: "Target workspace"
+      def plan(recipe_path = "recipe.yml")
+        ui = UI::Console.new(verbose: false)
+        recipe = load_recipe(recipe_path)
+        executor = RecipeExecutor.new(
+          recipe,
+          workspace: options[:workspace],
+          ui: ui,
+          shell: Shell.new(ui: ui, dry_run: true, verbose: false)
+        )
+
+        ui.headline("Plan for #{recipe.id}@#{recipe.version}")
+        ui.info("Recipe file: #{recipe.path}")
+        ui.info("Workspace: #{File.expand_path(options[:workspace])}")
+        executor.plan.each do |step|
+          ui.info("#{step.index}. #{step.command}")
+        end
+      rescue StandardError => e
+        ui.error(e.message)
+        exit(1)
+      end
+
+      desc "apply [RECIPE_PATH]", "Apply a recipe deterministically in command order"
+      option :workspace, aliases: "-w", type: :string, default: Dir.pwd, desc: "Target workspace"
+      option :verbose, type: :boolean, default: false, desc: "Stream command output"
+      option :dry_run, aliases: "--dry_run", type: :boolean, default: false,
+                        desc: "Print commands without executing"
+      def apply(recipe_path = "recipe.yml")
+        ui = UI::Console.new(verbose: effective_verbose?)
+        recipe = load_recipe(recipe_path)
+        shell = Shell.new(ui: ui, dry_run: effective_dry_run?, verbose: effective_verbose?)
+        executor = RecipeExecutor.new(recipe, workspace: options[:workspace], ui: ui, shell: shell)
+        executor.apply!
+      rescue StandardError => e
+        ui.error(e.message)
+        exit(1)
+      end
+
+      private
+
+      def load_recipe(recipe_path)
+        Recipe.load(recipe_path)
+      end
+
+      def effective_dry_run?
+        truthy_option?(options[:dry_run]) || truthy_option?(parent_options[:dry_run])
+      end
+
+      def effective_verbose?
+        truthy_option?(options[:verbose]) || truthy_option?(parent_options[:verbose])
+      end
+
+      def truthy_option?(value)
+        value == true
+      end
     end
 
     package_name "railwyrm"
