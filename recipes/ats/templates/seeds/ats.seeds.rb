@@ -111,8 +111,10 @@ module AtsSeeds
         assign_if_supported(candidate, :first_name, first_name)
         assign_if_supported(candidate, :last_name, last_name)
         assign_if_supported(candidate, :phone, "+1-555-010#{format('%02d', index)}")
-        assign_if_supported(candidate, :location, %w[Remote New\ York Austin Chicago].cycle[index % 4])
-        assign_if_supported(candidate, :source, %w[referral careers linkedin].cycle[index % 3])
+        locations = ["Remote", "New York", "Austin", "Chicago"]
+        sources = %w[referral careers linkedin]
+        assign_if_supported(candidate, :location, locations[index % locations.length])
+        assign_if_supported(candidate, :source, sources[index % sources.length])
       end
     end
   end

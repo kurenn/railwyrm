@@ -204,6 +204,8 @@ ui_overlays:
   copies:
     - from: recipes/ats/templates/views
       to: app/views
+    - from: recipes/ats/templates/docs
+      to: docs
     - from: recipes/ats/templates/components
       to: app/components
     - from: recipes/ats/templates/controllers

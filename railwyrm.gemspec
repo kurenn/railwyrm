@@ -28,6 +28,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "pastel", "~> 0.8"
+  spec.add_dependency "erb"
   spec.add_dependency "puma", "~> 6.6"
   spec.add_dependency "rackup", "~> 2.2"
   spec.add_dependency "sinatra", "~> 4.1"
