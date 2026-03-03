@@ -105,6 +105,11 @@ RSpec.describe Railwyrm::CLI do
       .to output(/Applicant Tracking System/).to_stdout
   end
 
+  it "lists shared ui profiles" do
+    expect { described_class.start(["recipes", "profiles"]) }
+      .to output(/Shared UI profiles.*dashboard_05 \[ready\]/m).to_stdout
+  end
+
   it "passes dry-run mode to shell when applying recipes" do
     Dir.mktmpdir do |dir|
       path = File.join(dir, "recipe.yml")
@@ -161,6 +166,17 @@ RSpec.describe Railwyrm::CLI do
     Dir.mktmpdir do |dir|
       path = File.join(dir, "recipe.yml")
       File.write(path, "id: ats\nname: bad")
+
+      expect { described_class.start(["recipes", "validate", path]) }
+        .to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
+    end
+  end
+
+  it "exits with a non-zero status for unknown ui_profile in validate" do
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "recipe.yml")
+      recipe = valid_recipe_hash.merge("ui_profile" => "does_not_exist")
+      File.write(path, YAML.dump(recipe))
 
       expect { described_class.start(["recipes", "validate", path]) }
         .to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }

@@ -51,6 +51,25 @@ module Railwyrm
       normalized.empty? ? nil : normalized
     end
 
+    def ui_profile_validation_errors
+      return [] unless ui_profile
+
+      errors = []
+      unless ui_profile_catalog.include?(ui_profile)
+        available = ui_profile_catalog.list
+        if available.empty?
+          errors << "ui_profile '#{ui_profile}' is unknown (no shared UI profiles found)"
+        else
+          errors << "ui_profile '#{ui_profile}' is unknown (available: #{available.join(', ')})"
+        end
+      end
+
+      ui_profile_catalog.missing_overlay_paths_for(ui_profile).each do |path|
+        errors << "ui_profile '#{ui_profile}' missing overlay path: #{path}"
+      end
+      errors
+    end
+
     def seed_data_file
       data.fetch("seed_data").fetch("file")
     end
@@ -218,16 +237,7 @@ module Railwyrm
     def shared_ui_profile_copies
       return [] unless ui_profile
 
-      [
-        {
-          "from" => "recipes/_shared/ui_profiles/#{ui_profile}/views",
-          "to" => "app/views"
-        },
-        {
-          "from" => "recipes/_shared/ui_profiles/#{ui_profile}/components",
-          "to" => "app/components"
-        }
-      ]
+      ui_profile_catalog.overlay_copies_for(ui_profile)
     end
 
     def normalize_module_selection(selection)
@@ -242,6 +252,10 @@ module Railwyrm
       return File.dirname(path) unless marker_index
 
       path[0...marker_index]
+    end
+
+    def ui_profile_catalog
+      @ui_profile_catalog ||= UIProfileCatalog.new(repository_root: repository_root)
     end
   end
 end

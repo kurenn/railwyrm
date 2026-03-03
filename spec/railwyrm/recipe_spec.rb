@@ -168,4 +168,28 @@ RSpec.describe Railwyrm::Recipe do
       }
     )
   end
+
+  it "reports validation errors when ui_profile is unknown" do
+    hash = valid_recipe_hash.merge("ui_profile" => "missing_profile")
+    recipe = described_class.new(path: "/tmp/demo-repo/recipes/ats/recipe.yml", data: hash)
+
+    expect(recipe.ui_profile_validation_errors).to include(
+      "ui_profile 'missing_profile' is unknown (no shared UI profiles found)"
+    )
+  end
+
+  it "passes ui_profile validation when shared profile assets exist" do
+    Dir.mktmpdir do |dir|
+      recipe_path = File.join(dir, "recipes", "ats", "recipe.yml")
+      FileUtils.mkdir_p(File.join(dir, "recipes", "_shared", "ui_profiles", "dashboard_05", "views"))
+      FileUtils.mkdir_p(File.join(dir, "recipes", "_shared", "ui_profiles", "dashboard_05", "components"))
+      FileUtils.mkdir_p(File.dirname(recipe_path))
+      File.write(recipe_path, "---\n")
+
+      hash = valid_recipe_hash.merge("ui_profile" => "dashboard_05")
+      recipe = described_class.new(path: recipe_path, data: hash)
+
+      expect(recipe.ui_profile_validation_errors).to eq([])
+    end
+  end
 end

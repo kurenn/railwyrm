@@ -38,6 +38,29 @@ module Railwyrm
         end
       end
 
+      desc "profiles", "List shared UI profiles available to recipes"
+      def profiles
+        ui = UI::Console.new(verbose: false)
+        catalog = ui_profile_catalog
+        profiles = catalog.list
+
+        if profiles.empty?
+          ui.warn("No shared UI profiles found.")
+          return
+        end
+
+        ui.headline("Shared UI profiles")
+        profiles.each do |profile|
+          missing_paths = catalog.missing_overlay_paths_for(profile)
+          if missing_paths.empty?
+            ui.info("#{profile} [ready]")
+          else
+            ui.warn("#{profile} [incomplete]")
+            missing_paths.each { |path| ui.warn("  missing: #{path}") }
+          end
+        end
+      end
+
       desc "show RECIPE", "Show recipe metadata, modules, commands, and quality gates"
       def show(recipe_ref)
         ui = UI::Console.new(verbose: false)
@@ -80,8 +103,22 @@ module Railwyrm
         result = RecipeSchema.new.validate_file(path)
 
         if result.valid?
-          ui.success("Recipe is valid: #{path}")
-          return
+          begin
+            recipe = Recipe.load(path)
+            profile_errors = recipe.ui_profile_validation_errors
+            if profile_errors.empty?
+              ui.success("Recipe is valid: #{path}")
+              return
+            end
+
+            ui.error("Recipe validation failed: #{path}")
+            profile_errors.each { |error| ui.warn(error) }
+            exit(1)
+          rescue StandardError => e
+            ui.error("Recipe validation failed: #{path}")
+            ui.warn(e.message)
+            exit(1)
+          end
         end
 
         ui.error("Recipe validation failed: #{path}")
@@ -175,6 +212,10 @@ module Railwyrm
 
       def recipes_root
         File.join(repo_root, "recipes")
+      end
+
+      def ui_profile_catalog
+        @ui_profile_catalog ||= UIProfileCatalog.new(repository_root: repo_root)
       end
 
       def repo_root

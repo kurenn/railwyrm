@@ -95,6 +95,7 @@ bundle exec ruby exe/railwyrm new my_new_app --interactive=false --sign_in_layou
 bundle exec ruby exe/railwyrm new [APP_NAME]
 bundle exec ruby exe/railwyrm new [APP_NAME] --recipe ats
 bundle exec ruby exe/railwyrm recipes list
+bundle exec ruby exe/railwyrm recipes profiles
 bundle exec ruby exe/railwyrm recipes show ats
 bundle exec ruby exe/railwyrm recipes validate [RECIPE_PATH]
 bundle exec ruby exe/railwyrm recipes plan [RECIPE_PATH] --workspace /path/to/app
@@ -204,6 +205,8 @@ Optional top-level keys:
 The validator also enforces key nested structures for deterministic recipes,
 including `base_stack.requires`, `scaffolding_plan.commands`, and
 `ai_assets` (`agents`, `skills`, `prompts`, `playbooks`).
+When `ui_profile` is set, validation also checks that the shared profile exists
+under `recipes/_shared/ui_profiles` and has the required overlay directories.
 
 ### Deterministic Recipe Execution
 
@@ -224,6 +227,7 @@ including `base_stack.requires`, `scaffolding_plan.commands`, and
 ### Recipe Discovery
 
 - `railwyrm recipes list` shows available recipes under `recipes/*/recipe.yml`
+- `railwyrm recipes profiles` shows shared UI profiles under `recipes/_shared/ui_profiles/*`
 - `railwyrm recipes show <recipe>` shows metadata, modules, scaffold command list, and quality gates
 
 ### ATS Reference Flow
