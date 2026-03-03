@@ -27,30 +27,6 @@
   </section>
 
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      <h2 class="text-2xl font-semibold text-slate-900">Site traffic <span class="text-emerald-600">+104%</span></h2>
-      <div class="flex flex-wrap items-center gap-2">
-        <% ["12 months", "30 days", "7 days", "24 hours"].each_with_index do |label, index| %>
-          <button class="rounded-xl border <%= index.zero? ? 'border-slate-300 bg-white text-slate-900' : 'border-transparent bg-slate-100 text-slate-500' %> px-4 py-2 text-sm font-medium"><%= label %></button>
-        <% end %>
-      </div>
-    </div>
-
-    <div class="relative mt-6 h-72 overflow-hidden rounded-xl border border-slate-100 bg-gradient-to-b from-white to-slate-50">
-      <div class="absolute inset-x-4 bottom-7 top-6 flex items-end gap-1.5">
-        <% @site_traffic_bars.each do |height| %>
-          <div class="w-full rounded-full bg-violet-500/85" style="height: <%= height %>%"></div>
-        <% end %>
-      </div>
-      <div class="absolute inset-x-4 bottom-2 flex justify-between text-xs text-slate-400">
-        <% %w[Dec Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec].each do |month| %>
-          <span><%= month %></span>
-        <% end %>
-      </div>
-    </div>
-  </section>
-
-  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-semibold text-slate-900">Recently active applications</h2>
       <%= link_to "View all", job_postings_path, class: "rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700" %>
