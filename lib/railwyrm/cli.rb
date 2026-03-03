@@ -49,6 +49,7 @@ module Railwyrm
         ui.info("Status: #{data['status']}")
         ui.info("Path: #{recipe.path}")
         ui.info("Description: #{data['description']}")
+        ui.info("UI profile: #{recipe.ui_profile}") if recipe.ui_profile
 
         modules = data.dig("inputs", "with_modules", "allowed")
         if modules.is_a?(Array) && !modules.empty?

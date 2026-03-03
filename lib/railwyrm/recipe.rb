@@ -40,7 +40,15 @@ module Railwyrm
     end
 
     def ui_overlay_copies
-      data.fetch("ui_overlays").fetch("copies")
+      shared_ui_profile_copies + data.fetch("ui_overlays").fetch("copies")
+    end
+
+    def ui_profile
+      profile = data["ui_profile"]
+      return nil unless profile.is_a?(String)
+
+      normalized = profile.strip
+      normalized.empty? ? nil : normalized
     end
 
     def seed_data_file
@@ -206,6 +214,21 @@ module Railwyrm
     end
 
     private
+
+    def shared_ui_profile_copies
+      return [] unless ui_profile
+
+      [
+        {
+          "from" => "recipes/_shared/ui_profiles/#{ui_profile}/views",
+          "to" => "app/views"
+        },
+        {
+          "from" => "recipes/_shared/ui_profiles/#{ui_profile}/components",
+          "to" => "app/components"
+        }
+      ]
+    end
 
     def normalize_module_selection(selection)
       Array(selection).flat_map do |entry|

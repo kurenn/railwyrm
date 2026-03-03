@@ -5,6 +5,7 @@ status: reference
 description: >
   ATS recipe overlay for Railwyrm-generated apps. Applies hiring workflows,
   pipeline entities, role-based access foundations, and responsive starter UI.
+ui_profile: dashboard_05
 
 base_stack:
   source: railwyrm_default

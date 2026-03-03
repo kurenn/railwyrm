@@ -31,6 +31,7 @@ module Railwyrm
     ].freeze
 
     OPTIONAL_TOP_LEVEL_KEYS = %w[
+      ui_profile
       module_setup
       deploy
     ].freeze
@@ -65,6 +66,7 @@ module Railwyrm
       validate_string(data, "version", errors)
       validate_string(data, "status", errors)
       validate_string(data, "description", errors)
+      validate_optional_string(data, "ui_profile", errors)
 
       validate_base_stack(data["base_stack"], errors)
       validate_inputs(data["inputs"], errors)
@@ -91,6 +93,15 @@ module Railwyrm
       return if value.is_a?(String) && !value.strip.empty?
 
       errors << "#{key} must be a non-empty string"
+    end
+
+    def validate_optional_string(data, key, errors)
+      return unless data.key?(key)
+
+      value = data[key]
+      return if value.is_a?(String) && !value.strip.empty?
+
+      errors << "#{key} must be a non-empty string when present"
     end
 
     def validate_string_array(value, key, errors, min_size: 0)

@@ -149,4 +149,23 @@ RSpec.describe Railwyrm::Recipe do
     expect { recipe.deploy_preset("unknown_deploy") }
       .to raise_error(Railwyrm::InvalidConfiguration, /Unknown deploy preset/)
   end
+
+  it "prepends shared UI profile overlays when ui_profile is configured" do
+    hash = valid_recipe_hash.merge("ui_profile" => "dashboard_05")
+    recipe = described_class.new(path: "/tmp/demo-repo/recipes/ats/recipe.yml", data: hash)
+
+    expect(recipe.ui_profile).to eq("dashboard_05")
+    expect(recipe.ui_overlay_copies.first).to eq(
+      {
+        "from" => "recipes/_shared/ui_profiles/dashboard_05/views",
+        "to" => "app/views"
+      }
+    )
+    expect(recipe.ui_overlay_copies[1]).to eq(
+      {
+        "from" => "recipes/_shared/ui_profiles/dashboard_05/components",
+        "to" => "app/components"
+      }
+    )
+  end
 end

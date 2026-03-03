@@ -169,6 +169,7 @@ Recipe standards:
 
 - UI assets in recipes should be implemented with `untitled_ui` components.
 - Background jobs modules should use Solid Queue (`solid_queue`).
+- Shared UI profiles live under `recipes/_shared/ui_profiles/*` and can be enabled per recipe via `ui_profile`.
 
 ### Recipe Schema v0
 
@@ -194,6 +195,12 @@ Required top-level keys:
 - `quality_gates`
 - `ai_assets`
 
+Optional top-level keys:
+
+- `ui_profile`
+- `module_setup`
+- `deploy`
+
 The validator also enforces key nested structures for deterministic recipes,
 including `base_stack.requires`, `scaffolding_plan.commands`, and
 `ai_assets` (`agents`, `skills`, `prompts`, `playbooks`).
@@ -203,6 +210,7 @@ including `base_stack.requires`, `scaffolding_plan.commands`, and
 - `railwyrm recipes plan` prints the exact command order from `scaffolding_plan.commands`
 - `railwyrm recipes apply` runs those commands in that same order
 - `apply` also executes recipe file operations:
+  - auto-copies shared UI profile overlays when `ui_profile` is configured
   - copies `ui_overlays.copies[*]` sources into target app paths
   - installs `seed_data.file` into `db/seeds/<recipe>.seeds.rb` and loads it from `db/seeds.rb`
   - wires `routes` into `config/routes.rb` and creates missing controller/policy stubs

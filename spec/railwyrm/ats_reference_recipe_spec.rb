@@ -36,6 +36,11 @@ RSpec.describe "ATS reference recipe" do
     referenced_paths = []
 
     referenced_paths << data.fetch("seed_data").fetch("file")
+    if data["ui_profile"].to_s.strip != ""
+      profile = data["ui_profile"]
+      referenced_paths << "recipes/_shared/ui_profiles/#{profile}/views"
+      referenced_paths << "recipes/_shared/ui_profiles/#{profile}/components"
+    end
     data.fetch("ui_overlays").fetch("copies").each do |copy|
       referenced_paths << copy.fetch("from")
     end
@@ -67,8 +72,8 @@ RSpec.describe "ATS reference recipe" do
       "recipes/ats/templates/views/ats/teams/show.html.erb",
       "recipes/ats/templates/views/public/careers/index.html.erb",
       "recipes/ats/templates/views/public/careers/show.html.erb",
-      "recipes/ats/templates/views/layouts/application.html.erb",
-      "recipes/ats/templates/views/layouts/_authenticated_shell.html.erb",
+      "recipes/_shared/ui_profiles/dashboard_05/views/layouts/application.html.erb",
+      "recipes/_shared/ui_profiles/dashboard_05/views/layouts/_authenticated_shell.html.erb",
       "recipes/ats/templates/docs/ATS_FEATURES_AND_TEST_SCENARIOS.md",
       "recipes/ats/templates/seeds/ats.seeds.rb",
       "recipes/ats/templates/models/job_posting.rb",
@@ -90,6 +95,12 @@ RSpec.describe "ATS reference recipe" do
 
     seeds_content = File.read(File.join(repo_root, "recipes/ats/templates/seeds/ats.seeds.rb"))
     expect(seeds_content).to include("AtsSeeds.run")
+  end
+
+  it "declares dashboard_05 shared ui_profile" do
+    data = load_recipe_data
+
+    expect(data["ui_profile"]).to eq("dashboard_05")
   end
 
   it "supports dry-run apply without mutating workspace" do

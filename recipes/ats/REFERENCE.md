@@ -19,6 +19,7 @@ This recipe is the Railwyrm reference implementation for recipe-driven app expan
 - Recipe includes generated ATS request/system smoke specs
 - Recipe overlays include ATS model hardening and migration constraints
 - Deploy preset outputs include checklist artifacts for manual ship verification
+- Recipe declares shared UI profile `dashboard_05` for reusable shell/layout defaults
 - Signed-in ATS shell matches Untitled UI dashboard-05 style (sidebar + analytics canvas + activity table)
 - Generated app includes a feature-and-scenarios test guide at `docs/ATS_FEATURES_AND_TEST_SCENARIOS.md`
 - Generated app supports end-to-end ATS baseline flows:

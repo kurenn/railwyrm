@@ -164,4 +164,21 @@ RSpec.describe Railwyrm::RecipeSchema do
     expect(result).not_to be_valid
     expect(result.errors).to eq(["Recipe file not found: #{path}"])
   end
+
+  it "accepts optional ui_profile when valid" do
+    recipe = valid_recipe_hash.merge("ui_profile" => "dashboard_05")
+
+    result = described_class.new.validate(recipe)
+
+    expect(result).to be_valid
+  end
+
+  it "rejects blank optional ui_profile" do
+    recipe = valid_recipe_hash.merge("ui_profile" => " ")
+
+    result = described_class.new.validate(recipe)
+
+    expect(result).not_to be_valid
+    expect(result.errors).to include("ui_profile must be a non-empty string when present")
+  end
 end
