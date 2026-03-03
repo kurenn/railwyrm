@@ -278,4 +278,78 @@ RSpec.describe Railwyrm::CLI do
       end.to raise_error(SystemExit) { |error| expect(error.status).to eq(1) }
     end
   end
+
+  it "uses a label default for interactive sign-in layout selection" do
+    Dir.mktmpdir do |workspace|
+      app_name = "wizard_app"
+      app_path = File.join(workspace, app_name)
+      generator = instance_double(Railwyrm::Generator, run!: app_path)
+      prompt = instance_double(TTY::Prompt)
+
+      allow(Railwyrm::Generator).to receive(:new).and_return(generator)
+      allow(TTY::Prompt).to receive(:new).and_return(prompt)
+      allow(prompt).to receive(:ask) do |question, **_kwargs|
+        if question.include?("App name")
+          app_name
+        elsif question.include?("Workspace path")
+          workspace
+        else
+          "User"
+        end
+      end
+      allow(prompt).to receive(:yes?).and_return(false)
+      expect(prompt).to receive(:select)
+        .with("🧩 Select sign-in layout:", default: "Card Combined (recommended)")
+        .and_return("card_combined")
+
+      expect { described_class.start(["new", app_name, "--path", workspace, "--no-banner"]) }.not_to raise_error
+    end
+  end
+
+  it "prompts for optional recipe selection in interactive new flow" do
+    Dir.mktmpdir do |workspace|
+      app_name = "wizard_recipe_app"
+      app_path = File.join(workspace, app_name)
+      recipe_path = File.expand_path("../../recipes/ats/recipe.yml", __dir__)
+      generator = instance_double(Railwyrm::Generator, run!: app_path)
+      recipe = instance_double(
+        Railwyrm::Recipe,
+        id: "ats",
+        name: "Applicant Tracking System",
+        version: "0.1.0",
+        metadata: { "status" => "reference" },
+        path: recipe_path
+      )
+      executor = instance_double(Railwyrm::RecipeExecutor, plan: [], apply!: true)
+      prompt = instance_double(TTY::Prompt)
+
+      allow(Railwyrm::Generator).to receive(:new).and_return(generator)
+      allow(Railwyrm::Recipe).to receive(:load).and_return(recipe)
+      allow(Railwyrm::RecipeExecutor).to receive(:new).and_return(executor)
+      allow(TTY::Prompt).to receive(:new).and_return(prompt)
+      allow(prompt).to receive(:ask) do |question, **_kwargs|
+        if question.include?("App name")
+          app_name
+        elsif question.include?("Workspace path")
+          workspace
+        else
+          "User"
+        end
+      end
+      allow(prompt).to receive(:yes?) do |question, **_kwargs|
+        question.include?("Apply a recipe")
+      end
+      expect(prompt).to receive(:select)
+        .with("🧩 Select sign-in layout:", default: "Card Combined (recommended)")
+        .and_return("card_combined")
+      expect(prompt).to receive(:select)
+        .with("📚 Select a recipe:")
+        .and_return(recipe_path)
+
+      expect { described_class.start(["new", app_name, "--path", workspace, "--no-banner"]) }.not_to raise_error
+      expect(Railwyrm::RecipeExecutor).to have_received(:new)
+        .with(recipe, hash_including(workspace: app_path, dry_run: false))
+      expect(executor).to have_received(:apply!)
+    end
+  end
 end

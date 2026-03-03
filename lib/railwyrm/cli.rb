@@ -4,6 +4,12 @@ require "open3"
 
 module Railwyrm
   class CLI < Thor
+    SIGN_IN_LAYOUT_MENU_CHOICES = [
+      { label: "Simple Minimal (centered form)", value: "simple_minimal" },
+      { label: "Card Combined (recommended)", value: "card_combined" },
+      { label: "Split Mockup Quote (marketing side panel)", value: "split_mockup_quote" }
+    ].freeze
+
     class Recipes < Thor
       package_name "railwyrm recipes"
 
@@ -264,7 +270,8 @@ module Railwyrm
       UI::Banner.new.render unless options[:no_banner]
 
       config = build_configuration(app_name, ui: ui)
-      recipe = load_recipe_for_new(options[:recipe], ui: ui)
+      recipe_option = resolve_recipe_option_for_new(ui: ui)
+      recipe = load_recipe_for_new(recipe_option, ui: ui)
       Generator.new(config, ui: ui).run!
       apply_recipe_for_new(
         recipe,
@@ -354,6 +361,41 @@ module Railwyrm
       recipe
     end
 
+    def resolve_recipe_option_for_new(ui:)
+      explicit = options[:recipe].to_s.strip
+      return explicit unless explicit.empty?
+      return nil unless options[:interactive]
+
+      prompt = TTY::Prompt.new(interrupt: :exit)
+      use_recipe = prompt.yes?("🧩 Apply a recipe after base app generation?", default: false)
+      return nil unless use_recipe
+
+      choices = discover_recipe_choices(ui: ui)
+      if choices.empty?
+        ui.warn("No valid recipes available for wizard selection.")
+        return nil
+      end
+
+      prompt.select("📚 Select a recipe:") do |menu|
+        choices.each do |choice|
+          menu.choice choice.fetch(:label), choice.fetch(:value)
+        end
+      end
+    end
+
+    def discover_recipe_choices(ui:)
+      discover_recipe_paths.sort.filter_map do |recipe_path|
+        begin
+          recipe = Recipe.load(recipe_path)
+          label = "#{recipe.id}@#{recipe.version} [#{recipe.metadata['status']}] - #{recipe.name}"
+          { label: label, value: recipe.path }
+        rescue StandardError => e
+          ui.warn("Skipping invalid recipe at #{recipe_path}: #{e.message}")
+          nil
+        end
+      end
+    end
+
     def apply_recipe_for_new(recipe, configuration, ui:, selected_modules:, deploy_preset:)
       ui.headline("Applying recipe #{recipe.id}@#{recipe.version}")
       shell = Shell.new(ui: ui, dry_run: configuration.dry_run, verbose: configuration.verbose)
@@ -385,11 +427,18 @@ module Railwyrm
         return path
       end
 
-      repo_root = File.expand_path("../..", __dir__)
       named_path = File.join(repo_root, "recipes", raw, "recipe.yml")
       raise InvalidConfiguration, "Unknown recipe '#{raw}'. Expected #{named_path}" unless File.exist?(named_path)
 
       named_path
+    end
+
+    def discover_recipe_paths
+      Dir.glob(File.join(repo_root, "recipes", "*", "recipe.yml"))
+    end
+
+    def repo_root
+      File.expand_path("../..", __dir__)
     end
 
     def normalized_modules_option(value)
@@ -418,10 +467,13 @@ module Railwyrm
         end
 
         ui.render_sign_in_layout_gallery
-        sign_in_layout = prompt.select("🧩 Select sign-in layout:", default: sign_in_layout) do |menu|
-          menu.choice "Simple Minimal (centered form)", "simple_minimal"
-          menu.choice "Card Combined (recommended)", "card_combined"
-          menu.choice "Split Mockup Quote (marketing side panel)", "split_mockup_quote"
+        sign_in_layout = prompt.select(
+          "🧩 Select sign-in layout:",
+          default: sign_in_layout_default_label(sign_in_layout)
+        ) do |menu|
+          SIGN_IN_LAYOUT_MENU_CHOICES.each do |choice|
+            menu.choice choice.fetch(:label), choice.fetch(:value)
+          end
         end
       elsif name.nil? || name.strip.empty?
         raise InvalidConfiguration, "APP_NAME is required when --interactive=false"
@@ -436,6 +488,13 @@ module Railwyrm
         dry_run: options[:dry_run],
         verbose: options[:verbose]
       )
+    end
+
+    def sign_in_layout_default_label(layout_value)
+      selected = SIGN_IN_LAYOUT_MENU_CHOICES.find { |choice| choice.fetch(:value) == layout_value.to_s }
+      return selected.fetch(:label) if selected
+
+      SIGN_IN_LAYOUT_MENU_CHOICES.find { |choice| choice.fetch(:value) == "card_combined" }.fetch(:label)
     end
   end
 end

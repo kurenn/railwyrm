@@ -80,6 +80,10 @@ Run interactive mode:
 bundle exec ruby exe/railwyrm new
 ```
 
+Interactive wizard note:
+
+- If `--recipe` is not provided, the wizard asks whether to apply a recipe and shows the currently available recipes for selection.
+
 Run non-interactive mode:
 
 ```bash
