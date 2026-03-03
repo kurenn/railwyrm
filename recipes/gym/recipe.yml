@@ -1,0 +1,258 @@
+id: gym
+name: Gym Management
+version: 0.1.0
+status: draft
+description: >
+  Gym management starter recipe for Railwyrm-generated apps. Adds member
+  onboarding, visit tracking, classes, and role-based staff workflows.
+ui_profile: dashboard_05
+
+base_stack:
+  source: railwyrm_default
+  requires:
+    - devise
+    - rspec
+    - tailwindcss
+    - untitled_ui
+
+inputs:
+  organization_name:
+    type: string
+    required: false
+    default: Iron Peak Fitness
+  with_modules:
+    type: array
+    required: false
+    default: []
+    allowed:
+      - background_jobs
+      - email_provider_sendgrid
+      - advanced_reports
+  default_timezone:
+    type: string
+    required: false
+    default: UTC
+
+roles:
+  - admin
+  - manager
+  - staff
+  - trainer
+
+gems:
+  required:
+    - name: pundit
+  optional_by_module:
+    background_jobs:
+      - name: solid_queue
+    advanced_reports:
+      - name: groupdate
+
+data_model:
+  enums:
+    member_status:
+      - lead
+      - active
+      - paused
+      - canceled
+    membership_status:
+      - trial
+      - active
+      - overdue
+      - canceled
+    class_session_status:
+      - scheduled
+      - full
+      - completed
+      - canceled
+    booking_status:
+      - booked
+      - attended
+      - no_show
+      - canceled
+  models:
+    gym_location:
+      fields:
+        - name:string
+        - code:string:index:uniq
+        - timezone:string
+    membership_plan:
+      fields:
+        - gym_location:references
+        - name:string
+        - price_cents:integer
+        - billing_cycle:string
+        - active:boolean
+    member:
+      fields:
+        - gym_location:references
+        - first_name:string
+        - last_name:string
+        - email:string:index
+        - phone:string
+        - status:integer:default(1)
+        - emergency_contact_name:string
+        - emergency_contact_phone:string
+        - joined_on:date
+    membership:
+      fields:
+        - member:references
+        - membership_plan:references
+        - starts_on:date
+        - ends_on:date
+        - status:integer:default(1)
+        - auto_renew:boolean
+    visit:
+      fields:
+        - member:references
+        - gym_location:references
+        - checked_in_at:datetime
+        - checked_out_at:datetime
+        - source:string
+        - notes:text
+    class_session:
+      fields:
+        - gym_location:references
+        - title:string
+        - instructor_name:string
+        - starts_at:datetime
+        - ends_at:datetime
+        - capacity:integer
+        - room:string
+        - status:integer:default(0)
+    class_booking:
+      fields:
+        - class_session:references
+        - member:references
+        - status:integer:default(0)
+        - booked_at:datetime
+        - canceled_at:datetime
+
+scaffolding_plan:
+  migrations:
+    strategy: explicit_generators_then_manual_tuning
+  commands:
+    - bin/rails generate pundit:install
+    - bin/rails generate model GymLocation name:string code:string timezone:string
+    - bin/rails generate model MembershipPlan gym_location:references name:string price_cents:integer billing_cycle:string active:boolean
+    - bin/rails generate model Member gym_location:references first_name:string last_name:string email:string:index phone:string status:integer emergency_contact_name:string emergency_contact_phone:string joined_on:date
+    - bin/rails generate model Membership member:references membership_plan:references starts_on:date ends_on:date status:integer auto_renew:boolean
+    - bin/rails generate model Visit member:references gym_location:references checked_in_at:datetime checked_out_at:datetime source:string notes:text
+    - bin/rails generate model ClassSession gym_location:references title:string instructor_name:string starts_at:datetime ends_at:datetime capacity:integer room:string status:integer
+    - bin/rails generate model ClassBooking class_session:references member:references status:integer booked_at:datetime canceled_at:datetime
+    - bin/rails db:migrate
+
+ui_overlays:
+  copies:
+    - from: recipes/gym/templates/views
+      to: app/views
+    - from: recipes/gym/templates/docs
+      to: docs
+  starter_pages:
+    - dashboard
+    - members index/show
+    - visits index
+    - class sessions index/show
+    - reports overview
+
+routes:
+  authenticated:
+    - type: root
+      to: gym/dashboard#show
+      as: authenticated_root
+    - type: resources
+      name: members
+      only: [index, show, new, edit, create, update]
+      controller: gym/members
+    - type: resources
+      name: visits
+      only: [index, create]
+      controller: gym/visits
+    - type: resources
+      name: membership_plans
+      only: [index, new, edit, create, update]
+      controller: gym/membership_plans
+    - type: resources
+      name: class_sessions
+      only: [index, show, new, edit, create, update]
+      controller: gym/class_sessions
+      nested:
+        - type: resources
+          name: class_bookings
+          only: [create, update, destroy]
+          controller: gym/class_bookings
+    - type: get
+      path: reports
+      to: gym/reports#index
+  public:
+    - type: get
+      path: schedule
+      to: public/classes#index
+    - type: resources
+      name: memberships
+      only: [new, create]
+      controller: public/memberships
+
+authorization:
+  policy_system: pundit
+  baseline_policies:
+    - member_policy
+    - visit_policy
+    - membership_plan_policy
+    - class_session_policy
+    - report_policy
+
+seed_data:
+  create_demo_data: true
+  fixtures:
+    - 1 gym location
+    - 4 membership plans
+    - 25 members
+    - 100 visits
+    - 12 class sessions
+    - 40 class bookings
+  file: recipes/gym/templates/seeds/gym.seeds.rb
+
+ai_assets:
+  agents:
+    - recipes/gym/agents/README.md
+  skills:
+    - recipes/gym/skills/README.md
+  prompts:
+    - recipes/gym/prompt.md
+  playbooks:
+    - recipes/gym/playbooks/README.md
+
+quality_gates:
+  required_commands:
+    - bin/rails db:migrate
+    - bundle exec rspec
+    - bin/rails routes
+    - bin/rails zeitwerk:check
+  acceptance_checks:
+    - "Auth works for staff role"
+    - "Can create a member and record a visit"
+    - "Class booking lifecycle persists"
+    - "Pundit policy checks pass for gym baseline policies"
+    - "Gym pages are responsive on mobile + desktop"
+
+module_setup:
+  background_jobs:
+    commands:
+      - bin/rails generate solid_queue:install
+      - bin/rails db:migrate
+
+deploy:
+  presets:
+    render:
+      copies:
+        - from: recipes/gym/templates/deploy/render
+          to: .
+      smoke_commands:
+        - bin/rails runner "puts 'railwyrm_render_smoke_ok'"
+    fly:
+      copies:
+        - from: recipes/gym/templates/deploy/fly
+          to: .
+      smoke_commands:
+        - bin/rails runner "puts 'railwyrm_fly_smoke_ok'"

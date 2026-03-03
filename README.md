@@ -166,6 +166,9 @@ Recipe specs and prompt-driven harnesses live under `recipes/`.
 - ATS reference recipe spec: `recipes/ats/recipe.yml`
 - ATS reference contract: `recipes/ats/REFERENCE.md`
 - ATS test prompt: `recipes/ats/prompt.md`
+- Gym draft recipe spec: `recipes/gym/recipe.yml`
+- Gym draft contract: `recipes/gym/REFERENCE.md`
+- Gym test prompt: `recipes/gym/prompt.md`
 
 ATS is the reference implementation for recipe contract, plan/apply flow, and
 asset structure.

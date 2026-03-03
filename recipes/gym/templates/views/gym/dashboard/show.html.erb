@@ -1,0 +1,38 @@
+<% content_for :title, "Gym Dashboard" %>
+
+<section class="space-y-8">
+  <header>
+    <h1 class="text-4xl font-semibold tracking-tight text-slate-900">Gym Dashboard</h1>
+    <p class="mt-2 text-lg text-slate-500">Overview of members, visits, and classes.</p>
+  </header>
+
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-slate-500">Members</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= Member.count if defined?(Member) %></p>
+    </article>
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-slate-500">Visits today</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= Visit.where(checked_in_at: Time.current.beginning_of_day..Time.current.end_of_day).count if defined?(Visit) %></p>
+    </article>
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-slate-500">Active plans</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= MembershipPlan.where(active: true).count if defined?(MembershipPlan) %></p>
+    </article>
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-slate-500">Upcoming classes</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= ClassSession.where(starts_at: Time.current..1.week.from_now).count if defined?(ClassSession) %></p>
+    </article>
+  </section>
+
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <h2 class="text-2xl font-semibold text-slate-900">Quick actions</h2>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <%= link_to "Members", members_path, class: "rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
+      <%= link_to "Visits", visits_path, class: "rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
+      <%= link_to "Membership plans", membership_plans_path, class: "rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
+      <%= link_to "Classes", class_sessions_path, class: "rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
+      <%= link_to "Reports", reports_path, class: "rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
+    </div>
+  </section>
+</section>
