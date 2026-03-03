@@ -1,23 +1,49 @@
-<section class="mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+<% content_for :title, "Candidates" %>
+
+<section class="space-y-6">
   <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <p class="text-sm font-medium text-brand-secondary">Candidates</p>
-      <h1 class="mt-1 text-display-sm font-semibold text-primary">Candidate directory</h1>
-      <p class="mt-2 text-sm text-tertiary">Review candidate profiles and current stage assignment.</p>
+      <h1 class="text-3xl font-semibold text-slate-900">Candidates</h1>
+      <p class="mt-1 text-sm text-slate-500">Source and manage candidates across your hiring pipeline.</p>
     </div>
-    <%= render Ui::Button::Component.new(size: :sm) do %>
-      Add candidate
-    <% end %>
+    <%= link_to "Add candidate", new_candidate_path, class: "rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white" %>
   </header>
 
-  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-    <% [["Sam Rivera", "sam@example.com", "Interview"], ["Mina Park", "mina@example.com", "Screening"], ["Jordan Lee", "jordan@example.com", "Offer"]].each do |candidate| %>
-      <article class="rounded-xl border border-secondary bg-primary p-5 shadow-sm">
-        <h2 class="text-base font-semibold text-primary"><%= candidate[0] %></h2>
-        <p class="mt-1 text-sm text-secondary"><%= candidate[1] %></p>
-        <p class="mt-3 text-xs font-medium uppercase tracking-wide text-tertiary">Current stage</p>
-        <p class="text-sm font-semibold text-brand-secondary"><%= candidate[2] %></p>
-      </article>
-    <% end %>
+  <%= form_with url: candidates_path, method: :get, class: "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" do %>
+    <div class="flex flex-wrap gap-2">
+      <input type="text" name="q" value="<%= @query %>" placeholder="Search by name or email" class="w-full max-w-md rounded-xl border border-slate-300 px-3 py-2 text-sm">
+      <button class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700">Search</button>
+    </div>
+  <% end %>
+
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Candidate</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Location</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Source</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        <% @candidates.each do |candidate| %>
+          <tr>
+            <td class="px-4 py-3 text-sm">
+              <p class="font-medium text-slate-900"><%= candidate.full_name %></p>
+              <p class="text-slate-500"><%= candidate.email %></p>
+            </td>
+            <td class="px-4 py-3 text-sm text-slate-600"><%= candidate.location.presence || "-" %></td>
+            <td class="px-4 py-3 text-sm text-slate-600"><%= candidate.source.presence || "-" %></td>
+            <td class="px-4 py-3 text-sm">
+              <div class="flex gap-2">
+                <%= link_to "View", candidate_path(candidate), class: "text-violet-700 hover:text-violet-900" %>
+                <%= link_to "Edit", edit_candidate_path(candidate), class: "text-slate-600 hover:text-slate-900" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
   </div>
 </section>

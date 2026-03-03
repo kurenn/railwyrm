@@ -3,16 +3,12 @@
 module Public
   class CareersController < ApplicationController
     def index
-      @job_postings = if defined?(JobPosting)
-                        JobPosting.order(created_at: :desc).limit(50)
-                      else
-                        []
-                      end
+      @job_postings = JobPosting.open.includes(:department).order(created_at: :desc)
     end
 
     def show
-      @job_posting = defined?(JobPosting) ? JobPosting.find(params[:id]) : nil
-      head :not_found unless @job_posting
+      @job_posting = JobPosting.open.find(params[:id])
+      @candidate = Candidate.new
     end
   end
 end

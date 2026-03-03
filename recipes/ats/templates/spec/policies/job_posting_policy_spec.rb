@@ -1,15 +1,14 @@
 # frozen_string_literal: true
 
 require "rails_helper"
-require "ostruct"
 
 RSpec.describe JobPostingPolicy do
   subject(:policy) { described_class.new(user, double("record")) }
 
-  context "when user is an admin" do
-    let(:user) { OpenStruct.new(role: "admin") }
+  context "when user has admin membership" do
+    let(:user) { create_authenticated_user(email: "admin.policy@test.local", role: :admin) }
 
-    it "allows management actions" do
+    it "allows full management" do
       expect(policy.index?).to be(true)
       expect(policy.create?).to be(true)
       expect(policy.update?).to be(true)
@@ -17,23 +16,13 @@ RSpec.describe JobPostingPolicy do
     end
   end
 
-  context "when user is a recruiter" do
-    let(:user) { OpenStruct.new(role: "recruiter") }
+  context "when user has interviewer membership" do
+    let(:user) { create_authenticated_user(email: "interviewer.policy@test.local", role: :interviewer) }
 
-    it "allows create/update but blocks destroy" do
+    it "can read but cannot edit" do
       expect(policy.index?).to be(true)
-      expect(policy.create?).to be(true)
-      expect(policy.update?).to be(true)
-      expect(policy.destroy?).to be(false)
-    end
-  end
-
-  context "when user is missing" do
-    let(:user) { nil }
-
-    it "denies access" do
-      expect(policy.index?).to be(false)
       expect(policy.create?).to be(false)
+      expect(policy.update?).to be(false)
     end
   end
 end

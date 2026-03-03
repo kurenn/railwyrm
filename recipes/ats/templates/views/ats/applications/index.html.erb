@@ -1,0 +1,33 @@
+<% content_for :title, "Applications" %>
+
+<section class="space-y-6">
+  <header>
+    <h1 class="text-3xl font-semibold text-slate-900">Applications</h1>
+    <p class="mt-1 text-sm text-slate-500">Track progress from application through offer acceptance.</p>
+  </header>
+
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Candidate</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Job</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Stage</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Action</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 bg-white">
+        <% @applications.each do |application| %>
+          <tr>
+            <td class="px-4 py-3 text-sm text-slate-900"><%= application.candidate&.full_name || application.candidate&.email %></td>
+            <td class="px-4 py-3 text-sm text-slate-600"><%= application.job_posting&.title %></td>
+            <td class="px-4 py-3 text-sm text-slate-600"><%= application.pipeline_stage&.name %></td>
+            <td class="px-4 py-3 text-sm text-slate-600"><%= application.status.humanize %></td>
+            <td class="px-4 py-3 text-sm"><%= link_to "Open", application_path(application), class: "text-violet-700 hover:text-violet-900" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

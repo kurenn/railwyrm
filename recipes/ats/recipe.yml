@@ -252,8 +252,21 @@ routes:
           only: [index]
           controller: ats/applications
     - type: resources
+      name: departments
+      only: [index, new, create, edit, update]
+      controller: ats/departments
+    - type: resources
+      name: teams
+      only: [index, new, create, edit, update, show]
+      controller: ats/teams
+      nested:
+        - type: resources
+          name: memberships
+          only: [create, update, destroy]
+          controller: ats/memberships
+    - type: resources
       name: applications
-      only: [show, update]
+      only: [show, update, create]
       controller: ats/applications
       nested:
         - type: resources
@@ -279,6 +292,11 @@ routes:
       name: careers
       only: [index, show]
       controller: public/careers
+      nested:
+        - type: resources
+          name: applications
+          only: [create]
+          controller: public/applications
 
 authorization:
   policy_system: pundit

@@ -1,0 +1,36 @@
+<% content_for :title, "Teams" %>
+
+<section class="space-y-6">
+  <header class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-semibold text-slate-900">Teams</h1>
+      <p class="mt-1 text-sm text-slate-500">Manage collaboration teams and access roles.</p>
+    </div>
+    <%= link_to "New team", new_team_path, class: "rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white" %>
+  </header>
+
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Team</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Members</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 bg-white">
+        <% @teams.each do |team| %>
+          <tr>
+            <td class="px-4 py-3 text-sm font-medium text-slate-900"><%= team.name %></td>
+            <td class="px-4 py-3 text-sm text-slate-600"><%= team.memberships.size %></td>
+            <td class="px-4 py-3 text-sm">
+              <%= link_to "Manage", team_path(team), class: "text-violet-700 hover:text-violet-900" %>
+              <span class="mx-1 text-slate-300">|</span>
+              <%= link_to "Edit", edit_team_path(team), class: "text-slate-700 hover:text-slate-900" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

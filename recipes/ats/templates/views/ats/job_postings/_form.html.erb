@@ -1,0 +1,51 @@
+<%= form_with model: @job_posting, class: "space-y-5" do |form| %>
+  <% if @job_posting.errors.any? %>
+    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+      <%= @job_posting.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <div>
+      <%= form.label :title, class: "text-sm font-medium text-slate-700" %>
+      <%= form.text_field :title, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= form.label :department_id, "Department", class: "text-sm font-medium text-slate-700" %>
+      <%= form.collection_select :department_id, @departments, :id, :name, { prompt: "Select a department" }, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= form.label :location, class: "text-sm font-medium text-slate-700" %>
+      <%= form.text_field :location, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= form.label :employment_type, class: "text-sm font-medium text-slate-700" %>
+      <%= form.text_field :employment_type, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2", placeholder: "full_time" %>
+    </div>
+    <div>
+      <%= form.label :salary_min, class: "text-sm font-medium text-slate-700" %>
+      <%= form.number_field :salary_min, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= form.label :salary_max, class: "text-sm font-medium text-slate-700" %>
+      <%= form.number_field :salary_max, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+  </div>
+
+  <div>
+    <%= form.label :description, class: "text-sm font-medium text-slate-700" %>
+    <%= form.text_area :description, rows: 4, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div>
+    <%= form.label :requirements, class: "text-sm font-medium text-slate-700" %>
+    <%= form.text_area :requirements, rows: 4, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div class="flex flex-wrap gap-3">
+    <%= form.submit "Save draft", class: "rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white" %>
+    <% unless @job_posting.persisted? && @job_posting.open? %>
+      <%= button_tag "Save and publish", name: "publish_now", value: "1", class: "rounded-xl border border-violet-400 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-700" %>
+    <% end %>
+  </div>
+<% end %>

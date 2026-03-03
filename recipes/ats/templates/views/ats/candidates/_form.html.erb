@@ -1,0 +1,57 @@
+<%= form_with model: @candidate, class: "space-y-5", html: { multipart: true } do |form| %>
+  <% if @candidate.errors.any? %>
+    <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+      <%= @candidate.errors.full_messages.to_sentence %>
+    </div>
+  <% end %>
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <div>
+      <%= form.label :first_name, class: "text-sm font-medium text-slate-700" %>
+      <%= form.text_field :first_name, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= form.label :last_name, class: "text-sm font-medium text-slate-700" %>
+      <%= form.text_field :last_name, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= form.label :email, class: "text-sm font-medium text-slate-700" %>
+      <%= form.email_field :email, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= form.label :phone, class: "text-sm font-medium text-slate-700" %>
+      <%= form.text_field :phone, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= form.label :location, class: "text-sm font-medium text-slate-700" %>
+      <%= form.text_field :location, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= form.label :source, class: "text-sm font-medium text-slate-700" %>
+      <%= form.text_field :source, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2", placeholder: "referral / linkedin / careers" %>
+    </div>
+  </div>
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <div>
+      <%= form.label :linkedin_url, class: "text-sm font-medium text-slate-700" %>
+      <%= form.url_field :linkedin_url, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+    <div>
+      <%= form.label :portfolio_url, class: "text-sm font-medium text-slate-700" %>
+      <%= form.url_field :portfolio_url, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+    </div>
+  </div>
+
+  <div>
+    <%= form.label :resume, class: "text-sm font-medium text-slate-700" %>
+    <%= form.file_field :resume, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div>
+    <%= form.label :notes, class: "text-sm font-medium text-slate-700" %>
+    <%= form.text_area :notes, rows: 4, class: "mt-1 w-full rounded-xl border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <%= form.submit "Save candidate", class: "rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white" %>
+<% end %>

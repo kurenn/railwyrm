@@ -1,32 +1,56 @@
-<section class="mx-auto w-full max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+<% content_for :title, "Jobs" %>
+
+<section class="space-y-6">
   <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <p class="text-sm font-medium text-brand-secondary">Jobs</p>
-      <h1 class="mt-1 text-display-sm font-semibold text-primary">Open job postings</h1>
-      <p class="mt-2 text-sm text-tertiary">Manage open roles and stage throughput.</p>
+      <h1 class="text-3xl font-semibold text-slate-900">Job postings</h1>
+      <p class="mt-1 text-sm text-slate-500">Create, publish, and manage job requisitions.</p>
     </div>
-    <%= render Ui::Button::Component.new(size: :sm) do %>
-      New job posting
-    <% end %>
+    <%= link_to "Create job", new_job_posting_path, class: "rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white" %>
   </header>
 
-  <div class="overflow-hidden rounded-xl border border-secondary bg-primary shadow-sm">
-    <table class="min-w-full divide-y divide-secondary">
-      <thead class="bg-secondary_subtle">
+  <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <%= form_with url: job_postings_path, method: :get, class: "flex flex-wrap gap-3" do %>
+      <select name="status" class="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+        <option value="">All statuses</option>
+        <% JobPosting.statuses.keys.each do |status| %>
+          <option value="<%= status %>" <%= "selected" if @status_filter == status %>><%= status.humanize %></option>
+        <% end %>
+      </select>
+      <button class="rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700">Filter</button>
+    <% end %>
+  </div>
+
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
         <tr>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-tertiary">Role</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-tertiary">Department</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-tertiary">Location</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-tertiary">Pipeline</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Role</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Department</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-secondary">
-        <% [["Staff Engineer", "Engineering", "Remote", "24 active"], ["Product Designer", "Design", "New York", "11 active"], ["Account Executive", "Sales", "Austin", "16 active"]].each do |row| %>
+      <tbody class="divide-y divide-slate-100">
+        <% @job_postings.each do |job| %>
           <tr>
-            <td class="px-4 py-3 text-sm font-medium text-primary"><%= row[0] %></td>
-            <td class="px-4 py-3 text-sm text-secondary"><%= row[1] %></td>
-            <td class="px-4 py-3 text-sm text-secondary"><%= row[2] %></td>
-            <td class="px-4 py-3 text-sm text-secondary"><%= row[3] %></td>
+            <td class="px-4 py-3 text-sm font-medium text-slate-900">
+              <%= link_to job.title, job_posting_path(job), class: "hover:text-violet-700" %>
+              <p class="text-xs text-slate-500"><%= job.location.presence || "Remote" %></p>
+            </td>
+            <td class="px-4 py-3 text-sm text-slate-600"><%= job.department&.name %></td>
+            <td class="px-4 py-3 text-sm text-slate-600"><%= job.status.humanize %></td>
+            <td class="px-4 py-3 text-sm">
+              <div class="flex flex-wrap gap-2">
+                <%= link_to "Edit", edit_job_posting_path(job), class: "rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700" %>
+                <% if job.open? %>
+                  <%= button_to "Unpublish", job_posting_path(job, transition: "unpublish"), method: :patch, class: "rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700" %>
+                  <%= button_to "Close", job_posting_path(job, transition: "close"), method: :patch, class: "rounded-lg border border-rose-300 px-2 py-1 text-xs text-rose-700" %>
+                <% else %>
+                  <%= button_to "Publish", job_posting_path(job, transition: "publish"), method: :patch, class: "rounded-lg border border-emerald-300 px-2 py-1 text-xs text-emerald-700" %>
+                <% end %>
+              </div>
+            </td>
           </tr>
         <% end %>
       </tbody>

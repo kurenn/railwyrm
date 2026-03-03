@@ -21,6 +21,11 @@ This recipe is the Railwyrm reference implementation for recipe-driven app expan
 - Deploy preset outputs include checklist artifacts for manual ship verification
 - Signed-in ATS shell matches Untitled UI dashboard-05 style (sidebar + analytics canvas + activity table)
 - Generated app includes a feature-and-scenarios test guide at `docs/ATS_FEATURES_AND_TEST_SCENARIOS.md`
+- Generated app supports end-to-end ATS baseline flows:
+  - create/publish job posting
+  - create candidate profile
+  - create application (internal + public careers apply)
+  - pipeline movement, interviews, feedback, and offers
 - Referenced assets exist for:
   - `ui_overlays.copies[*].from`
   - `seed_data.file`

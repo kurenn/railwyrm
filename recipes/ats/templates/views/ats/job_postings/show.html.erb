@@ -1,33 +1,72 @@
-<section class="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-  <header class="space-y-3">
-    <p class="text-sm font-medium text-brand-secondary">Job posting</p>
-    <h1 class="text-display-sm font-semibold text-primary">Staff Engineer</h1>
-    <p class="text-sm text-tertiary">Engineering • Remote • Full-time</p>
+<% content_for :title, @job_posting.title %>
+
+<section class="space-y-6">
+  <header class="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:flex-row lg:items-center lg:justify-between">
+    <div>
+      <h1 class="text-3xl font-semibold text-slate-900"><%= @job_posting.title %></h1>
+      <p class="mt-1 text-sm text-slate-500"><%= @job_posting.department&.name %> • <%= @job_posting.location.presence || "Remote" %> • <%= @job_posting.status.humanize %></p>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <%= link_to "Edit", edit_job_posting_path(@job_posting), class: "rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700" %>
+      <% if @job_posting.open? %>
+        <%= button_to "Unpublish", job_posting_path(@job_posting, transition: "unpublish"), method: :patch, class: "rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700" %>
+      <% else %>
+        <%= button_to "Publish", job_posting_path(@job_posting, transition: "publish"), method: :patch, class: "rounded-xl border border-emerald-300 px-3 py-2 text-sm text-emerald-700" %>
+      <% end %>
+    </div>
   </header>
 
-  <div class="rounded-xl border border-secondary bg-primary p-6 shadow-sm">
-    <h2 class="text-lg font-semibold text-primary">Role overview</h2>
-    <p class="mt-3 text-sm leading-6 text-secondary">
-      We are looking for an experienced engineer to lead architecture decisions,
-      mentor the team, and ship reliable product experiences.
-    </p>
-    <div class="mt-5 flex items-center gap-3">
-      <%= render Ui::Button::Component.new(size: :sm) do %>
-        Add candidate
-      <% end %>
-      <%= render Ui::Button::Component.new(variant: :secondary, size: :sm) do %>
-        Edit posting
-      <% end %>
-    </div>
-  </div>
+  <section class="grid gap-6 lg:grid-cols-2">
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 class="text-lg font-semibold text-slate-900">Role overview</h2>
+      <p class="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600"><%= @job_posting.description.presence || "No description yet." %></p>
+      <h3 class="mt-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Requirements</h3>
+      <p class="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600"><%= @job_posting.requirements.presence || "No requirements yet." %></p>
+    </article>
 
-  <div class="rounded-xl border border-secondary bg-primary p-6 shadow-sm">
-    <h2 class="text-lg font-semibold text-primary">Pipeline snapshot</h2>
-    <div class="mt-4 grid gap-4 sm:grid-cols-4">
-      <%= render "ats/shared/metric_card", title: "Applied", value: "38" %>
-      <%= render "ats/shared/metric_card", title: "Screening", value: "12" %>
-      <%= render "ats/shared/metric_card", title: "Interview", value: "7" %>
-      <%= render "ats/shared/metric_card", title: "Offer", value: "2" %>
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 class="text-lg font-semibold text-slate-900">Pipeline stages</h2>
+      <ul class="mt-3 space-y-2 text-sm text-slate-600">
+        <% @pipeline_stages.each do |stage| %>
+          <li class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+            <span><%= stage.name %></span>
+            <span class="text-xs text-slate-500">Position <%= stage.position %></span>
+          </li>
+        <% end %>
+      </ul>
+
+      <%= form_with model: [@job_posting, PipelineStage.new], class: "mt-4 flex flex-wrap gap-2" do |form| %>
+        <%= form.text_field :name, placeholder: "New stage", class: "rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
+        <%= form.number_field :position, placeholder: "Position", class: "w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
+        <%= form.submit "Add", class: "rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white" %>
+      <% end %>
+    </article>
+  </section>
+
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <h2 class="text-lg font-semibold text-slate-900">Applications</h2>
+    <div class="mt-4 overflow-hidden rounded-xl border border-slate-200">
+      <table class="min-w-full divide-y divide-slate-200">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Candidate</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Stage</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 bg-white">
+          <% @applications.each do |application| %>
+            <tr>
+              <td class="px-4 py-3 text-sm text-slate-900"><%= application.candidate&.full_name || application.candidate&.email %></td>
+              <td class="px-4 py-3 text-sm text-slate-600"><%= application.pipeline_stage&.name %></td>
+              <td class="px-4 py-3 text-sm text-slate-600"><%= application.status.humanize %></td>
+              <td class="px-4 py-3 text-sm text-slate-600"><%= link_to "View", application_path(application), class: "text-violet-700 hover:text-violet-900" %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
     </div>
-  </div>
+  </section>
 </section>

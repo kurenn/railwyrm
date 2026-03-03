@@ -6,25 +6,28 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="ATS">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="turbo-refresh-method" content="morph">
+    <meta name="turbo-refresh-scroll" content="preserve">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
     <%= yield :head %>
 
-    <link rel="icon" href="/icon.png" type="image/png">
-    <link rel="icon" href="/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="/icon.png">
-
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
   </head>
 
-  <body>
+  <body class="bg-[#f8f9fc] text-slate-900">
     <% if user_signed_in? %>
       <%= render "layouts/authenticated_shell" do %>
         <%= yield %>
       <% end %>
     <% else %>
-      <main class="w-full min-h-screen flex justify-center">
+      <main class="mx-auto min-h-screen w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <% flash.each do |type, message| %>
+          <% tone = type.to_s == "alert" ? "border-rose-200 bg-rose-50 text-rose-700" : "border-emerald-200 bg-emerald-50 text-emerald-700" %>
+          <div class="mb-4 rounded-xl border px-4 py-2 text-sm <%= tone %>"><%= message %></div>
+        <% end %>
         <%= yield %>
       </main>
     <% end %>

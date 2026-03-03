@@ -18,7 +18,38 @@ class JobPosting < ApplicationRecord
   validates :slug, uniqueness: true, allow_nil: true
   validate :salary_range_is_valid
 
+  before_validation :ensure_slug
+  after_create :ensure_default_pipeline_stages
+
+  scope :published, -> { open.order(updated_at: :desc) }
+
+  def publish!
+    self.status = :open
+    self.opened_at ||= Time.current
+  end
+
+  def unpublish!
+    self.status = :draft
+  end
+
+  def close!
+    self.status = :closed
+    self.closed_at ||= Time.current
+  end
+
   private
+
+  def ensure_default_pipeline_stages
+    return unless pipeline_stages.empty?
+
+    %w[Applied Screening Interview Offer Hired].each_with_index do |name, position|
+      pipeline_stages.create(name: name, position: position, kind: position)
+    end
+  end
+
+  def ensure_slug
+    self.slug = title.to_s.parameterize if slug.blank? && title.present?
+  end
 
   def salary_range_is_valid
     return if salary_min.blank? || salary_max.blank?

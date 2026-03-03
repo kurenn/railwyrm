@@ -1,13 +1,12 @@
 # frozen_string_literal: true
 
 require "rails_helper"
-require "ostruct"
 
 RSpec.describe ReportPolicy do
-  subject(:policy) { described_class.new(user, double("record")) }
+  subject(:policy) { described_class.new(user, :report) }
 
   context "when user is hiring manager" do
-    let(:user) { OpenStruct.new(role: "hiring_manager") }
+    let(:user) { create_authenticated_user(email: "hm.policy@test.local", role: :hiring_manager) }
 
     it "allows report access" do
       expect(policy.index?).to be(true)
@@ -15,7 +14,7 @@ RSpec.describe ReportPolicy do
   end
 
   context "when user is interviewer" do
-    let(:user) { OpenStruct.new(role: "interviewer") }
+    let(:user) { create_authenticated_user(email: "iv.policy@test.local", role: :interviewer) }
 
     it "denies report access" do
       expect(policy.index?).to be(false)

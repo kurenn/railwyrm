@@ -1,0 +1,44 @@
+<% content_for :title, @team.name %>
+
+<section class="space-y-6">
+  <header class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h1 class="text-3xl font-semibold text-slate-900"><%= @team.name %></h1>
+    <p class="mt-1 text-sm text-slate-500">Assign role-based access to ATS members.</p>
+  </header>
+
+  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <h2 class="text-lg font-semibold text-slate-900">Add member</h2>
+    <%= form_with model: [@team, Membership.new], class: "mt-4 grid gap-3 md:grid-cols-3" do |form| %>
+      <%= form.collection_select :user_id, @users, :id, :email, { prompt: "Select user" }, class: "rounded-xl border border-slate-300 px-3 py-2 text-sm" %>
+      <%= form.select :role, Membership.roles.keys.map { |role| [role.humanize, role] }, {}, class: "rounded-xl border border-slate-300 px-3 py-2 text-sm" %>
+      <%= form.submit "Add", class: "rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white" %>
+    <% end %>
+  </section>
+
+  <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">User</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Role</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 bg-white">
+        <% @memberships.each do |membership| %>
+          <tr>
+            <td class="px-4 py-3 text-sm text-slate-900"><%= membership.user&.email %></td>
+            <td class="px-4 py-3 text-sm text-slate-600"><%= membership.role.humanize %></td>
+            <td class="px-4 py-3 text-sm">
+              <%= form_with model: [@team, membership], method: :patch, class: "inline-flex items-center gap-2" do |form| %>
+                <%= form.select :role, Membership.roles.keys.map { |role| [role.humanize, role] }, {}, class: "rounded-lg border border-slate-300 px-2 py-1 text-xs" %>
+                <%= form.submit "Update", class: "rounded-lg border border-slate-300 px-2 py-1 text-xs text-slate-700" %>
+              <% end %>
+              <%= button_to "Remove", team_membership_path(@team, membership), method: :delete, class: "mt-2 rounded-lg border border-rose-300 px-2 py-1 text-xs text-rose-700" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </section>
+</section>

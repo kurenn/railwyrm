@@ -1,56 +1,49 @@
-<% display_name = if current_user.respond_to?(:name) && current_user.name.present?
-                    current_user.name
-                  else
-                    current_user.email.to_s.split("@").first.to_s.tr("._", " ").split.map(&:capitalize).join(" ")
-                  end %>
-<% bars = [58, 41, 45, 31, 66, 79, 66, 58, 53, 30, 37, 41, 45, 39, 31, 22, 31, 37, 53, 45, 78, 68, 58, 53, 26, 31, 37, 41, 26, 22, 31, 45, 58, 53, 66, 79, 68, 58, 53, 41, 35, 31, 37, 45, 53, 58, 53, 45, 41, 31, 53, 58, 53, 58, 66] %>
-<% activity_rows = [
-  ["Lily-Rose Chedjou", "lilyrose@gmail.com", ["Admin", "Data export", "Data import"], "Jan 16, 2025", "Oct 10, 2024"],
-  ["Caitlyn King", "hi@caitlynking.com", ["Admin", "Data export", "Data import"], "Jan 16, 2025", "Aug 1, 2024"],
-  ["Fleur Cook", "fleurcook@icloud.com", ["Data export", "Data import"], "Jan 15, 2025", "Jul 28, 2024"],
-  ["Marco Kelly", "marco@marcokelly.co", ["Data export", "Data import"], "Jan 14, 2025", "Sep 3, 2024"],
-  ["Lulu Meyers", "lulu@lulumeyers.com", ["Data export", "Data import"], "Jan 14, 2025", "Jan 18, 2024"]
-] %>
+<% content_for :title, "Dashboard" %>
+<% display_name = current_user.email.to_s.split("@").first.to_s.tr("._", " ").split.map(&:capitalize).join(" ") %>
 
 <section class="space-y-8">
   <header>
     <h1 class="text-4xl font-semibold tracking-tight text-slate-900">Welcome back, <%= display_name %></h1>
-    <p class="mt-2 text-lg text-slate-500">Here’s an overview of your site traffic and recently active users.</p>
+    <p class="mt-2 text-lg text-slate-500">Here's an overview of your recruiting operations and recently active applications.</p>
   </header>
+
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-slate-500">Open roles</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @dashboard_metrics[:open_roles] %></p>
+    </article>
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-slate-500">Active candidates</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @dashboard_metrics[:active_candidates] %></p>
+    </article>
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-slate-500">Active applications</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @dashboard_metrics[:active_applications] %></p>
+    </article>
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-slate-500">Interviews this week</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @dashboard_metrics[:interviews_this_week] %></p>
+    </article>
+  </section>
 
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
       <h2 class="text-2xl font-semibold text-slate-900">Site traffic <span class="text-emerald-600">+104%</span></h2>
-
       <div class="flex flex-wrap items-center gap-2">
         <% ["12 months", "30 days", "7 days", "24 hours"].each_with_index do |label, index| %>
           <button class="rounded-xl border <%= index.zero? ? 'border-slate-300 bg-white text-slate-900' : 'border-transparent bg-slate-100 text-slate-500' %> px-4 py-2 text-sm font-medium"><%= label %></button>
         <% end %>
-        <button class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700">Filters</button>
       </div>
     </div>
 
     <div class="relative mt-6 h-72 overflow-hidden rounded-xl border border-slate-100 bg-gradient-to-b from-white to-slate-50">
-      <div class="absolute inset-0">
-        <div class="grid h-full grid-rows-5">
-          <% 5.times do %>
-            <div class="border-b border-slate-100"></div>
-          <% end %>
-        </div>
-      </div>
-
       <div class="absolute inset-x-4 bottom-7 top-6 flex items-end gap-1.5">
-        <% bars.each do |height| %>
+        <% @site_traffic_bars.each do |height| %>
           <div class="w-full rounded-full bg-violet-500/85" style="height: <%= height %>%"></div>
         <% end %>
       </div>
-
-      <svg class="absolute inset-x-4 bottom-7 top-6 h-auto w-[calc(100%-2rem)]" viewBox="0 0 100 40" preserveAspectRatio="none">
-        <polyline fill="none" stroke="#a78bfa" stroke-width="0.8" stroke-dasharray="1.5 1.5" points="0,30 10,27 20,28 30,24 40,26 50,21 60,23 70,19 80,17 90,15 100,10" />
-      </svg>
-
       <div class="absolute inset-x-4 bottom-2 flex justify-between text-xs text-slate-400">
-        <% %w[Dec Feb Mar Apr May Jun Jul Aug Sep Oct Dec].each do |month| %>
+        <% %w[Dec Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec].each do |month| %>
           <span><%= month %></span>
         <% end %>
       </div>
@@ -58,37 +51,28 @@
   </section>
 
   <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-    <div class="flex flex-wrap items-center justify-between gap-4">
-      <h2 class="text-3xl font-semibold tracking-tight text-slate-900">Recently active</h2>
-      <div class="w-full max-w-sm rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500">Search</div>
+    <div class="flex items-center justify-between">
+      <h2 class="text-2xl font-semibold text-slate-900">Recently active applications</h2>
+      <%= link_to "View all", job_postings_path, class: "rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700" %>
     </div>
 
     <div class="mt-5 overflow-hidden rounded-xl border border-slate-200">
       <table class="min-w-full divide-y divide-slate-200">
         <thead class="bg-slate-50">
           <tr>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Name</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Access</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Last active</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Date added</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Candidate</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Job</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Updated</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 bg-white">
-          <% activity_rows.each do |name, email, badges, last_active, date_added| %>
+          <% @recent_applications.each do |application| %>
             <tr>
-              <td class="px-4 py-4">
-                <p class="text-sm font-semibold text-slate-900"><%= name %></p>
-                <p class="text-sm text-slate-500"><%= email %></p>
-              </td>
-              <td class="px-4 py-4">
-                <div class="flex flex-wrap gap-2">
-                  <% badges.each do |badge| %>
-                    <span class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600"><%= badge %></span>
-                  <% end %>
-                </div>
-              </td>
-              <td class="px-4 py-4 text-sm text-slate-600"><%= last_active %></td>
-              <td class="px-4 py-4 text-sm text-slate-600"><%= date_added %></td>
+              <td class="px-4 py-4 text-sm text-slate-900"><%= application.candidate&.full_name || application.candidate&.email %></td>
+              <td class="px-4 py-4 text-sm text-slate-600"><%= application.job_posting&.title %></td>
+              <td class="px-4 py-4 text-sm text-slate-600"><%= application.status.humanize %></td>
+              <td class="px-4 py-4 text-sm text-slate-600"><%= time_ago_in_words(application.updated_at) %> ago</td>
             </tr>
           <% end %>
         </tbody>

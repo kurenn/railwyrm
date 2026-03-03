@@ -1,0 +1,30 @@
+<% content_for :title, "Departments" %>
+
+<section class="space-y-6">
+  <header class="flex items-center justify-between gap-4">
+    <div>
+      <h1 class="text-3xl font-semibold text-slate-900">Departments</h1>
+      <p class="mt-1 text-sm text-slate-500">Manage hiring departments used by job postings.</p>
+    </div>
+    <%= link_to "New department", new_department_path, class: "rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white" %>
+  </header>
+
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Department</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 bg-white">
+        <% @departments.each do |department| %>
+          <tr>
+            <td class="px-4 py-3 text-sm font-medium text-slate-900"><%= department.name %></td>
+            <td class="px-4 py-3 text-sm"><%= link_to "Edit", edit_department_path(department), class: "text-violet-700 hover:text-violet-900" %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</section>

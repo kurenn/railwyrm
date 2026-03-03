@@ -6,6 +6,8 @@ module AtsSeeds
   REQUIRED_MODELS = %w[
     Company
     Department
+    Team
+    Membership
     JobPosting
     PipelineStage
     Candidate
@@ -22,11 +24,15 @@ module AtsSeeds
     company = build_company
     departments = build_departments(company)
     users = build_users
+    teams = build_teams(company)
+    build_memberships(teams, users)
     jobs = build_job_postings(company, departments)
     stages_by_job = build_pipeline_stages(jobs)
     candidates = build_candidates(company)
     applications = build_applications(candidates, jobs, stages_by_job, users)
-    build_interviews(applications, users)
+    interviews = build_interviews(applications, users)
+    build_feedbacks(interviews, users)
+    build_offers(applications)
 
     puts "[ats seeds] created #{jobs.length} jobs, #{candidates.length} candidates, #{applications.length} applications"
   end
@@ -49,12 +55,41 @@ module AtsSeeds
     [
       ["admin@acme-recruiting.test", "Admin User"],
       ["recruiter@acme-recruiting.test", "Recruiter User"],
-      ["hiring.manager@acme-recruiting.test", "Hiring Manager"]
+      ["hiring.manager@acme-recruiting.test", "Hiring Manager"],
+      ["interviewer@acme-recruiting.test", "Interviewer User"],
+      ["coordinator@acme-recruiting.test", "Coordinator User"]
     ].map do |email, name|
       User.find_or_create_by!(email: email) do |user|
         assign_if_supported(user, :password, "Password123!")
         assign_if_supported(user, :password_confirmation, "Password123!")
         assign_if_supported(user, :name, name)
+      end
+    end
+  end
+
+  def build_teams(company)
+    ["Talent", "Engineering Hiring"].map do |name|
+      Team.find_or_create_by!(company: company, name: name)
+    end
+  end
+
+  def build_memberships(teams, users)
+    return if users.empty? || teams.empty?
+
+    mapping = {
+      "admin@acme-recruiting.test" => :admin,
+      "recruiter@acme-recruiting.test" => :recruiter,
+      "hiring.manager@acme-recruiting.test" => :hiring_manager,
+      "interviewer@acme-recruiting.test" => :interviewer,
+      "coordinator@acme-recruiting.test" => :recruiter
+    }
+
+    users.each_with_index do |user, index|
+      team = teams[index % teams.length]
+      role = mapping.fetch(user.email, :recruiter)
+
+      Membership.find_or_create_by!(user: user, team: team) do |membership|
+        assign_if_supported(membership, :role, role)
       end
     end
   end
@@ -76,7 +111,7 @@ module AtsSeeds
         assign_if_supported(job, :employment_type, employment_type)
         assign_if_supported(job, :salary_min, 140_000 + (index * 10_000))
         assign_if_supported(job, :salary_max, 200_000 + (index * 10_000))
-        assign_if_supported(job, :status, 0)
+        assign_if_supported(job, :status, 1)
         assign_if_supported(job, :description, "#{title} role focused on scaling product outcomes.")
         assign_if_supported(job, :requirements, "Rails, product collaboration, and ownership mindset.")
         assign_if_supported(job, :opened_at, Time.current - (index + 3).days)
@@ -142,16 +177,45 @@ module AtsSeeds
   end
 
   def build_interviews(applications, users)
-    return unless Object.const_defined?("Interview")
-    return if users.empty?
+    return [] unless Object.const_defined?("Interview")
+    return [] if users.empty?
 
-    applications.first(12).each_with_index do |application, index|
+    applications.first(12).each_with_index.map do |application, index|
       Interview.find_or_create_by!(application: application, starts_at: Time.current + index.days) do |interview|
         assign_if_supported(interview, :interviewer, users[index % users.length])
         assign_if_supported(interview, :kind, index % 4)
         assign_if_supported(interview, :ends_at, Time.current + index.days + 45.minutes)
         assign_if_supported(interview, :location, "Video")
         assign_if_supported(interview, :meeting_url, "https://example.test/interviews/#{index + 1}")
+      end
+    end
+  end
+
+  def build_feedbacks(interviews, users)
+    return unless Object.const_defined?("Feedback")
+    return if interviews.empty? || users.empty?
+
+    interviews.first(8).each_with_index do |interview, index|
+      Feedback.find_or_create_by!(interview: interview) do |feedback|
+        recommendations = %w[strong_yes yes no]
+        assign_if_supported(feedback, :reviewer, users[index % users.length])
+        assign_if_supported(feedback, :score, (index % 5) + 1)
+        assign_if_supported(feedback, :recommendation, recommendations[index % recommendations.length])
+        assign_if_supported(feedback, :summary, "Feedback summary #{index + 1}")
+      end
+    end
+  end
+
+  def build_offers(applications)
+    return unless Object.const_defined?("Offer")
+
+    applications.first(4).each_with_index do |application, index|
+      Offer.find_or_create_by!(application: application) do |offer|
+        assign_if_supported(offer, :salary, 165_000 + (index * 5_000))
+        assign_if_supported(offer, :equity, "0.#{index + 2}%")
+        assign_if_supported(offer, :starts_on, Date.current + (index + 14).days)
+        assign_if_supported(offer, :status, %w[draft sent accepted declined][index % 4])
+        assign_if_supported(offer, :sent_at, Time.current - index.days)
       end
     end
   end
