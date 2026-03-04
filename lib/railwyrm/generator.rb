@@ -37,9 +37,10 @@ module Railwyrm
         end
       end
 
-      if configuration.devise_confirmable?
-        ui.step("Enable Devise confirmable module") do
-          enable_devise_confirmable!
+      optional_devise_modules = selected_optional_devise_modules
+      unless optional_devise_modules.empty?
+        ui.step("Enable Devise modules: #{optional_devise_modules.join(', ')}") do
+          enable_optional_devise_modules!(optional_devise_modules)
         end
       end
 
@@ -124,14 +125,14 @@ module Railwyrm
       end
     end
 
-    def enable_devise_confirmable!
+    def enable_optional_devise_modules!(module_names)
       if configuration.dry_run
-        ui.info("Dry run enabled: Devise confirmable setup skipped.")
+        ui.info("Dry run enabled: optional Devise module setup skipped.")
         return
       end
 
       unless configuration.install_devise_user?
-        raise InvalidConfiguration, "Devise confirmable requires generating a Devise user model."
+        raise InvalidConfiguration, "Optional Devise modules require generating a Devise user model."
       end
 
       model_relative_path = "app/models/#{underscore(configuration.devise_user_model)}.rb"
@@ -139,17 +140,13 @@ module Railwyrm
       raise InvalidConfiguration, "Devise model file not found: #{model_relative_path}" unless File.exist?(model_path)
 
       model_content = File.read(model_path)
-      unless model_content.include?(":confirmable")
-        updated_model = model_content.sub(/^\s*devise\s+.+$/) { |line| inject_confirmable_into_devise_line(line) }
-        if updated_model == model_content
-          raise InvalidConfiguration, "Could not find Devise module declaration in #{model_relative_path}"
-        end
+      updated_model = inject_devise_modules_into_model(model_content, module_names, model_relative_path)
+      File.write(model_path, updated_model) unless updated_model == model_content
 
-        File.write(model_path, updated_model)
-      end
-
-      ensure_confirmable_migration!
-      shell.run!("bin/rails", "db:migrate", chdir: configuration.app_path)
+      migration_created = false
+      migration_created ||= ensure_confirmable_migration! if module_names.include?("confirmable")
+      migration_created ||= ensure_lockable_migration! if module_names.include?("lockable")
+      shell.run!("bin/rails", "db:migrate", chdir: configuration.app_path) if migration_created
     end
 
     def normalize_application_main_layout!
@@ -173,12 +170,30 @@ module Railwyrm
       File.write(layout_path, updated) unless updated == layout
     end
 
-    def inject_confirmable_into_devise_line(line)
-      return line if line.include?(":confirmable")
+    def selected_optional_devise_modules
+      modules = []
+      modules << "confirmable" if configuration.devise_confirmable?
+      modules << "lockable" if configuration.devise_lockable?
+      modules << "timeoutable" if configuration.devise_timeoutable?
+      modules
+    end
 
-      indentation = line[/^\s*/]
-      modules = line.sub(/^\s*devise\s+/, "")
-      "#{indentation}devise :confirmable, #{modules}"
+    def inject_devise_modules_into_model(model_content, module_names, model_relative_path)
+      missing = module_names.reject { |mod| model_content.include?(":#{mod}") }
+      return model_content if missing.empty?
+
+      updated = model_content.sub(/^\s*devise\s+.+$/) do |line|
+        indentation = line[/^\s*/]
+        modules = line.sub(/^\s*devise\s+/, "")
+        missing_prefix = missing.map { |mod| ":#{mod}" }.join(", ")
+        "#{indentation}devise #{missing_prefix}, #{modules}"
+      end
+
+      if updated == model_content
+        raise InvalidConfiguration, "Could not find Devise module declaration in #{model_relative_path}"
+      end
+
+      updated
     end
 
     def ensure_confirmable_migration!
@@ -189,7 +204,7 @@ module Railwyrm
       existing = Dir.glob(File.join(migration_dir, "*_add_confirmable_to_#{table_name}.rb")).sort.last
       if existing
         ui.info("Confirmable migration already exists: #{File.basename(existing)}")
-        return
+        return false
       end
 
       timestamp = Time.now.utc.strftime("%Y%m%d%H%M%S")
@@ -211,6 +226,39 @@ module Railwyrm
           end
         RUBY
       )
+      true
+    end
+
+    def ensure_lockable_migration!
+      migration_dir = File.join(configuration.app_path, "db/migrate")
+      FileUtils.mkdir_p(migration_dir)
+
+      table_name = pluralize(underscore(configuration.devise_user_model))
+      existing = Dir.glob(File.join(migration_dir, "*_add_lockable_to_#{table_name}.rb")).sort.last
+      if existing
+        ui.info("Lockable migration already exists: #{File.basename(existing)}")
+        return false
+      end
+
+      timestamp = Time.now.utc.strftime("%Y%m%d%H%M%S")
+      migration_filename = "#{timestamp}_add_lockable_to_#{table_name}.rb"
+      migration_path = File.join(migration_dir, migration_filename)
+      migration_class = "AddLockableTo#{camelize(table_name)}"
+
+      File.write(
+        migration_path,
+        <<~RUBY
+          class #{migration_class} < ActiveRecord::Migration[#{migration_version}]
+            def change
+              add_column :#{table_name}, :failed_attempts, :integer, default: 0, null: false
+              add_column :#{table_name}, :unlock_token, :string
+              add_column :#{table_name}, :locked_at, :datetime
+              add_index :#{table_name}, :unlock_token, unique: true
+            end
+          end
+        RUBY
+      )
+      true
     end
 
     def migration_version

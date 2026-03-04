@@ -14,6 +14,8 @@ module Railwyrm
       sign_in_layout: "card_combined",
       install_devise_user: true,
       devise_confirmable: false,
+      devise_lockable: false,
+      devise_timeoutable: false,
       dry_run: false,
       verbose: false
     )
@@ -23,6 +25,8 @@ module Railwyrm
       @sign_in_layout = sign_in_layout.to_s.strip.empty? ? "card_combined" : sign_in_layout.to_s.strip
       @install_devise_user = install_devise_user
       @devise_confirmable = !!devise_confirmable
+      @devise_lockable = !!devise_lockable
+      @devise_timeoutable = !!devise_timeoutable
       @dry_run = dry_run
       @verbose = verbose
 
@@ -37,6 +41,14 @@ module Railwyrm
       @devise_confirmable
     end
 
+    def devise_lockable?
+      @devise_lockable
+    end
+
+    def devise_timeoutable?
+      @devise_timeoutable
+    end
+
     def app_path
       File.join(workspace, name)
     end
@@ -49,6 +61,8 @@ module Railwyrm
         sign_in_layout: sign_in_layout,
         install_devise_user: install_devise_user?,
         devise_confirmable: devise_confirmable?,
+        devise_lockable: devise_lockable?,
+        devise_timeoutable: devise_timeoutable?,
         dry_run: dry_run,
         verbose: verbose
       }
@@ -62,6 +76,12 @@ module Railwyrm
       raise InvalidConfiguration, "Workspace path is required." if workspace.empty?
       if devise_confirmable? && !install_devise_user?
         raise InvalidConfiguration, "Devise confirmable requires generating a Devise user model."
+      end
+      if devise_lockable? && !install_devise_user?
+        raise InvalidConfiguration, "Devise lockable requires generating a Devise user model."
+      end
+      if devise_timeoutable? && !install_devise_user?
+        raise InvalidConfiguration, "Devise timeoutable requires generating a Devise user model."
       end
 
       return if SIGN_IN_LAYOUTS.include?(sign_in_layout)

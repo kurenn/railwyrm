@@ -78,7 +78,7 @@ RSpec.describe Railwyrm::Generator do
       expect(executed).to include("./bin/rails tailwindcss:install")
       expect(executed).to include("bin/rails generate untitled_ui:install")
       expect(executed).to include("bin/rails generate devise User")
-      expect(executed).to include("bin/rails generate claude_on_rails:swarm")
+      expect(executed).to include("bin/rails generate claude_on_rails:swarm --force")
       expect(executed).to include("bin/rails db:migrate")
 
       session_view = File.read(File.join(configuration.app_path, "app/views/devise/sessions/new.html.erb"))
@@ -172,6 +172,33 @@ RSpec.describe Railwyrm::Generator do
       migration_content = File.read(migration)
       expect(migration_content).to include("add_column :users, :confirmation_token, :string")
       expect(migration_content).to include("add_index :users, :confirmation_token, unique: true")
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed.count { |line| line == "bin/rails db:migrate" }).to eq(2)
+    end
+  end
+
+  it "enables devise lockable and timeoutable when requested" do
+    Dir.mktmpdir do |workspace|
+      configuration = Railwyrm::Configuration.new(
+        name: "lockable_timeoutable_app",
+        workspace: workspace,
+        devise_lockable: true,
+        devise_timeoutable: true
+      )
+      shell = FakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+
+      described_class.new(configuration, ui: ui, shell: shell).run!
+
+      user_model = File.read(File.join(configuration.app_path, "app/models/user.rb"))
+      expect(user_model).to include("devise :lockable, :timeoutable, :database_authenticatable")
+
+      migration = Dir.glob(File.join(configuration.app_path, "db/migrate/*_add_lockable_to_users.rb")).first
+      expect(migration).not_to be_nil
+      migration_content = File.read(migration)
+      expect(migration_content).to include("add_column :users, :failed_attempts, :integer, default: 0, null: false")
+      expect(migration_content).to include("add_index :users, :unlock_token, unique: true")
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed.count { |line| line == "bin/rails db:migrate" }).to eq(2)

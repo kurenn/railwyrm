@@ -49,7 +49,7 @@ module Railwyrm
         ["Install ActionText", ["bin/rails", "action_text:install"]],
         ["Install Untitled UI", ["bin/rails", "generate", "untitled_ui:install"]],
         ["Install RSpec", ["bin/rails", "generate", "rspec:install"]],
-        ["Install Devise", ["bin/rails", "generate", "devise:install"]]
+          ["Install Devise", ["bin/rails", "generate", "devise:install"]]
       ]
 
       if configuration.install_devise_user?
@@ -61,7 +61,7 @@ module Railwyrm
 
       steps.concat(
         [
-          ["Install Claude on Rails swarm", ["bin/rails", "generate", "claude_on_rails:swarm"]],
+          ["Install Claude on Rails swarm", ["bin/rails", "generate", "claude_on_rails:swarm", "--force"]],
           ["Create database", ["bin/rails", "db:create"]],
           ["Run database migrations", ["bin/rails", "db:migrate"]]
         ]

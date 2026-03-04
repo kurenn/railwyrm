@@ -19,7 +19,9 @@ module Railwyrm
       return true if @dry_run
 
       with_unbundled_env do
-        Open3.popen2e(*command, chdir: chdir) do |_stdin, output, wait_thr|
+        Open3.popen2e(*command, chdir: chdir) do |stdin, output, wait_thr|
+          stdin.close
+
           output.each_line do |line|
             next unless @verbose
 

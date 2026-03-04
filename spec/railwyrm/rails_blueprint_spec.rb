@@ -30,7 +30,7 @@ RSpec.describe Railwyrm::RailsBlueprint do
 
     it "includes claude-on-rails installer command" do
       commands = blueprint.post_bundle_steps(configuration).map { |(_label, command)| command.join(" ") }
-      expect(commands).to include("bin/rails generate claude_on_rails:swarm")
+      expect(commands).to include("bin/rails generate claude_on_rails:swarm --force")
     end
 
     it "can skip devise user generation" do

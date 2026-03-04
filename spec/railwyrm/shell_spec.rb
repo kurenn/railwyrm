@@ -9,12 +9,14 @@ RSpec.describe Railwyrm::Shell do
     shell = described_class.new(ui: ui, dry_run: false, verbose: false)
     status = instance_double(Process::Status, success?: true)
     wait_thr = instance_double(Thread, value: status)
+    stdin = instance_double(IO, close: true)
 
     allow(Bundler).to receive(:with_unbundled_env).and_yield
-    allow(Open3).to receive(:popen2e).and_yield(nil, StringIO.new(""), wait_thr)
+    allow(Open3).to receive(:popen2e).and_yield(stdin, StringIO.new(""), wait_thr)
 
     expect(shell.run!("echo", "ok", chdir: "/tmp")).to be(true)
     expect(Bundler).to have_received(:with_unbundled_env)
+    expect(stdin).to have_received(:close)
     expect(Open3).to have_received(:popen2e).with("echo", "ok", chdir: "/tmp")
   end
 
@@ -23,11 +25,13 @@ RSpec.describe Railwyrm::Shell do
     shell = described_class.new(ui: ui, dry_run: false, verbose: true)
     status = instance_double(Process::Status, success?: false, exitstatus: 2)
     wait_thr = instance_double(Thread, value: status)
+    stdin = instance_double(IO, close: true)
 
     allow(Bundler).to receive(:with_unbundled_env).and_yield
-    allow(Open3).to receive(:popen2e).and_yield(nil, StringIO.new("boom\n"), wait_thr)
+    allow(Open3).to receive(:popen2e).and_yield(stdin, StringIO.new("boom\n"), wait_thr)
 
     expect { shell.run!("false") }
       .to raise_error(Railwyrm::CommandFailed, /Command failed with status 2: false/)
+    expect(stdin).to have_received(:close)
   end
 end

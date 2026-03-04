@@ -101,6 +101,8 @@ module Railwyrm
         sign_in_layout: payload["sign_in_layout"] || "card_combined",
         install_devise_user: !truthy?(payload["skip_devise_user"]),
         devise_confirmable: truthy?(payload["devise_confirmable"]),
+        devise_lockable: truthy?(payload["devise_lockable"]),
+        devise_timeoutable: truthy?(payload["devise_timeoutable"]),
         dry_run: truthy?(payload["dry_run"]),
         verbose: true
       )
@@ -250,6 +252,14 @@ module Railwyrm
                 <input id="devise_confirmable" name="devise_confirmable" type="checkbox" style="width:auto;" />
                 Require email confirmation (Devise confirmable)
               </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem;">
+                <input id="devise_lockable" name="devise_lockable" type="checkbox" style="width:auto;" />
+                Lock accounts after failed attempts (Devise lockable)
+              </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem;">
+                <input id="devise_timeoutable" name="devise_timeoutable" type="checkbox" style="width:auto;" />
+                Auto sign out inactive users (Devise timeoutable)
+              </label>
 
               <label>Sign-in layout</label>
               <div class="layout-grid">
@@ -294,6 +304,8 @@ Password     Forgot password
                 workspace: document.getElementById("workspace").value,
                 devise_user_model: document.getElementById("devise_user_model").value,
                 devise_confirmable: document.getElementById("devise_confirmable").checked,
+                devise_lockable: document.getElementById("devise_lockable").checked,
+                devise_timeoutable: document.getElementById("devise_timeoutable").checked,
                 sign_in_layout: document.querySelector("input[name='sign_in_layout']:checked")?.value || "card_combined"
               };
 

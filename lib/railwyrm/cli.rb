@@ -267,6 +267,8 @@ module Railwyrm
                             desc: "Sign-in layout: simple_minimal, card_combined, split_mockup_quote"
     option :skip_devise_user, type: :boolean, default: false, desc: "Skip creating the Devise model"
     option :devise_confirmable, type: :boolean, default: false, desc: "Enable Devise confirmable module"
+    option :devise_lockable, type: :boolean, default: false, desc: "Enable Devise lockable module"
+    option :devise_timeoutable, type: :boolean, default: false, desc: "Enable Devise timeoutable module"
     option :recipe, type: :string, desc: "Recipe name (e.g. ats) or path to recipe.yml"
     option :with, type: :array, default: [], desc: "Enable optional recipe modules when applying a recipe"
     option :deploy, type: :string, desc: "Deploy preset to apply with the recipe (e.g. render)"
@@ -460,6 +462,8 @@ module Railwyrm
       devise_user_model = options[:devise_user_model]
       sign_in_layout = options[:sign_in_layout]
       devise_confirmable = options[:devise_confirmable]
+      devise_lockable = options[:devise_lockable]
+      devise_timeoutable = options[:devise_timeoutable]
 
       if interactive
         name = prompt.ask("⚒️  App name (snake_case):", default: name, required: true)
@@ -473,8 +477,18 @@ module Railwyrm
               "✉️ Enable Devise confirmable (email confirmation required)?",
               default: devise_confirmable
             )
+            devise_lockable = prompt.yes?(
+              "🔒 Enable Devise lockable (lock account after failed attempts)?",
+              default: devise_lockable
+            )
+            devise_timeoutable = prompt.yes?(
+              "⏱️ Enable Devise timeoutable (auto sign out inactive users)?",
+              default: devise_timeoutable
+            )
           else
             devise_confirmable = false
+            devise_lockable = false
+            devise_timeoutable = false
           end
         end
 
@@ -498,6 +512,8 @@ module Railwyrm
         sign_in_layout: sign_in_layout,
         install_devise_user: install_devise_user,
         devise_confirmable: devise_confirmable,
+        devise_lockable: devise_lockable,
+        devise_timeoutable: devise_timeoutable,
         dry_run: options[:dry_run],
         verbose: options[:verbose]
       )

@@ -8,6 +8,8 @@ RSpec.describe Railwyrm::Configuration do
 
     expect(config.sign_in_layout).to eq("card_combined")
     expect(config.devise_confirmable?).to be(false)
+    expect(config.devise_lockable?).to be(false)
+    expect(config.devise_timeoutable?).to be(false)
   end
 
   it "accepts each supported sign_in_layout" do
@@ -32,5 +34,27 @@ RSpec.describe Railwyrm::Configuration do
         devise_confirmable: true
       )
     end.to raise_error(Railwyrm::InvalidConfiguration, /confirmable requires generating a Devise user model/)
+  end
+
+  it "raises when lockable is enabled while devise user generation is disabled" do
+    expect do
+      described_class.new(
+        name: "demo_app",
+        workspace: "/tmp",
+        install_devise_user: false,
+        devise_lockable: true
+      )
+    end.to raise_error(Railwyrm::InvalidConfiguration, /lockable requires generating a Devise user model/)
+  end
+
+  it "raises when timeoutable is enabled while devise user generation is disabled" do
+    expect do
+      described_class.new(
+        name: "demo_app",
+        workspace: "/tmp",
+        install_devise_user: false,
+        devise_timeoutable: true
+      )
+    end.to raise_error(Railwyrm::InvalidConfiguration, /timeoutable requires generating a Devise user model/)
   end
 end
