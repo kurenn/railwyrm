@@ -3,17 +3,25 @@
 <section class="space-y-6">
   <header>
     <h1 class="text-3xl font-semibold text-slate-900">Reports</h1>
-    <p class="mt-1 text-slate-500">Attendance, retention, and class utilization insights.</p>
+    <p class="mt-1 text-slate-500">Key operational metrics for <%= @location&.name || "the gym" %>.</p>
   </header>
 
-  <div class="grid gap-4 md:grid-cols-2">
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 class="text-lg font-semibold text-slate-900">Attendance trend</h2>
-      <p class="mt-2 text-sm text-slate-600">Starter metric card for daily/weekly attendance.</p>
+      <p class="text-sm text-slate-500">Active members</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @active_member_count %></p>
     </article>
     <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 class="text-lg font-semibold text-slate-900">Churn risk</h2>
-      <p class="mt-2 text-sm text-slate-600">Starter metric card for paused or expiring memberships.</p>
+      <p class="text-sm text-slate-500">Visits last 30 days</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @visits_last_30_days %></p>
     </article>
-  </div>
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-slate-500">New members (30d)</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @new_members_last_30_days %></p>
+    </article>
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-slate-500">Classes (7d)</p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @upcoming_class_count %></p>
+    </article>
+  </section>
 </section>

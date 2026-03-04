@@ -1,7 +1,7 @@
 id: gym
 name: Gym Management
 version: 0.1.0
-status: draft
+status: reference
 description: >
   Gym management starter recipe for Railwyrm-generated apps. Adds member
   onboarding, visit tracking, classes, and role-based staff workflows.
@@ -42,6 +42,7 @@ roles:
 gems:
   required:
     - name: pundit
+    - name: capybara
   optional_by_module:
     background_jobs:
       - name: solid_queue
@@ -148,6 +149,16 @@ ui_overlays:
       to: app/views
     - from: recipes/gym/templates/docs
       to: docs
+    - from: recipes/gym/templates/controllers
+      to: app/controllers
+    - from: recipes/gym/templates/models
+      to: app/models
+    - from: recipes/gym/templates/policies
+      to: app/policies
+    - from: recipes/gym/templates/migrations
+      to: db/migrate
+    - from: recipes/gym/templates/spec
+      to: spec
   starter_pages:
     - dashboard
     - members index/show
@@ -198,8 +209,10 @@ authorization:
   baseline_policies:
     - member_policy
     - visit_policy
+    - membership_policy
     - membership_plan_policy
     - class_session_policy
+    - class_booking_policy
     - report_policy
 
 seed_data:
@@ -230,9 +243,9 @@ quality_gates:
     - bin/rails routes
     - bin/rails zeitwerk:check
   acceptance_checks:
-    - "Auth works for staff role"
+    - "Auth works for admin/manager/staff/trainer roles"
     - "Can create a member and record a visit"
-    - "Class booking lifecycle persists"
+    - "Class session creation and booking lifecycle persist"
     - "Pundit policy checks pass for gym baseline policies"
     - "Gym pages are responsive on mobile + desktop"
 

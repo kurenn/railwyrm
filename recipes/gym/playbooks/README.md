@@ -1,4 +1,4 @@
-# Gym Playbooks (Draft)
+# Gym Playbooks
 
 Planned playbooks:
 

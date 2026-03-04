@@ -1,4 +1,4 @@
-# Gym Agents (Draft)
+# Gym Agents
 
 Planned specialist agents:
 

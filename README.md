@@ -166,8 +166,8 @@ Recipe specs and prompt-driven harnesses live under `recipes/`.
 - ATS reference recipe spec: `recipes/ats/recipe.yml`
 - ATS reference contract: `recipes/ats/REFERENCE.md`
 - ATS test prompt: `recipes/ats/prompt.md`
-- Gym draft recipe spec: `recipes/gym/recipe.yml`
-- Gym draft contract: `recipes/gym/REFERENCE.md`
+- Gym reference recipe spec: `recipes/gym/recipe.yml`
+- Gym reference contract: `recipes/gym/REFERENCE.md`
 - Gym test prompt: `recipes/gym/prompt.md`
 
 ATS is the reference implementation for recipe contract, plan/apply flow, and
@@ -220,6 +220,7 @@ under `recipes/_shared/ui_profiles` and has the required overlay directories.
 - `railwyrm recipes plan` prints the exact command order from `scaffolding_plan.commands`
 - `railwyrm recipes apply` runs those commands in that same order
 - `apply` also executes recipe file operations:
+  - injects unauthenticated root (`/`) redirect to `/users/sign_in` unless the recipe defines a public root route
   - auto-copies shared UI profile overlays when `ui_profile` is configured
   - copies `ui_overlays.copies[*]` sources into target app paths
   - installs `seed_data.file` into `db/seeds/<recipe>.seeds.rb` and loads it from `db/seeds.rb`

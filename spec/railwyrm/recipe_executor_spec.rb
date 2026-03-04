@@ -164,6 +164,8 @@ RSpec.describe Railwyrm::RecipeExecutor do
 
         FileUtils.mkdir_p(File.join(workspace, "db"))
         File.write(File.join(workspace, "db/seeds.rb"), "# base seeds\n")
+        FileUtils.mkdir_p(File.join(workspace, "config"))
+        File.write(File.join(workspace, "config/routes.rb"), "Rails.application.routes.draw do\nend\n")
 
         recipe = Railwyrm::Recipe.new(
           path: File.join(recipe_dir, "recipe.yml"),
@@ -205,6 +207,8 @@ RSpec.describe Railwyrm::RecipeExecutor do
 
   it "runs quality gate commands after scaffold commands" do
     Dir.mktmpdir do |workspace|
+      FileUtils.mkdir_p(File.join(workspace, "config"))
+      File.write(File.join(workspace, "config/routes.rb"), "Rails.application.routes.draw do\nend\n")
       shell = RecipeExecutorFakeShell.new
       recipe = recipe_with_commands(["echo build"], quality_gates: ["echo gate_one", "echo gate_two"])
       executor = described_class.new(
@@ -225,6 +229,8 @@ RSpec.describe Railwyrm::RecipeExecutor do
   it "adds selected module gems and runs module setup commands" do
     Dir.mktmpdir do |workspace|
       File.write(File.join(workspace, "Gemfile"), "source 'https://rubygems.org'\n")
+      FileUtils.mkdir_p(File.join(workspace, "config"))
+      File.write(File.join(workspace, "config/routes.rb"), "Rails.application.routes.draw do\nend\n")
       shell = RecipeExecutorFakeShell.new
       recipe = recipe_with_modules_and_deploy(
         commands: ["echo build"],
@@ -257,6 +263,8 @@ RSpec.describe Railwyrm::RecipeExecutor do
     Dir.mktmpdir do |workspace|
       source_file = File.join(workspace, "render-template.yaml")
       File.write(source_file, "service: ats\n")
+      FileUtils.mkdir_p(File.join(workspace, "config"))
+      File.write(File.join(workspace, "config/routes.rb"), "Rails.application.routes.draw do\nend\n")
       shell = RecipeExecutorFakeShell.new
       recipe = recipe_with_modules_and_deploy(
         commands: ["echo build"],
@@ -363,6 +371,8 @@ RSpec.describe Railwyrm::RecipeExecutor do
 
       routes_content = File.read(File.join(workspace, "config/routes.rb"))
       expect(routes_content).to include("# BEGIN railwyrm:recipe:ats")
+      expect(routes_content).to include("unauthenticated :user do")
+      expect(routes_content).to include("root to: redirect(\"/users/sign_in\")")
       expect(routes_content).to include("authenticated :user do")
       expect(routes_content).to include("root to: \"ats/dashboard#show\", as: :authenticated_root")
       expect(routes_content).to include("resources :careers, only: [:index, :show], controller: \"public/careers\"")
@@ -375,6 +385,53 @@ RSpec.describe Railwyrm::RecipeExecutor do
       policy_content = File.read(File.join(workspace, "app/policies/job_posting_policy.rb"))
       expect(policy_content).to include("class JobPostingPolicy < ApplicationPolicy")
       expect(File).to exist(File.join(workspace, "app/policies/report_policy.rb"))
+    end
+  end
+
+  it "does not inject devise sign-in root when recipe defines a public root" do
+    Dir.mktmpdir do |workspace|
+      FileUtils.mkdir_p(File.join(workspace, "config"))
+      File.write(
+        File.join(workspace, "config/routes.rb"),
+        <<~RUBY
+          Rails.application.routes.draw do
+          end
+        RUBY
+      )
+
+      recipe = Railwyrm::Recipe.new(
+        path: "/tmp/recipe.yml",
+        data: {
+          "id" => "site",
+          "name" => "Public Site",
+          "version" => "0.1.0",
+          "scaffolding_plan" => { "commands" => [] },
+          "ui_overlays" => { "copies" => [] },
+          "seed_data" => { "file" => __FILE__ },
+          "quality_gates" => { "required_commands" => [] },
+          "routes" => {
+            "authenticated" => [],
+            "public" => [
+              { "type" => "root", "to" => "public/home#show" }
+            ]
+          },
+          "authorization" => { "baseline_policies" => [] }
+        }
+      )
+
+      executor = described_class.new(
+        recipe,
+        workspace: workspace,
+        ui: Railwyrm::UI::Buffer.new,
+        shell: RecipeExecutorFakeShell.new,
+        dry_run: false
+      )
+
+      executor.apply!
+
+      routes_content = File.read(File.join(workspace, "config/routes.rb"))
+      expect(routes_content).to include("root to: \"public/home#show\"")
+      expect(routes_content).not_to include("root to: redirect(\"/users/sign_in\")")
     end
   end
 end

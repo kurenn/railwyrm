@@ -304,6 +304,13 @@ module Railwyrm
       lines = []
       authenticated_entries = route_entries("authenticated")
       public_entries = route_entries("public")
+      has_public_root = public_entries.any? { |entry| entry["type"].to_s == "root" }
+
+      unless has_public_root
+        lines << "unauthenticated :user do"
+        lines << "  root to: redirect(\"/users/sign_in\")"
+        lines << "end"
+      end
 
       unless authenticated_entries.empty?
         lines << "authenticated :user do"

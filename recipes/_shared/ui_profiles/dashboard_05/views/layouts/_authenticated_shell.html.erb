@@ -13,19 +13,30 @@
       </div>
 
       <div class="mt-6 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
-        ATS Workspace
+        Workspace
       </div>
 
-      <% nav_links = [
-        ["Dashboard", authenticated_root_path],
-        ["Jobs", job_postings_path],
-        ["Candidates", candidates_path],
-        ["Pipeline", pipeline_path],
-        ["Reports", reports_path],
-        ["Departments", departments_path],
-        ["Teams", teams_path],
-        ["Careers", careers_path]
-      ] %>
+      <% nav_links = [] %>
+      <% add_nav_link = lambda do |label, helper_name| %>
+        <% next unless respond_to?(helper_name) %>
+        <% path = public_send(helper_name) %>
+        <% next if nav_links.any? { |_, existing_path| existing_path == path } %>
+        <% nav_links << [label, path] %>
+      <% end %>
+
+      <% add_nav_link.call("Dashboard", :authenticated_root_path) %>
+      <% add_nav_link.call("Jobs", :job_postings_path) %>
+      <% add_nav_link.call("Candidates", :candidates_path) %>
+      <% add_nav_link.call("Pipeline", :pipeline_path) %>
+      <% add_nav_link.call("Members", :members_path) %>
+      <% add_nav_link.call("Visits", :visits_path) %>
+      <% add_nav_link.call("Plans", :membership_plans_path) %>
+      <% add_nav_link.call("Classes", :class_sessions_path) %>
+      <% add_nav_link.call("Reports", :reports_path) %>
+      <% add_nav_link.call("Departments", :departments_path) %>
+      <% add_nav_link.call("Teams", :teams_path) %>
+      <% add_nav_link.call("Careers", :careers_path) %>
+      <% add_nav_link.call("Schedule", :schedule_path) %>
 
       <nav class="mt-6 space-y-1.5">
         <% nav_links.each do |label, path| %>

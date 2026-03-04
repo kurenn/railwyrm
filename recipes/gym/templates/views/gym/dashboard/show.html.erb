@@ -3,36 +3,60 @@
 <section class="space-y-8">
   <header>
     <h1 class="text-4xl font-semibold tracking-tight text-slate-900">Gym Dashboard</h1>
-    <p class="mt-2 text-lg text-slate-500">Overview of members, visits, and classes.</p>
+    <p class="mt-2 text-lg text-slate-500">Overview for <%= @location&.name || "current location" %>.</p>
   </header>
 
   <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <p class="text-sm text-slate-500">Members</p>
-      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= Member.count if defined?(Member) %></p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @dashboard_metrics[:members] %></p>
     </article>
     <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <p class="text-sm text-slate-500">Visits today</p>
-      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= Visit.where(checked_in_at: Time.current.beginning_of_day..Time.current.end_of_day).count if defined?(Visit) %></p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @dashboard_metrics[:visits_today] %></p>
     </article>
     <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <p class="text-sm text-slate-500">Active plans</p>
-      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= MembershipPlan.where(active: true).count if defined?(MembershipPlan) %></p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @dashboard_metrics[:active_plans] %></p>
     </article>
     <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <p class="text-sm text-slate-500">Upcoming classes</p>
-      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= ClassSession.where(starts_at: Time.current..1.week.from_now).count if defined?(ClassSession) %></p>
+      <p class="mt-2 text-3xl font-semibold text-slate-900"><%= @dashboard_metrics[:upcoming_classes] %></p>
     </article>
   </section>
 
-  <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-    <h2 class="text-2xl font-semibold text-slate-900">Quick actions</h2>
-    <div class="mt-4 flex flex-wrap gap-3">
-      <%= link_to "Members", members_path, class: "rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
-      <%= link_to "Visits", visits_path, class: "rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
-      <%= link_to "Membership plans", membership_plans_path, class: "rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
-      <%= link_to "Classes", class_sessions_path, class: "rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
-      <%= link_to "Reports", reports_path, class: "rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
-    </div>
+  <section class="grid gap-6 xl:grid-cols-2">
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold text-slate-900">Recent visits</h2>
+        <%= link_to "Visits", visits_path, class: "text-sm font-medium text-violet-700" %>
+      </div>
+      <ul class="mt-4 space-y-3">
+        <% @recent_visits.each do |visit| %>
+          <li class="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-3">
+            <div>
+              <p class="font-medium text-slate-900"><%= visit.member&.full_name || "Member" %></p>
+              <p class="text-sm text-slate-500"><%= visit.checked_in_at&.strftime("%b %d, %H:%M") %></p>
+            </div>
+            <span class="rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700"><%= visit.source.presence || "check-in" %></span>
+          </li>
+        <% end %>
+      </ul>
+    </article>
+
+    <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold text-slate-900">Upcoming classes</h2>
+        <%= link_to "Classes", class_sessions_path, class: "text-sm font-medium text-violet-700" %>
+      </div>
+      <ul class="mt-4 space-y-3">
+        <% @upcoming_classes.each do |session| %>
+          <li class="rounded-xl border border-slate-100 px-4 py-3">
+            <p class="font-medium text-slate-900"><%= session.title %></p>
+            <p class="text-sm text-slate-500"><%= session.starts_at.strftime("%b %d, %H:%M") %> · <%= session.instructor_name %></p>
+          </li>
+        <% end %>
+      </ul>
+    </article>
   </section>
 </section>

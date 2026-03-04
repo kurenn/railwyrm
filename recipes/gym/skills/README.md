@@ -1,4 +1,4 @@
-# Gym Skills (Draft)
+# Gym Skills
 
 Planned skills for gym feature work:
 

@@ -1,0 +1,41 @@
+<%= form_with model: class_session, class: "space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" do |form| %>
+  <% if class_session.errors.any? %>
+    <div class="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"><%= class_session.errors.full_messages.to_sentence %></div>
+  <% end %>
+
+  <div class="grid gap-4 md:grid-cols-2">
+    <div>
+      <%= form.label :title, class: "mb-1 block text-sm font-medium text-slate-700" %>
+      <%= form.text_field :title, class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
+    </div>
+    <div>
+      <%= form.label :instructor_name, class: "mb-1 block text-sm font-medium text-slate-700" %>
+      <%= form.text_field :instructor_name, class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
+    </div>
+    <div>
+      <%= form.label :starts_at, class: "mb-1 block text-sm font-medium text-slate-700" %>
+      <%= form.datetime_local_field :starts_at, value: class_session.starts_at&.strftime("%Y-%m-%dT%H:%M"), class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
+    </div>
+    <div>
+      <%= form.label :ends_at, class: "mb-1 block text-sm font-medium text-slate-700" %>
+      <%= form.datetime_local_field :ends_at, value: class_session.ends_at&.strftime("%Y-%m-%dT%H:%M"), class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
+    </div>
+    <div>
+      <%= form.label :capacity, class: "mb-1 block text-sm font-medium text-slate-700" %>
+      <%= form.number_field :capacity, min: 1, class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
+    </div>
+    <div>
+      <%= form.label :room, class: "mb-1 block text-sm font-medium text-slate-700" %>
+      <%= form.text_field :room, class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
+    </div>
+    <div>
+      <%= form.label :status, class: "mb-1 block text-sm font-medium text-slate-700" %>
+      <%= form.select :status, ClassSession.statuses.keys.map { |value| [value.humanize, value] }, {}, class: "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <%= form.submit class_session.persisted? ? "Save class" : "Create class", class: "rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white" %>
+    <%= link_to "Cancel", class_sessions_path, class: "text-sm font-medium text-slate-600" %>
+  </div>
+<% end %>

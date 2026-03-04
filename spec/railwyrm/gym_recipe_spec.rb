@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe "Gym draft recipe" do
+RSpec.describe "Gym reference recipe" do
   let(:repo_root) { File.expand_path("../..", __dir__) }
   let(:recipe_path) { File.join(repo_root, "recipes/gym/recipe.yml") }
 
@@ -16,10 +16,18 @@ RSpec.describe "Gym draft recipe" do
     expect(result).to be_valid
   end
 
-  it "is marked as draft" do
+  it "is marked as reference" do
     data = load_recipe_data
 
-    expect(data["status"]).to eq("draft")
+    expect(data["status"]).to eq("reference")
+  end
+
+  it "has stable deterministic command boundaries" do
+    recipe = Railwyrm::Recipe.load(recipe_path)
+    commands = recipe.scaffolding_commands
+
+    expect(commands.first).to eq("bin/rails generate pundit:install")
+    expect(commands.last).to eq("bin/rails db:migrate")
   end
 
   it "references existing gym assets" do
