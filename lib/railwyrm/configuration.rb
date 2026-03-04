@@ -13,6 +13,7 @@ module Railwyrm
       devise_user_model: "User",
       sign_in_layout: "card_combined",
       install_devise_user: true,
+      devise_confirmable: false,
       dry_run: false,
       verbose: false
     )
@@ -21,6 +22,7 @@ module Railwyrm
       @devise_user_model = devise_user_model.to_s.strip.empty? ? "User" : devise_user_model.to_s.strip
       @sign_in_layout = sign_in_layout.to_s.strip.empty? ? "card_combined" : sign_in_layout.to_s.strip
       @install_devise_user = install_devise_user
+      @devise_confirmable = !!devise_confirmable
       @dry_run = dry_run
       @verbose = verbose
 
@@ -29,6 +31,10 @@ module Railwyrm
 
     def install_devise_user?
       @install_devise_user
+    end
+
+    def devise_confirmable?
+      @devise_confirmable
     end
 
     def app_path
@@ -42,6 +48,7 @@ module Railwyrm
         devise_user_model: devise_user_model,
         sign_in_layout: sign_in_layout,
         install_devise_user: install_devise_user?,
+        devise_confirmable: devise_confirmable?,
         dry_run: dry_run,
         verbose: verbose
       }
@@ -53,6 +60,10 @@ module Railwyrm
       raise InvalidConfiguration, "App name is required." if name.empty?
       raise InvalidConfiguration, "App name must be snake_case and start with a letter." unless name.match?(NAME_PATTERN)
       raise InvalidConfiguration, "Workspace path is required." if workspace.empty?
+      if devise_confirmable? && !install_devise_user?
+        raise InvalidConfiguration, "Devise confirmable requires generating a Devise user model."
+      end
+
       return if SIGN_IN_LAYOUTS.include?(sign_in_layout)
 
       raise InvalidConfiguration,

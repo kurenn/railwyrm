@@ -279,6 +279,35 @@ RSpec.describe Railwyrm::CLI do
     end
   end
 
+  it "passes devise confirmable option in non-interactive new flow" do
+    Dir.mktmpdir do |workspace|
+      app_name = "confirmable_cli_app"
+      app_path = File.join(workspace, app_name)
+      generator = instance_double(Railwyrm::Generator, run!: app_path)
+
+      expect(Railwyrm::Generator).to receive(:new) do |config, ui:|
+        expect(config.devise_confirmable?).to be(true)
+        expect(config.install_devise_user?).to be(true)
+        expect(ui).to be_a(Railwyrm::UI::Console)
+        generator
+      end
+
+      expect do
+        described_class.start(
+          [
+            "new",
+            app_name,
+            "--interactive=false",
+            "--path",
+            workspace,
+            "--devise_confirmable=true",
+            "--no-banner"
+          ]
+        )
+      end.not_to raise_error
+    end
+  end
+
   it "uses a label default for interactive sign-in layout selection" do
     Dir.mktmpdir do |workspace|
       app_name = "wizard_app"
@@ -301,6 +330,41 @@ RSpec.describe Railwyrm::CLI do
       expect(prompt).to receive(:select)
         .with("🧩 Select sign-in layout:", default: "Card Combined (recommended)")
         .and_return("card_combined")
+
+      expect { described_class.start(["new", app_name, "--path", workspace, "--no-banner"]) }.not_to raise_error
+    end
+  end
+
+  it "asks for devise confirmable in interactive new flow" do
+    Dir.mktmpdir do |workspace|
+      app_name = "wizard_confirmable_app"
+      app_path = File.join(workspace, app_name)
+      generator = instance_double(Railwyrm::Generator, run!: app_path)
+      prompt = instance_double(TTY::Prompt)
+
+      expect(Railwyrm::Generator).to receive(:new) do |config, ui:|
+        expect(config.devise_confirmable?).to be(true)
+        expect(ui).to be_a(Railwyrm::UI::Console)
+        generator
+      end
+      allow(TTY::Prompt).to receive(:new).and_return(prompt)
+      allow(prompt).to receive(:ask) do |question, **_kwargs|
+        if question.include?("App name")
+          app_name
+        elsif question.include?("Workspace path")
+          workspace
+        else
+          "User"
+        end
+      end
+      expect(prompt).to receive(:yes?).with("🔐 Generate Devise user model now?", default: true).and_return(true)
+      expect(prompt).to receive(:yes?)
+        .with("✉️ Enable Devise confirmable (email confirmation required)?", default: false)
+        .and_return(true)
+      expect(prompt).to receive(:select)
+        .with("🧩 Select sign-in layout:", default: "Card Combined (recommended)")
+        .and_return("card_combined")
+      expect(prompt).to receive(:yes?).with("🧩 Apply a recipe after base app generation?", default: false).and_return(false)
 
       expect { described_class.start(["new", app_name, "--path", workspace, "--no-banner"]) }.not_to raise_error
     end

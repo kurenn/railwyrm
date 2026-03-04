@@ -266,6 +266,7 @@ module Railwyrm
     option :sign_in_layout, type: :string, default: "card_combined",
                             desc: "Sign-in layout: simple_minimal, card_combined, split_mockup_quote"
     option :skip_devise_user, type: :boolean, default: false, desc: "Skip creating the Devise model"
+    option :devise_confirmable, type: :boolean, default: false, desc: "Enable Devise confirmable module"
     option :recipe, type: :string, desc: "Recipe name (e.g. ats) or path to recipe.yml"
     option :with, type: :array, default: [], desc: "Enable optional recipe modules when applying a recipe"
     option :deploy, type: :string, desc: "Deploy preset to apply with the recipe (e.g. render)"
@@ -458,6 +459,7 @@ module Railwyrm
       install_devise_user = !options[:skip_devise_user]
       devise_user_model = options[:devise_user_model]
       sign_in_layout = options[:sign_in_layout]
+      devise_confirmable = options[:devise_confirmable]
 
       if interactive
         name = prompt.ask("⚒️  App name (snake_case):", default: name, required: true)
@@ -467,6 +469,12 @@ module Railwyrm
           install_devise_user = prompt.yes?("🔐 Generate Devise user model now?", default: true)
           if install_devise_user
             devise_user_model = prompt.ask("🪪 Devise model name:", default: devise_user_model, required: true)
+            devise_confirmable = prompt.yes?(
+              "✉️ Enable Devise confirmable (email confirmation required)?",
+              default: devise_confirmable
+            )
+          else
+            devise_confirmable = false
           end
         end
 
@@ -489,6 +497,7 @@ module Railwyrm
         devise_user_model: devise_user_model,
         sign_in_layout: sign_in_layout,
         install_devise_user: install_devise_user,
+        devise_confirmable: devise_confirmable,
         dry_run: options[:dry_run],
         verbose: options[:verbose]
       )

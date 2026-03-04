@@ -100,6 +100,7 @@ module Railwyrm
         devise_user_model: payload["devise_user_model"] || "User",
         sign_in_layout: payload["sign_in_layout"] || "card_combined",
         install_devise_user: !truthy?(payload["skip_devise_user"]),
+        devise_confirmable: truthy?(payload["devise_confirmable"]),
         dry_run: truthy?(payload["dry_run"]),
         verbose: true
       )
@@ -245,6 +246,10 @@ module Railwyrm
               <input id="workspace" name="workspace" value="#{workspace}" required />
               <label for="devise_user_model">Devise model name</label>
               <input id="devise_user_model" name="devise_user_model" value="User" />
+              <label style="display:flex; align-items:center; gap:0.5rem; margin-top:0.8rem;">
+                <input id="devise_confirmable" name="devise_confirmable" type="checkbox" style="width:auto;" />
+                Require email confirmation (Devise confirmable)
+              </label>
 
               <label>Sign-in layout</label>
               <div class="layout-grid">
@@ -288,6 +293,7 @@ Password     Forgot password
                 name: document.getElementById("name").value,
                 workspace: document.getElementById("workspace").value,
                 devise_user_model: document.getElementById("devise_user_model").value,
+                devise_confirmable: document.getElementById("devise_confirmable").checked,
                 sign_in_layout: document.querySelector("input[name='sign_in_layout']:checked")?.value || "card_combined"
               };
 

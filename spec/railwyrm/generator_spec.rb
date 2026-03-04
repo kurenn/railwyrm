@@ -29,6 +29,32 @@ RSpec.describe Railwyrm::Generator do
         )
       end
 
+      if command[0] == "bin/rails" && command[1] == "generate" && command[2] == "devise" && command[3]
+        model_name = command[3]
+        model_file = File.join(chdir, "app/models/#{model_name.downcase}.rb")
+        FileUtils.mkdir_p(File.dirname(model_file))
+        File.write(
+          model_file,
+          <<~RUBY
+            class #{model_name} < ApplicationRecord
+              devise :database_authenticatable, :registerable,
+                     :recoverable, :rememberable, :validatable
+            end
+          RUBY
+        )
+
+        migration_file = File.join(chdir, "db/migrate/20260101000000_devise_create_#{model_name.downcase}s.rb")
+        FileUtils.mkdir_p(File.dirname(migration_file))
+        File.write(
+          migration_file,
+          <<~RUBY
+            class DeviseCreate#{model_name}s < ActiveRecord::Migration[8.1]
+              def change; end
+            end
+          RUBY
+        )
+      end
+
       true
     end
   end
@@ -123,6 +149,32 @@ RSpec.describe Railwyrm::Generator do
       described_class.new(configuration, ui: ui).run!
 
       expect(Dir.exist?(configuration.app_path)).to be(false)
+    end
+  end
+
+  it "enables devise confirmable when requested" do
+    Dir.mktmpdir do |workspace|
+      configuration = Railwyrm::Configuration.new(
+        name: "confirmable_app",
+        workspace: workspace,
+        devise_confirmable: true
+      )
+      shell = FakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+
+      described_class.new(configuration, ui: ui, shell: shell).run!
+
+      user_model = File.read(File.join(configuration.app_path, "app/models/user.rb"))
+      expect(user_model).to include("devise :confirmable, :database_authenticatable")
+
+      migration = Dir.glob(File.join(configuration.app_path, "db/migrate/*_add_confirmable_to_users.rb")).first
+      expect(migration).not_to be_nil
+      migration_content = File.read(migration)
+      expect(migration_content).to include("add_column :users, :confirmation_token, :string")
+      expect(migration_content).to include("add_index :users, :confirmation_token, unique: true")
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed.count { |line| line == "bin/rails db:migrate" }).to eq(2)
     end
   end
 end

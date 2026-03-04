@@ -83,6 +83,7 @@ bundle exec ruby exe/railwyrm new
 Interactive wizard note:
 
 - If `--recipe` is not provided, the wizard asks whether to apply a recipe and shows the currently available recipes for selection.
+- If Devise user generation is enabled, the wizard asks whether to enable Devise `confirmable` (email confirmation).
 
 Run non-interactive mode:
 
@@ -116,6 +117,7 @@ Common flags:
 - `--verbose` show underlying command output
 - `--dry_run` print commands without executing
 - `--sign_in_layout` choose auth page layout (`simple_minimal`, `card_combined`, `split_mockup_quote`)
+- `--devise_confirmable` enable Devise `confirmable` for the generated user model
 - `--recipe` apply a recipe by name (e.g. `ats`) or `recipe.yml` path during `new`
 - `--with` enable optional recipe modules (for example `background_jobs`)
 - `--deploy` apply recipe deploy preset (for example `render`, `fly`)

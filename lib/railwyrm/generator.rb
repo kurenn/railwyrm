@@ -37,6 +37,12 @@ module Railwyrm
         end
       end
 
+      if configuration.devise_confirmable?
+        ui.step("Enable Devise confirmable module") do
+          enable_devise_confirmable!
+        end
+      end
+
       ui.step("Normalize application layout main container") do
         normalize_application_main_layout!
       end
@@ -118,6 +124,34 @@ module Railwyrm
       end
     end
 
+    def enable_devise_confirmable!
+      if configuration.dry_run
+        ui.info("Dry run enabled: Devise confirmable setup skipped.")
+        return
+      end
+
+      unless configuration.install_devise_user?
+        raise InvalidConfiguration, "Devise confirmable requires generating a Devise user model."
+      end
+
+      model_relative_path = "app/models/#{underscore(configuration.devise_user_model)}.rb"
+      model_path = File.join(configuration.app_path, model_relative_path)
+      raise InvalidConfiguration, "Devise model file not found: #{model_relative_path}" unless File.exist?(model_path)
+
+      model_content = File.read(model_path)
+      unless model_content.include?(":confirmable")
+        updated_model = model_content.sub(/^\s*devise\s+.+$/) { |line| inject_confirmable_into_devise_line(line) }
+        if updated_model == model_content
+          raise InvalidConfiguration, "Could not find Devise module declaration in #{model_relative_path}"
+        end
+
+        File.write(model_path, updated_model)
+      end
+
+      ensure_confirmable_migration!
+      shell.run!("bin/rails", "db:migrate", chdir: configuration.app_path)
+    end
+
     def normalize_application_main_layout!
       if configuration.dry_run
         ui.info("Dry run enabled: application layout update skipped.")
@@ -137,6 +171,74 @@ module Railwyrm
                 end
 
       File.write(layout_path, updated) unless updated == layout
+    end
+
+    def inject_confirmable_into_devise_line(line)
+      return line if line.include?(":confirmable")
+
+      indentation = line[/^\s*/]
+      modules = line.sub(/^\s*devise\s+/, "")
+      "#{indentation}devise :confirmable, #{modules}"
+    end
+
+    def ensure_confirmable_migration!
+      migration_dir = File.join(configuration.app_path, "db/migrate")
+      FileUtils.mkdir_p(migration_dir)
+
+      table_name = pluralize(underscore(configuration.devise_user_model))
+      existing = Dir.glob(File.join(migration_dir, "*_add_confirmable_to_#{table_name}.rb")).sort.last
+      if existing
+        ui.info("Confirmable migration already exists: #{File.basename(existing)}")
+        return
+      end
+
+      timestamp = Time.now.utc.strftime("%Y%m%d%H%M%S")
+      migration_filename = "#{timestamp}_add_confirmable_to_#{table_name}.rb"
+      migration_path = File.join(migration_dir, migration_filename)
+      migration_class = "AddConfirmableTo#{camelize(table_name)}"
+
+      File.write(
+        migration_path,
+        <<~RUBY
+          class #{migration_class} < ActiveRecord::Migration[#{migration_version}]
+            def change
+              add_column :#{table_name}, :confirmation_token, :string
+              add_column :#{table_name}, :confirmed_at, :datetime
+              add_column :#{table_name}, :confirmation_sent_at, :datetime
+              add_column :#{table_name}, :unconfirmed_email, :string
+              add_index :#{table_name}, :confirmation_token, unique: true
+            end
+          end
+        RUBY
+      )
+    end
+
+    def migration_version
+      Dir.glob(File.join(configuration.app_path, "db/migrate/*.rb")).sort.each do |path|
+        match = File.read(path).match(/ActiveRecord::Migration\[(\d+\.\d+)\]/)
+        return match[1] if match
+      end
+
+      "8.0"
+    end
+
+    def underscore(value)
+      value.to_s
+           .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+           .gsub(/([a-z\d])([A-Z])/, '\1_\2')
+           .tr("-", "_")
+           .downcase
+    end
+
+    def pluralize(word)
+      return "#{word[0...-1]}ies" if word.end_with?("y") && word[-2] && !word[-2].match?(/[aeiou]/i)
+      return "#{word}es" if word.end_with?("s", "x", "z", "ch", "sh")
+
+      "#{word}s"
+    end
+
+    def camelize(word)
+      word.to_s.split("_").map(&:capitalize).join
     end
   end
 end
