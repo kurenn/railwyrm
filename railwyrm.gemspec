@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
   }
 
   spec.files = Dir.glob(
-    "{AGENTS.md,README.md,Rakefile,config.ru,.rspec,.gitignore,exe/*,lib/**/*.rb,lib/**/*.erb,spec/**/*.rb,.codex/skills/**/SKILL.md}"
+    "{AGENTS.md,README.md,VISION.md,Rakefile,config.ru,.rspec,.gitignore,exe/*,lib/**/*.rb,lib/**/*.erb,spec/**/*.rb,recipes/**/*,.codex/skills/**/SKILL.md}"
   )
   spec.bindir = "exe"
   spec.executables = ["railwyrm"]

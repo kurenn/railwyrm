@@ -4,6 +4,10 @@ require "open3"
 
 module Railwyrm
   class CLI < Thor
+    def self.exit_on_failure?
+      true
+    end
+
     SIGN_IN_LAYOUT_MENU_CHOICES = [
       { label: "Simple Minimal (centered form)", value: "simple_minimal" },
       { label: "Card Combined (recommended)", value: "card_combined" },
