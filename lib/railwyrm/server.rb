@@ -103,6 +103,7 @@ module Railwyrm
         devise_confirmable: truthy?(payload["devise_confirmable"]),
         devise_lockable: truthy?(payload["devise_lockable"]),
         devise_timeoutable: truthy?(payload["devise_timeoutable"]),
+        devise_two_factor: truthy?(payload["devise_two_factor"]),
         dry_run: truthy?(payload["dry_run"]),
         verbose: true
       )
@@ -260,6 +261,10 @@ module Railwyrm
                 <input id="devise_timeoutable" name="devise_timeoutable" type="checkbox" style="width:auto;" />
                 Auto sign out inactive users (Devise timeoutable)
               </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem;">
+                <input id="devise_two_factor" name="devise_two_factor" type="checkbox" style="width:auto;" />
+                Enable TOTP 2FA (Devise two-factor)
+              </label>
 
               <label>Sign-in layout</label>
               <div class="layout-grid">
@@ -306,6 +311,7 @@ Password     Forgot password
                 devise_confirmable: document.getElementById("devise_confirmable").checked,
                 devise_lockable: document.getElementById("devise_lockable").checked,
                 devise_timeoutable: document.getElementById("devise_timeoutable").checked,
+                devise_two_factor: document.getElementById("devise_two_factor").checked,
                 sign_in_layout: document.querySelector("input[name='sign_in_layout']:checked")?.value || "card_combined"
               };
 

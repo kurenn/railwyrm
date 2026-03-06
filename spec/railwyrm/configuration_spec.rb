@@ -10,6 +10,7 @@ RSpec.describe Railwyrm::Configuration do
     expect(config.devise_confirmable?).to be(false)
     expect(config.devise_lockable?).to be(false)
     expect(config.devise_timeoutable?).to be(false)
+    expect(config.devise_two_factor?).to be(false)
   end
 
   it "accepts each supported sign_in_layout" do
@@ -56,5 +57,16 @@ RSpec.describe Railwyrm::Configuration do
         devise_timeoutable: true
       )
     end.to raise_error(Railwyrm::InvalidConfiguration, /timeoutable requires generating a Devise user model/)
+  end
+
+  it "raises when two-factor is enabled while devise user generation is disabled" do
+    expect do
+      described_class.new(
+        name: "demo_app",
+        workspace: "/tmp",
+        install_devise_user: false,
+        devise_two_factor: true
+      )
+    end.to raise_error(Railwyrm::InvalidConfiguration, /two-factor requires generating a Devise user model/)
   end
 end

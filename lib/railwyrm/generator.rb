@@ -37,6 +37,12 @@ module Railwyrm
         end
       end
 
+      if configuration.devise_two_factor?
+        ui.step("Install Devise two-factor authentication") do
+          enable_devise_two_factor!
+        end
+      end
+
       optional_devise_modules = selected_optional_devise_modules
       unless optional_devise_modules.empty?
         ui.step("Enable Devise modules: #{optional_devise_modules.join(', ')}") do
@@ -82,7 +88,8 @@ module Railwyrm
       raise InvalidConfiguration, "Gemfile not found at #{gemfile_path}" unless File.exist?(gemfile_path)
 
       gemfile = File.read(gemfile_path)
-      additions = blueprint.gem_entries.each_with_object([]) do |entry, snippets|
+      entries = blueprint.gem_entries + blueprint.optional_gem_entries(configuration)
+      additions = entries.each_with_object([]) do |entry, snippets|
         snippets << entry[:snippet] unless gemfile.include?(entry[:marker])
       end
 
@@ -149,6 +156,30 @@ module Railwyrm
       shell.run!("bin/rails", "db:migrate", chdir: configuration.app_path) if migration_created
     end
 
+    def enable_devise_two_factor!
+      if configuration.dry_run
+        ui.info("Dry run enabled: Devise two-factor setup skipped.")
+        return
+      end
+
+      unless configuration.install_devise_user?
+        raise InvalidConfiguration, "Devise two-factor requires generating a Devise user model."
+      end
+
+      shell.run!(
+        "bin/rails",
+        "generate",
+        "devise_two_factor",
+        configuration.devise_user_model,
+        "--force",
+        chdir: configuration.app_path
+      )
+      ensure_application_controller_allows_otp_attempt!
+      ensure_filter_parameter_logging_masks_otp_attempt!
+      ensure_devise_initializer_resets_session_after_password_reset!
+      shell.run!("bin/rails", "db:migrate", chdir: configuration.app_path)
+    end
+
     def normalize_application_main_layout!
       if configuration.dry_run
         ui.info("Dry run enabled: application layout update skipped.")
@@ -176,6 +207,73 @@ module Railwyrm
       modules << "lockable" if configuration.devise_lockable?
       modules << "timeoutable" if configuration.devise_timeoutable?
       modules
+    end
+
+    def ensure_application_controller_allows_otp_attempt!
+      controller_path = File.join(configuration.app_path, "app/controllers/application_controller.rb")
+      return unless File.exist?(controller_path)
+
+      before_action_line = "  before_action :configure_permitted_parameters, if: :devise_controller?"
+      permit_line = "    devise_parameter_sanitizer.permit(:sign_in, keys: [:otp_attempt])"
+      content = File.read(controller_path)
+
+      unless content.include?(before_action_line)
+        content = content.sub(
+          /(class ApplicationController < [^\n]+\n)/,
+          "\\1#{before_action_line}\n"
+        )
+      end
+
+      unless content.include?(permit_line.strip)
+        content = if content.match?(/^\s*def configure_permitted_parameters\b/)
+                    content.sub(/(^\s*def configure_permitted_parameters\b.*?\n)(.*?)(^\s*end\b)/m) do
+                      method_header = Regexp.last_match(1)
+                      method_body = Regexp.last_match(2)
+                      method_end = Regexp.last_match(3)
+                      "#{method_header}#{method_body}#{permit_line}\n#{method_end}"
+                    end
+                  else
+                    content.sub(
+                      /\nend\s*\z/,
+                      "\n\n  protected\n\n  def configure_permitted_parameters\n#{permit_line}\n  end\nend\n"
+                    )
+                  end
+      end
+
+      File.write(controller_path, content)
+    end
+
+    def ensure_filter_parameter_logging_masks_otp_attempt!
+      filter_path = File.join(configuration.app_path, "config/initializers/filter_parameter_logging.rb")
+      return unless File.exist?(filter_path)
+
+      content = File.read(filter_path)
+      return if content.include?(":otp_attempt")
+
+      updated = "#{content.rstrip}\n\nRails.application.config.filter_parameters += [:otp_attempt]\n"
+      File.write(filter_path, updated)
+    end
+
+    def ensure_devise_initializer_resets_session_after_password_reset!
+      initializer_path = File.join(configuration.app_path, "config/initializers/devise.rb")
+      return unless File.exist?(initializer_path)
+
+      content = File.read(initializer_path)
+      return if content.include?("config.sign_in_after_reset_password = false")
+
+      updated = content.gsub(
+        /^\s*#?\s*config\.sign_in_after_reset_password\s*=.*$/,
+        "  config.sign_in_after_reset_password = false"
+      )
+
+      if updated == content
+        updated = content.sub(
+          /Devise\.setup do \|config\|\n/,
+          "Devise.setup do |config|\n  config.sign_in_after_reset_password = false\n"
+        )
+      end
+
+      File.write(initializer_path, updated)
     end
 
     def inject_devise_modules_into_model(model_content, module_names, model_relative_path)

@@ -269,6 +269,7 @@ module Railwyrm
     option :devise_confirmable, type: :boolean, default: false, desc: "Enable Devise confirmable module"
     option :devise_lockable, type: :boolean, default: false, desc: "Enable Devise lockable module"
     option :devise_timeoutable, type: :boolean, default: false, desc: "Enable Devise timeoutable module"
+    option :devise_two_factor, type: :boolean, default: false, desc: "Enable Devise two-factor authentication"
     option :recipe, type: :string, desc: "Recipe name (e.g. ats) or path to recipe.yml"
     option :with, type: :array, default: [], desc: "Enable optional recipe modules when applying a recipe"
     option :deploy, type: :string, desc: "Deploy preset to apply with the recipe (e.g. render)"
@@ -464,6 +465,7 @@ module Railwyrm
       devise_confirmable = options[:devise_confirmable]
       devise_lockable = options[:devise_lockable]
       devise_timeoutable = options[:devise_timeoutable]
+      devise_two_factor = options[:devise_two_factor]
 
       if interactive
         name = prompt.ask("⚒️  App name (snake_case):", default: name, required: true)
@@ -485,10 +487,15 @@ module Railwyrm
               "⏱️ Enable Devise timeoutable (auto sign out inactive users)?",
               default: devise_timeoutable
             )
+            devise_two_factor = prompt.yes?(
+              "📱 Enable Devise two-factor authentication (TOTP)?",
+              default: devise_two_factor
+            )
           else
             devise_confirmable = false
             devise_lockable = false
             devise_timeoutable = false
+            devise_two_factor = false
           end
         end
 
@@ -514,6 +521,7 @@ module Railwyrm
         devise_confirmable: devise_confirmable,
         devise_lockable: devise_lockable,
         devise_timeoutable: devise_timeoutable,
+        devise_two_factor: devise_two_factor,
         dry_run: options[:dry_run],
         verbose: options[:verbose]
       )

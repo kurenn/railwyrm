@@ -41,7 +41,8 @@ Every generated app includes:
   - `bin/rails generate untitled_ui:install`
 - Claude on Rails gem:
   - `gem "claude-on-rails"`
-  - `bin/rails generate claude_on_rails:swarm`
+  - `bin/rails generate claude_on_rails:swarm --force`
+- Optional (wizard/flag): Devise two-factor auth (`gem "devise-two-factor"` + `bin/rails generate devise_two_factor User --force`)
 
 ## Quick Start
 
@@ -83,7 +84,7 @@ bundle exec ruby exe/railwyrm new
 Interactive wizard note:
 
 - If `--recipe` is not provided, the wizard asks whether to apply a recipe and shows the currently available recipes for selection.
-- If Devise user generation is enabled, the wizard asks whether to enable Devise `confirmable`, `lockable`, and `timeoutable`.
+- If Devise user generation is enabled, the wizard asks whether to enable Devise `confirmable`, `lockable`, `timeoutable`, and `two-factor` (TOTP).
 
 Run non-interactive mode:
 
@@ -120,6 +121,7 @@ Common flags:
 - `--devise_confirmable` enable Devise `confirmable` for the generated user model
 - `--devise_lockable` enable Devise `lockable` for the generated user model
 - `--devise_timeoutable` enable Devise `timeoutable` for the generated user model
+- `--devise_two_factor` enable Devise two-factor authentication (`devise-two-factor`)
 - `--recipe` apply a recipe by name (e.g. `ats`) or `recipe.yml` path during `new`
 - `--with` enable optional recipe modules (for example `background_jobs`)
 - `--deploy` apply recipe deploy preset (for example `render`, `fly`)

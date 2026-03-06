@@ -42,6 +42,19 @@ module Railwyrm
       ]
     end
 
+    def optional_gem_entries(configuration)
+      entries = []
+
+      if configuration.devise_two_factor?
+        entries << {
+          marker: 'gem "devise-two-factor"',
+          snippet: 'gem "devise-two-factor"'
+        }
+      end
+
+      entries
+    end
+
     def post_bundle_steps(configuration)
       steps = [
         ["Install Tailwind CSS", ["./bin/rails", "tailwindcss:install"]],

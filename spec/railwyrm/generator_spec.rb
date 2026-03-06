@@ -19,6 +19,8 @@ RSpec.describe Railwyrm::Generator do
         FileUtils.mkdir_p(app_path)
         File.write(File.join(app_path, "Gemfile"), "source \"https://rubygems.org\"\n")
         FileUtils.mkdir_p(File.join(app_path, "app/views/layouts"))
+        FileUtils.mkdir_p(File.join(app_path, "app/controllers"))
+        FileUtils.mkdir_p(File.join(app_path, "config/initializers"))
         File.write(
           File.join(app_path, "app/views/layouts/application.html.erb"),
           <<~ERB
@@ -26,6 +28,27 @@ RSpec.describe Railwyrm::Generator do
               <%= yield %>
             </main>
           ERB
+        )
+        File.write(
+          File.join(app_path, "app/controllers/application_controller.rb"),
+          <<~RUBY
+            class ApplicationController < ActionController::Base
+            end
+          RUBY
+        )
+        File.write(
+          File.join(app_path, "config/initializers/filter_parameter_logging.rb"),
+          <<~RUBY
+            Rails.application.config.filter_parameters += [:password]
+          RUBY
+        )
+        File.write(
+          File.join(app_path, "config/initializers/devise.rb"),
+          <<~RUBY
+            Devise.setup do |config|
+              # config.sign_in_after_reset_password = true
+            end
+          RUBY
         )
       end
 
@@ -49,6 +72,29 @@ RSpec.describe Railwyrm::Generator do
           migration_file,
           <<~RUBY
             class DeviseCreate#{model_name}s < ActiveRecord::Migration[8.1]
+              def change; end
+            end
+          RUBY
+        )
+      end
+
+      if command[0] == "bin/rails" && command[1] == "generate" && command[2] == "devise_two_factor" && command[3]
+        model_name = command[3]
+        model_file = File.join(chdir, "app/models/#{model_name.downcase}.rb")
+        model_content = File.read(model_file)
+        model_content = model_content.gsub(":database_authenticatable", ":two_factor_authenticatable")
+        model_content = model_content.sub(
+          /^(\s*devise\s+.+)$/m,
+          "\\1,\n         :otp_secret_encryption_key => ENV.fetch(\"DEVISE_OTP_SECRET_KEY\", \"devise-otp-fallback-key\")"
+        )
+        File.write(model_file, model_content)
+
+        migration_file = File.join(chdir, "db/migrate/20260101000001_add_devise_two_factor_to_#{model_name.downcase}s.rb")
+        FileUtils.mkdir_p(File.dirname(migration_file))
+        File.write(
+          migration_file,
+          <<~RUBY
+            class AddDeviseTwoFactorTo#{model_name}s < ActiveRecord::Migration[8.1]
               def change; end
             end
           RUBY
@@ -201,6 +247,44 @@ RSpec.describe Railwyrm::Generator do
       expect(migration_content).to include("add_index :users, :unlock_token, unique: true")
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed.count { |line| line == "bin/rails db:migrate" }).to eq(2)
+    end
+  end
+
+  it "installs devise two-factor when requested" do
+    Dir.mktmpdir do |workspace|
+      configuration = Railwyrm::Configuration.new(
+        name: "two_factor_app",
+        workspace: workspace,
+        devise_two_factor: true
+      )
+      shell = FakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+
+      described_class.new(configuration, ui: ui, shell: shell).run!
+
+      gemfile = File.read(File.join(configuration.app_path, "Gemfile"))
+      expect(gemfile).to include('gem "devise-two-factor"')
+
+      user_model = File.read(File.join(configuration.app_path, "app/models/user.rb"))
+      expect(user_model).to include(":two_factor_authenticatable")
+      expect(user_model).to include(":otp_secret_encryption_key => ENV.fetch(\"DEVISE_OTP_SECRET_KEY\"")
+
+      app_controller = File.read(File.join(configuration.app_path, "app/controllers/application_controller.rb"))
+      expect(app_controller).to include("before_action :configure_permitted_parameters, if: :devise_controller?")
+      expect(app_controller).to include("devise_parameter_sanitizer.permit(:sign_in, keys: [:otp_attempt])")
+
+      filter_params = File.read(File.join(configuration.app_path, "config/initializers/filter_parameter_logging.rb"))
+      expect(filter_params).to include(":otp_attempt")
+
+      devise_initializer = File.read(File.join(configuration.app_path, "config/initializers/devise.rb"))
+      expect(devise_initializer).to include("config.sign_in_after_reset_password = false")
+
+      session_view = File.read(File.join(configuration.app_path, "app/views/devise/sessions/new.html.erb"))
+      expect(session_view).to include('name: "#{resource_name}[otp_attempt]"')
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed).to include("bin/rails generate devise_two_factor User --force")
       expect(executed.count { |line| line == "bin/rails db:migrate" }).to eq(2)
     end
   end

@@ -39,4 +39,19 @@ RSpec.describe Railwyrm::RailsBlueprint do
       expect(commands).not_to include("bin/rails generate devise User")
     end
   end
+
+  describe "#optional_gem_entries" do
+    it "includes devise-two-factor when requested" do
+      config = Railwyrm::Configuration.new(name: "demo_app", workspace: "/tmp", devise_two_factor: true)
+      markers = blueprint.optional_gem_entries(config).map { |entry| entry.fetch(:marker) }
+
+      expect(markers).to include('gem "devise-two-factor"')
+    end
+
+    it "returns no optional gems when two-factor is disabled" do
+      markers = blueprint.optional_gem_entries(configuration).map { |entry| entry.fetch(:marker) }
+
+      expect(markers).to be_empty
+    end
+  end
 end

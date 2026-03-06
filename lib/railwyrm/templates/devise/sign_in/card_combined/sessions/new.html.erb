@@ -46,6 +46,15 @@
             size: :md
           ) %>
 
+          <%= render Ui::Input::Component.new(
+            label: "Authentication code (if enabled)",
+            type: "text",
+            name: "#{resource_name}[otp_attempt]",
+            placeholder: "123456",
+            required: false,
+            size: :md
+          ) %>
+
           <div class="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <% if devise_mapping.rememberable? %>
               <%= render Ui::Checkbox::Component.new(
