@@ -71,6 +71,12 @@
         <% end %>
       <% end %>
 
+      <% if respond_to?(:login_with_passkey_button) %>
+        <div class="mt-4 text-center text-sm text-tertiary">
+          <%= login_with_passkey_button("Sign in with passkey", session_path: session_path(resource_name)) %>
+        </div>
+      <% end %>
+
       <% if devise_mapping.registerable? %>
         <p class="mt-5 text-center text-sm text-tertiary">
           Don’t have an account?

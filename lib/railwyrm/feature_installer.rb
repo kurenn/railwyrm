@@ -5,6 +5,7 @@ require "fileutils"
 module Railwyrm
   class FeatureInstaller
     OPTIONAL_DEVISE_MODULES = %w[confirmable lockable timeoutable trackable].freeze
+    PASSKEYS_SUPPORT_NOTE = "Passkey registration could not start. Please try again on a supported browser.".freeze
 
     def initialize(app_path:, ui:, shell:, dry_run: false, devise_user_model: "User")
       @app_path = File.expand_path(app_path)
@@ -177,7 +178,16 @@ module Railwyrm
       end
 
       shell.run!("bin/rails", "generate", "devise:webauthn:install", "--force", chdir: app_path)
+      resource_key = pluralize(underscore(devise_user_model))
+      ensure_passkeys_devise_routes!(resource_key)
       ensure_model_includes_passkey_authenticatable!
+      ensure_passkeys_controller!
+      ensure_passkeys_view_template!
+      ensure_webauthn_javascript_include!
+      ensure_webauthn_initializer_defaults!
+      ensure_webauthn_env_example_defaults!
+      ensure_passkey_sign_in_button!
+      ensure_passkey_enrollment_redirect!
       shell.run!("bin/rails", "db:migrate", chdir: app_path)
     end
 
@@ -199,6 +209,10 @@ module Railwyrm
       model_content = File.read(model_path)
       updated = inject_devise_modules_into_model(model_content, ["passkey_authenticatable"], model_relative_path)
       File.write(model_path, updated)
+    end
+
+    def ensure_passkeys_devise_routes!(resource_key)
+      ensure_devise_controller_mapping!(resource_key, "passkeys", "users/passkeys")
     end
 
     def ensure_passwordless_routes!(resource_key)
@@ -251,6 +265,35 @@ module Railwyrm
       FileUtils.cp(source, destination)
     end
 
+    def ensure_passkeys_view_template!
+      source = File.join(
+        template_root,
+        "devise",
+        "passkeys",
+        "new.html.erb"
+      )
+      raise InvalidConfiguration, "Passkeys view template missing: #{source}" unless File.exist?(source)
+
+      destination = File.join(app_path, "app/views/devise/passkeys/new.html.erb")
+      FileUtils.mkdir_p(File.dirname(destination))
+      FileUtils.cp(source, destination)
+    end
+
+    def ensure_passkeys_controller!
+      source = File.join(
+        template_root,
+        "devise",
+        "passkeys",
+        "users_controller.rb"
+      )
+      raise InvalidConfiguration, "Passkeys controller template missing: #{source}" unless File.exist?(source)
+
+      destination = File.join(app_path, "app/controllers/users/passkeys_controller.rb")
+      FileUtils.mkdir_p(File.dirname(destination))
+      content = File.read(source).gsub("__PASSKEYS_SUPPORT_NOTE__", PASSKEYS_SUPPORT_NOTE)
+      File.write(destination, content)
+    end
+
     def ensure_devise_paranoid_mode!
       initializer_path = File.join(app_path, "config/initializers/devise.rb")
       return unless File.exist?(initializer_path)
@@ -287,6 +330,168 @@ module Railwyrm
       end
 
       File.write(development_path, updated) unless updated == content
+    end
+
+    def ensure_webauthn_initializer_defaults!
+      initializer_path = File.join(app_path, "config/initializers/webauthn.rb")
+      return unless File.exist?(initializer_path)
+
+      content = File.read(initializer_path)
+      updated = content
+
+      app_label = app_display_name
+      rp_name_line = %(  config.rp_name = ENV.fetch("WEBAUTHN_RP_NAME", "#{app_label}"))
+      rp_id_line = %(  config.rp_id = ENV.fetch("WEBAUTHN_RP_ID", "localhost"))
+      allowed_origins_line = '  config.allowed_origins = ENV.fetch("WEBAUTHN_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",").map(&:strip).reject(&:empty?)'
+
+      if updated.match?(/^\s*#?\s*config\.rp_name\s*=.*$/)
+        updated = updated.gsub(/^\s*#?\s*config\.rp_name\s*=.*$/, rp_name_line)
+      elsif !updated.include?(rp_name_line)
+        updated = updated.sub(/WebAuthn\.configure do \|config\|\n/, "WebAuthn.configure do |config|\n#{rp_name_line}\n")
+      end
+
+      if updated.match?(/^\s*#?\s*config\.rp_id\s*=.*$/)
+        updated = updated.gsub(/^\s*#?\s*config\.rp_id\s*=.*$/, rp_id_line)
+      elsif !updated.include?(rp_id_line)
+        updated = updated.sub("#{rp_name_line}\n", "#{rp_name_line}\n#{rp_id_line}\n")
+      end
+
+      if updated.match?(/^\s*#?\s*config\.allowed_origins\s*=.*$/)
+        updated = updated.gsub(/^\s*#?\s*config\.allowed_origins\s*=.*$/, allowed_origins_line)
+      elsif !updated.include?(allowed_origins_line)
+        updated = updated.sub("#{rp_id_line}\n", "#{rp_id_line}\n#{allowed_origins_line}\n")
+      end
+
+      File.write(initializer_path, updated) unless updated == content
+    end
+
+    def ensure_webauthn_env_example_defaults!
+      env_example_path = File.join(app_path, ".env.example")
+      content = File.exist?(env_example_path) ? File.read(env_example_path) : ""
+      updated = content
+
+      env_lines = {
+        "WEBAUTHN_RP_NAME" => app_display_name,
+        "WEBAUTHN_RP_ID" => "localhost",
+        "WEBAUTHN_ALLOWED_ORIGINS" => "http://localhost:3000,http://127.0.0.1:3000"
+      }
+
+      env_lines.each do |key, value|
+        line = "#{key}=#{value}"
+        pattern = /^\s*#{Regexp.escape(key)}=.*$/
+        if updated.match?(pattern)
+          updated = updated.gsub(pattern, line)
+        elsif updated.strip.empty?
+          updated = "#{line}\n"
+        else
+          updated = "#{updated.rstrip}\n#{line}\n"
+        end
+      end
+
+      File.write(env_example_path, updated) unless updated == content
+    end
+
+    def ensure_webauthn_javascript_include!
+      layout_path = File.join(app_path, "app/views/layouts/application.html.erb")
+      return unless File.exist?(layout_path)
+
+      content = File.read(layout_path)
+      module_include_line = '<%= javascript_include_tag "devise/webauthn", type: "module" %>'
+      updated = content
+
+      if updated.include?(module_include_line)
+        return
+      elsif updated.match?(/<%=\s*javascript_include_tag\s+["']devise\/webauthn["']\s*%>/)
+        updated = updated.gsub(/<%=\s*javascript_include_tag\s+["']devise\/webauthn["']\s*%>/, module_include_line)
+      elsif updated.include?("<%= stylesheet_link_tag")
+        updated = updated.sub("<%= stylesheet_link_tag", "#{module_include_line}\n    <%= stylesheet_link_tag")
+      elsif updated.include?("</head>")
+        updated = updated.sub("</head>", "    #{module_include_line}\n  </head>")
+      end
+
+      File.write(layout_path, updated) unless updated == content
+    end
+
+    def ensure_passkey_sign_in_button!
+      session_view_path = File.join(app_path, "app/views/devise/sessions/new.html.erb")
+      return unless File.exist?(session_view_path)
+
+      content = File.read(session_view_path)
+      return if content.include?("login_with_passkey_button")
+
+      passkey_button_block = <<~ERB
+
+        <% if respond_to?(:login_with_passkey_button) %>
+          <div class="mt-4 text-center text-sm text-tertiary">
+            <%= login_with_passkey_button("Sign in with passkey", session_path: session_path(resource_name)) %>
+          </div>
+        <% end %>
+      ERB
+
+      updated = if content.include?("<% if devise_mapping.registerable? %>")
+                  content.sub("<% if devise_mapping.registerable? %>", "#{passkey_button_block}\n<% if devise_mapping.registerable? %>")
+                else
+                  "#{content.rstrip}\n#{passkey_button_block}"
+                end
+      File.write(session_view_path, updated) unless updated == content
+    end
+
+    def ensure_passkey_enrollment_redirect!
+      controller_path = File.join(app_path, "app/controllers/application_controller.rb")
+      return unless File.exist?(controller_path)
+
+      content = File.read(controller_path)
+      return if content.include?("def after_sign_in_path_for")
+
+      snippet = <<~RUBY
+
+          protected
+
+          def after_sign_in_path_for(resource_or_scope)
+            resource = resource_or_scope.is_a?(Symbol) ? nil : resource_or_scope
+
+            if resource&.respond_to?(:passkeys) && resource.passkeys.none?
+              scope = Devise::Mapping.find_scope!(resource)
+              helper = :"new_\#{scope}_passkey_path"
+              return public_send(helper) if respond_to?(helper)
+            end
+
+            super
+          end
+      RUBY
+
+      updated = content.sub(/\nend\s*\z/, "#{snippet}\nend\n")
+      raise InvalidConfiguration, "Unable to inject passkey redirect into #{controller_path}" if updated == content
+
+      File.write(controller_path, updated)
+    end
+
+    def ensure_devise_controller_mapping!(resource_key, controller_name, controller_path)
+      routes_path = File.join(app_path, "config/routes.rb")
+      raise InvalidConfiguration, "Routes file not found: #{routes_path}" unless File.exist?(routes_path)
+
+      routes_content = File.read(routes_path)
+      controller_fragment = %(#{controller_name}: "#{controller_path}")
+      return if routes_content.include?(controller_fragment)
+
+      pattern = /^(\s*devise_for\s+:#{Regexp.escape(resource_key)})([^\n]*)$/
+      match = routes_content.match(pattern)
+      raise InvalidConfiguration, "Could not find devise_for :#{resource_key} route in #{routes_path}" unless match
+
+      full_line = match[0]
+      suffix = match[2]
+      updated_line = if suffix.include?("controllers:")
+                       full_line.sub(/controllers:\s*\{([^}]*)\}/) do
+                         inner = Regexp.last_match(1).strip
+                         entries = inner.empty? ? controller_fragment : "#{inner}, #{controller_fragment}"
+                         "controllers: { #{entries} }"
+                       end
+                     else
+                       "#{match[1]}#{suffix}, controllers: { #{controller_fragment} }"
+                     end
+
+      updated = routes_content.sub(full_line, updated_line)
+      File.write(routes_path, updated)
     end
 
     def inject_devise_modules_into_model(model_content, module_names, model_relative_path)
@@ -460,6 +665,10 @@ module Railwyrm
 
     def camelize(word)
       word.to_s.split("_").map(&:capitalize).join
+    end
+
+    def app_display_name
+      File.basename(app_path).tr("-", "_").split("_").map(&:capitalize).join(" ")
     end
   end
 end
