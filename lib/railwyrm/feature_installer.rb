@@ -15,11 +15,30 @@ module Railwyrm
     end
 
     def install!(feature_names)
-      features = FeatureRegistry.resolve(feature_names)
+      requested_features = FeatureRegistry.resolve(feature_names)
       ensure_app_path!
 
       ui.headline("Installing features in #{app_path}")
-      ui.info("Features: #{features.join(', ')}")
+      ui.info("Requested features: #{requested_features.join(', ')}")
+
+      tracked_features = feature_state.tracked_features
+      detected_features = feature_detector.detect
+      sync_untracked_features!(tracked_features, detected_features)
+      tracked_features = feature_state.tracked_features unless dry_run
+
+      drift = tracked_features - detected_features
+      unless drift.empty?
+        ui.warn("Tracked but not detected in app: #{drift.join(', ')}")
+        ui.warn("Railwyrm will attempt reinstallation if these are requested.")
+      end
+
+      features = requested_features - detected_features
+      if features.empty?
+        ui.success("All requested features are already installed.")
+        return requested_features
+      end
+
+      ui.info("Applying features: #{features.join(', ')}")
 
       gems_changed = ensure_feature_gems!(features)
       if gems_changed
@@ -41,8 +60,10 @@ module Railwyrm
         end
       end
 
-      ui.success("Feature install complete: #{features.join(', ')}")
-      features
+      feature_state.mark_installed!(requested_features)
+
+      ui.success("Feature install complete: #{requested_features.join(', ')}")
+      requested_features
     end
 
     private
@@ -56,6 +77,15 @@ module Railwyrm
 
       gemfile_path = File.join(app_path, "Gemfile")
       raise InvalidConfiguration, "Gemfile not found at #{gemfile_path}" unless File.exist?(gemfile_path)
+    end
+
+    def sync_untracked_features!(tracked_features, detected_features)
+      untracked = detected_features - tracked_features
+      return if untracked.empty?
+
+      ui.info("Detected installed but untracked features: #{untracked.join(', ')}")
+      feature_state.mark_installed!(untracked)
+      ui.info("Feature manifest synchronized with detected app state.") unless dry_run
     end
 
     def ensure_feature_gems!(features)
@@ -369,6 +399,14 @@ module Railwyrm
 
     def template_root
       File.join(File.expand_path("..", __dir__), "railwyrm", "templates")
+    end
+
+    def feature_state
+      @feature_state ||= FeatureState.new(app_path: app_path, ui: ui, dry_run: dry_run)
+    end
+
+    def feature_detector
+      @feature_detector ||= FeatureDetector.new(app_path: app_path, devise_user_model: devise_user_model)
     end
 
     def underscore(value)

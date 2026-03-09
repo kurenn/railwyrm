@@ -58,6 +58,10 @@ module Railwyrm
         apply_devise_view_templates!
       end
 
+      ui.step("Record installed feature state") do
+        persist_feature_state!
+      end
+
       ui.success("Rails realm forged at #{configuration.app_path}")
       configuration.app_path
     end
@@ -308,6 +312,17 @@ module Railwyrm
       modules << "timeoutable" if configuration.devise_timeoutable?
       modules << "trackable" if configuration.devise_trackable?
       modules
+    end
+
+    def selected_feature_registry_names
+      selected = selected_optional_devise_modules
+      selected << "magic_link" if configuration.devise_magic_link?
+      selected.uniq
+    end
+
+    def persist_feature_state!
+      feature_state = FeatureState.new(app_path: configuration.app_path, ui: ui, dry_run: configuration.dry_run)
+      feature_state.replace!(selected_feature_registry_names)
     end
 
     def inject_devise_modules_into_model(model_content, module_names, model_relative_path)

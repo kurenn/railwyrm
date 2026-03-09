@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "yaml"
 
 RSpec.describe Railwyrm::FeatureInstaller do
   class FeatureInstallerFakeShell
@@ -104,6 +105,13 @@ RSpec.describe Railwyrm::FeatureInstaller do
       mailer_text = File.read(File.join(app_path, "app/views/devise/mailer/magic_link.text.erb"))
       expect(mailer_text).to include("Use this magic link to sign in")
 
+      feature_manifest = YAML.safe_load(
+        File.read(File.join(app_path, ".railwyrm/features.yml")),
+        permitted_classes: [],
+        aliases: false
+      )
+      expect(feature_manifest.fetch("features")).to eq(%w[trackable magic_link])
+
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed).to include("bundle install")
       expect(executed).to include("bin/rails db:migrate")
@@ -119,5 +127,24 @@ RSpec.describe Railwyrm::FeatureInstaller do
     expect do
       installer.install!(["trackable"])
     end.to raise_error(Railwyrm::InvalidConfiguration, /Rails app path not found/)
+  end
+
+  it "skips install when requested features are already installed" do
+    Dir.mktmpdir do |app_path|
+      build_minimal_app!(app_path)
+
+      shell = FeatureInstallerFakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+      installer = described_class.new(app_path: app_path, ui: ui, shell: shell)
+
+      installer.install!(["magic_link"])
+      shell.commands.clear
+
+      installed = installer.install!(["magic_link"])
+      expect(installed).to eq(%w[trackable magic_link])
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed).to eq([])
+    end
   end
 end
