@@ -14,11 +14,62 @@ module Railwyrm
       { label: "Split Mockup Quote (marketing side panel)", value: "split_mockup_quote" }
     ].freeze
 
+    class Features < Thor
+      package_name "railwyrm feature"
+
+      desc "list", "List installable features for existing Rails apps"
+      def list
+        ui = UI::Console.new(verbose: false)
+        ui.headline("Installable features")
+
+        FeatureRegistry.list.each do |feature_name|
+          metadata = FeatureRegistry.fetch(feature_name)
+          dependencies = metadata.fetch(:dependencies)
+          dependency_label = dependencies.empty? ? "none" : dependencies.join(", ")
+          ui.info("#{feature_name} - #{metadata.fetch(:description)}")
+          ui.info("  dependencies: #{dependency_label}")
+        end
+      end
+
+      desc "install FEATURE [FEATURE ...]", "Install one or more features into an existing Rails app"
+      option :app, aliases: "-a", type: :string, default: Dir.pwd, desc: "Path to existing Rails app"
+      option :devise_user_model, type: :string, default: "User", desc: "Devise model name"
+      option :verbose, type: :boolean, default: false, desc: "Stream command output"
+      option :dry_run, aliases: "--dry_run", type: :boolean, default: false,
+                        desc: "Print commands without executing"
+      def install(*features)
+        ui = UI::Console.new(verbose: options[:verbose])
+        normalized = normalize_features(features)
+        shell = Shell.new(ui: ui, dry_run: options[:dry_run], verbose: options[:verbose])
+
+        installer = FeatureInstaller.new(
+          app_path: options[:app],
+          ui: ui,
+          shell: shell,
+          dry_run: options[:dry_run],
+          devise_user_model: options[:devise_user_model]
+        )
+        installer.install!(normalized)
+      rescue StandardError => e
+        ui.error(e.message)
+        exit(1)
+      end
+
+      private
+
+      def normalize_features(values)
+        Array(values).flat_map { |value| value.to_s.split(",") }.map(&:strip).reject(&:empty?).uniq
+      end
+    end
+
     package_name "railwyrm"
 
     class_option :no_banner, type: :boolean, default: false, desc: "Hide banner"
     class_option :verbose, type: :boolean, default: false, desc: "Stream command output"
     class_option :dry_run, type: :boolean, default: false, desc: "Print commands without executing"
+
+    desc "feature SUBCOMMAND ...ARGS", "Install features into an existing Rails app"
+    subcommand "feature", Features
 
     desc "new [APP_NAME]", "Create a new Rails app with the Railwyrm default stack"
     option :path, aliases: "-p", type: :string, default: Dir.pwd, desc: "Workspace path"

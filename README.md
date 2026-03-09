@@ -64,10 +64,19 @@ Non-interactive example:
 bundle exec ruby exe/railwyrm new my_app --interactive=false --path /tmp --devise_magic_link
 ```
 
+Install features into an existing app:
+
+```bash
+bundle exec ruby exe/railwyrm feature list
+bundle exec ruby exe/railwyrm feature install magic_link --app /path/to/existing_app
+```
+
 ## CLI Commands
 
 ```bash
 bundle exec ruby exe/railwyrm new [APP_NAME]
+bundle exec ruby exe/railwyrm feature list
+bundle exec ruby exe/railwyrm feature install FEATURE [FEATURE ...] --app /path/to/app
 bundle exec ruby exe/railwyrm serve
 bundle exec ruby exe/railwyrm doctor
 bundle exec ruby exe/railwyrm version
@@ -85,6 +94,21 @@ Common flags:
 - `--devise_timeoutable` enable Devise timeoutable
 - `--devise_trackable` enable Devise trackable
 - `--devise_magic_link` enable magic-link sign-in
+
+Feature install options:
+
+- `--app` path to the existing Rails app
+- `--devise_user_model` Devise model name (default `User`)
+- `--dry_run` show commands without executing
+- `--verbose` stream command output
+
+Installable features:
+
+- `confirmable`
+- `lockable`
+- `timeoutable`
+- `trackable`
+- `magic_link` (automatically installs `trackable`)
 
 ## Development
 

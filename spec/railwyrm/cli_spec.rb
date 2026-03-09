@@ -3,6 +3,35 @@
 require "spec_helper"
 
 RSpec.describe Railwyrm::CLI do
+  it "lists installable features" do
+    expect { described_class.start(["feature", "list"]) }
+      .to output(/Installable features.*magic_link/m).to_stdout
+  end
+
+  it "installs features into an existing app via feature command" do
+    Dir.mktmpdir do |app_path|
+      installer = instance_double(Railwyrm::FeatureInstaller, install!: %w[trackable magic_link])
+      allow(Railwyrm::FeatureInstaller).to receive(:new).and_return(installer)
+
+      expect do
+        described_class.start(
+          [
+            "feature",
+            "install",
+            "magic_link",
+            "--app",
+            app_path
+          ]
+        )
+      end.not_to raise_error
+
+      expect(Railwyrm::FeatureInstaller).to have_received(:new).with(
+        hash_including(app_path: app_path, devise_user_model: "User", dry_run: false)
+      )
+      expect(installer).to have_received(:install!).with(["magic_link"])
+    end
+  end
+
   it "requires APP_NAME when non-interactive" do
     Dir.mktmpdir do |workspace|
       expect do
