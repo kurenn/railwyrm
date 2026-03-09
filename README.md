@@ -36,6 +36,7 @@ During `railwyrm new`, the wizard can configure:
   - `timeoutable`
   - `trackable`
   - `magic_link` (via `devise-passwordless`)
+  - `passkeys` (via `devise-webauthn`)
 - Devise sign-in layout:
   - `simple_minimal`
   - `card_combined`
@@ -49,6 +50,30 @@ Magic-link behavior:
 - Auto-enables `trackable`
 - Configures development mail delivery to file output at `tmp/mails`
 - Installs a plain-text magic-link template for copy/paste-friendly URLs in development
+
+Passkeys behavior:
+
+- Installs `devise-webauthn`
+- Runs `bin/rails generate devise:webauthn:install --force`
+- Adds `:passkey_authenticatable` to the Devise model
+- Configures `config/initializers/webauthn.rb` defaults for `rp_name` (generated app name), `rp_id`, and localhost origins
+- Populates `.env.example` with `WEBAUTHN_RP_NAME`, `WEBAUTHN_RP_ID`, and `WEBAUTHN_ALLOWED_ORIGINS`
+- Ensures WebAuthn JavaScript is loaded as an ES module
+- Adds passkey sign-in button on Devise sign-in page
+- Redirects first sign-in users (without passkeys) to passkey enrollment
+- Runs migrations for the generated WebAuthn tables
+
+Passkeys production checklist:
+
+1. Run the app under HTTPS in production.
+2. Set `WEBAUTHN_RP_ID` to your real domain (for example `app.example.com`).
+3. Set `WEBAUTHN_ALLOWED_ORIGINS` to your exact HTTPS origin list (for example `https://app.example.com`).
+
+Passkeys smoke test checklist (generated app):
+
+1. Sign in with email/password and verify you are redirected to the passkey enrollment page on first sign-in.
+2. Create a passkey and confirm the page no longer forces enrollment on next sign-in.
+3. Sign out and use "Sign in with passkey" from the sign-in page to confirm passwordless passkey authentication works.
 
 ## Quick Start
 
@@ -105,6 +130,7 @@ Common flags:
 - `--devise_timeoutable` enable Devise timeoutable
 - `--devise_trackable` enable Devise trackable
 - `--devise_magic_link` enable magic-link sign-in
+- `--devise_passkeys` enable passkeys sign-in (WebAuthn)
 
 Feature install options:
 
@@ -120,6 +146,7 @@ Installable features:
 - `timeoutable`
 - `trackable`
 - `magic_link` (automatically installs `trackable`)
+- `passkeys`
 
 ## Development
 

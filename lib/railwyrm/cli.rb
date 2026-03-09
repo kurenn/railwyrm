@@ -145,6 +145,7 @@ module Railwyrm
     option :devise_timeoutable, type: :boolean, default: false, desc: "Enable Devise timeoutable module"
     option :devise_trackable, type: :boolean, default: false, desc: "Enable Devise trackable module"
     option :devise_magic_link, type: :boolean, default: false, desc: "Enable magic-link sign-in via email"
+    option :devise_passkeys, type: :boolean, default: false, desc: "Enable passkeys via WebAuthn (devise-webauthn)"
     def new(app_name = nil)
       ui = UI::Console.new(verbose: options[:verbose])
       UI::Banner.new.render unless options[:no_banner]
@@ -237,6 +238,7 @@ module Railwyrm
       devise_timeoutable = options[:devise_timeoutable]
       devise_trackable = options[:devise_trackable]
       devise_magic_link = options[:devise_magic_link]
+      devise_passkeys = options[:devise_passkeys]
 
       if interactive
         name = prompt.ask("⚒️  App name (snake_case):", default: name, required: true)
@@ -266,12 +268,17 @@ module Railwyrm
               "✨ Enable magic-link sign-in by email?",
               default: devise_magic_link
             )
+            devise_passkeys = prompt.yes?(
+              "🔑 Enable passkeys sign-in via WebAuthn?",
+              default: devise_passkeys
+            )
           else
             devise_confirmable = false
             devise_lockable = false
             devise_timeoutable = false
             devise_trackable = false
             devise_magic_link = false
+            devise_passkeys = false
           end
         end
 
@@ -304,6 +311,7 @@ module Railwyrm
         devise_timeoutable: devise_timeoutable,
         devise_trackable: devise_trackable,
         devise_magic_link: devise_magic_link,
+        devise_passkeys: devise_passkeys,
         dry_run: options[:dry_run],
         verbose: options[:verbose]
       )

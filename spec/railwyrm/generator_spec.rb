@@ -20,16 +20,32 @@ RSpec.describe Railwyrm::Generator do
         FileUtils.mkdir_p(app_path)
         File.write(File.join(app_path, "Gemfile"), "source \"https://rubygems.org\"\n")
         FileUtils.mkdir_p(File.join(app_path, "app/views/layouts"))
+        FileUtils.mkdir_p(File.join(app_path, "app/controllers"))
         FileUtils.mkdir_p(File.join(app_path, "config/initializers"))
         FileUtils.mkdir_p(File.join(app_path, "config/environments"))
         FileUtils.mkdir_p(File.join(app_path, "config/locales"))
         File.write(
           File.join(app_path, "app/views/layouts/application.html.erb"),
           <<~ERB
-            <main class="container mx-auto mt-28 px-5 flex">
-              <%= yield %>
-            </main>
+            <!DOCTYPE html>
+            <html>
+              <head>
+                <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+              </head>
+              <body>
+                <main class="container mx-auto mt-28 px-5 flex">
+                  <%= yield %>
+                </main>
+              </body>
+            </html>
           ERB
+        )
+        File.write(
+          File.join(app_path, "app/controllers/application_controller.rb"),
+          <<~RUBY
+            class ApplicationController < ActionController::Base
+            end
+          RUBY
         )
         File.write(
           File.join(app_path, "config/routes.rb"),
@@ -89,6 +105,31 @@ RSpec.describe Railwyrm::Generator do
         File.write(
           File.join(chdir, "app/views/devise/mailer/magic_link.html.erb"),
           "<p>Magic link</p>\n"
+        )
+      end
+
+      if command[0] == "bin/rails" && command[1] == "generate" && command[2] == "devise:webauthn:install"
+        migration_file = File.join(chdir, "db/migrate/20260102000000_devise_webauthn_create_credentials.rb")
+        FileUtils.mkdir_p(File.dirname(migration_file))
+        File.write(
+          migration_file,
+          <<~RUBY
+            class DeviseWebauthnCreateCredentials < ActiveRecord::Migration[8.1]
+              def change; end
+            end
+          RUBY
+        )
+
+        FileUtils.mkdir_p(File.join(chdir, "config/initializers"))
+        File.write(
+          File.join(chdir, "config/initializers/webauthn.rb"),
+          <<~RUBY
+            WebAuthn.configure do |config|
+              # config.rp_name = "Example Inc."
+              # config.rp_id = "localhost"
+              # config.allowed_origins = [ "https://auth.example.com" ]
+            end
+          RUBY
         )
       end
 
@@ -331,6 +372,69 @@ RSpec.describe Railwyrm::Generator do
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed).to include("bin/rails generate devise:passwordless:install --force")
+      expect(executed.count { |line| line == "bin/rails db:migrate" }).to eq(2)
+    end
+  end
+
+  it "installs passkeys authentication when requested" do
+    Dir.mktmpdir do |workspace|
+      configuration = Railwyrm::Configuration.new(
+        name: "passkeys_app",
+        workspace: workspace,
+        devise_passkeys: true
+      )
+      shell = FakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+
+      described_class.new(configuration, ui: ui, shell: shell).run!
+
+      gemfile = File.read(File.join(configuration.app_path, "Gemfile"))
+      expect(gemfile).to include('gem "devise-webauthn"')
+
+      user_model = File.read(File.join(configuration.app_path, "app/models/user.rb"))
+      expect(user_model).to include(":passkey_authenticatable")
+
+      feature_manifest = YAML.safe_load(
+        File.read(File.join(configuration.app_path, ".railwyrm/features.yml")),
+        permitted_classes: [],
+        aliases: false
+      )
+      expect(feature_manifest.fetch("features")).to eq(%w[passkeys])
+
+      routes = File.read(File.join(configuration.app_path, "config/routes.rb"))
+      expect(routes).to include('devise_for :users, controllers: { passkeys: "users/passkeys" }')
+
+      passkeys_controller = File.read(File.join(configuration.app_path, "app/controllers/users/passkeys_controller.rb"))
+      expect(passkeys_controller).to include("class PasskeysController < Devise::PasskeysController")
+      expect(passkeys_controller).to include("rescue_from JSON::ParserError")
+
+      passkeys_view = File.read(File.join(configuration.app_path, "app/views/devise/passkeys/new.html.erb"))
+      expect(passkeys_view).to include("passkey_creation_form_for")
+      expect(passkeys_view).to include("Create passkey now")
+
+      session_view = File.read(File.join(configuration.app_path, "app/views/devise/sessions/new.html.erb"))
+      expect(session_view).to include("login_with_passkey_button")
+
+      app_layout = File.read(File.join(configuration.app_path, "app/views/layouts/application.html.erb"))
+      expect(app_layout).to include('javascript_include_tag "devise/webauthn", type: "module"')
+
+      webauthn_initializer = File.read(File.join(configuration.app_path, "config/initializers/webauthn.rb"))
+      expect(webauthn_initializer).to include('config.rp_name = ENV.fetch("WEBAUTHN_RP_NAME", "Passkeys App")')
+      expect(webauthn_initializer).to include('config.rp_id = ENV.fetch("WEBAUTHN_RP_ID", "localhost")')
+      expect(webauthn_initializer).to include('config.allowed_origins = ENV.fetch("WEBAUTHN_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",").map(&:strip).reject(&:empty?)')
+      expect(webauthn_initializer).not_to include("<App Name>")
+
+      env_example = File.read(File.join(configuration.app_path, ".env.example"))
+      expect(env_example).to include("WEBAUTHN_RP_NAME=Passkeys App")
+      expect(env_example).to include("WEBAUTHN_RP_ID=localhost")
+      expect(env_example).to include("WEBAUTHN_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000")
+
+      app_controller = File.read(File.join(configuration.app_path, "app/controllers/application_controller.rb"))
+      expect(app_controller).to include("def after_sign_in_path_for")
+      expect(app_controller).to include("resource&.respond_to?(:passkeys) && resource.passkeys.none?")
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed).to include("bin/rails generate devise:webauthn:install --force")
       expect(executed.count { |line| line == "bin/rails db:migrate" }).to eq(2)
     end
   end

@@ -61,6 +61,13 @@ module Railwyrm
         }
       end
 
+      if configuration.devise_passkeys?
+        entries << {
+          marker: 'gem "devise-webauthn"',
+          snippet: 'gem "devise-webauthn"'
+        }
+      end
+
       entries
     end
 

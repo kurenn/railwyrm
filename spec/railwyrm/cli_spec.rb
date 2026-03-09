@@ -41,7 +41,7 @@ RSpec.describe Railwyrm::CLI do
         installed: ["trackable"],
         tracked_only: ["confirmable"],
         detected_only: [],
-        available: %w[confirmable lockable timeoutable trackable magic_link]
+        available: %w[confirmable lockable timeoutable trackable magic_link passkeys]
       }
     )
     allow(Railwyrm::FeatureStatus).to receive(:new).and_return(status_service)
@@ -99,6 +99,7 @@ RSpec.describe Railwyrm::CLI do
         expect(config.devise_timeoutable?).to be(false)
         expect(config.devise_trackable?).to be(false)
         expect(config.devise_magic_link?).to be(false)
+        expect(config.devise_passkeys?).to be(false)
         expect(config.install_devise_user?).to be(true)
         expect(ui).to be_a(Railwyrm::UI::Console)
         generator
@@ -132,6 +133,7 @@ RSpec.describe Railwyrm::CLI do
         expect(config.devise_timeoutable?).to be(true)
         expect(config.devise_trackable?).to be(false)
         expect(config.devise_magic_link?).to be(false)
+        expect(config.devise_passkeys?).to be(false)
         expect(config.install_devise_user?).to be(true)
         expect(ui).to be_a(Railwyrm::UI::Console)
         generator
@@ -163,6 +165,7 @@ RSpec.describe Railwyrm::CLI do
       expect(Railwyrm::Generator).to receive(:new) do |config, ui:|
         expect(config.devise_trackable?).to be(true)
         expect(config.devise_magic_link?).to be(false)
+        expect(config.devise_passkeys?).to be(false)
         expect(ui).to be_a(Railwyrm::UI::Console)
         generator
       end
@@ -192,6 +195,7 @@ RSpec.describe Railwyrm::CLI do
       expect(Railwyrm::Generator).to receive(:new) do |config, ui:|
         expect(config.devise_magic_link?).to be(true)
         expect(config.devise_trackable?).to be(true)
+        expect(config.devise_passkeys?).to be(false)
         expect(ui).to be_a(Railwyrm::UI::Console)
         generator
       end
@@ -213,6 +217,36 @@ RSpec.describe Railwyrm::CLI do
     end
   end
 
+  it "passes devise passkeys option in non-interactive new flow" do
+    Dir.mktmpdir do |workspace|
+      app_name = "passkeys_cli_app"
+      app_path = File.join(workspace, app_name)
+      generator = instance_double(Railwyrm::Generator, run!: app_path)
+
+      expect(Railwyrm::Generator).to receive(:new) do |config, ui:|
+        expect(config.devise_passkeys?).to be(true)
+        expect(config.devise_magic_link?).to be(false)
+        expect(config.devise_trackable?).to be(false)
+        expect(ui).to be_a(Railwyrm::UI::Console)
+        generator
+      end
+
+      expect do
+        described_class.start(
+          [
+            "new",
+            app_name,
+            "--interactive=false",
+            "--path",
+            workspace,
+            "--devise_passkeys=true",
+            "--no-banner"
+          ]
+        )
+      end.not_to raise_error
+    end
+  end
+
   it "asks for supported devise modules in interactive flow" do
     Dir.mktmpdir do |workspace|
       app_name = "wizard_app"
@@ -226,6 +260,7 @@ RSpec.describe Railwyrm::CLI do
         expect(config.devise_timeoutable?).to be(true)
         expect(config.devise_trackable?).to be(true)
         expect(config.devise_magic_link?).to be(false)
+        expect(config.devise_passkeys?).to be(false)
         expect(config.sign_in_layout).to eq("card_combined")
         expect(ui).to be_a(Railwyrm::UI::Console)
         generator
@@ -256,6 +291,9 @@ RSpec.describe Railwyrm::CLI do
         .and_return(true)
       expect(prompt).to receive(:yes?)
         .with("✨ Enable magic-link sign-in by email?", default: false)
+        .and_return(false)
+      expect(prompt).to receive(:yes?)
+        .with("🔑 Enable passkeys sign-in via WebAuthn?", default: false)
         .and_return(false)
       expect(prompt).to receive(:select)
         .with("🧩 Select sign-in layout:", default: "Card Combined (recommended)")

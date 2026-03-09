@@ -10,6 +10,7 @@ RSpec.describe Railwyrm::FeatureDetector do
         <<~RUBY
           source "https://rubygems.org"
           gem "devise-passwordless"
+          gem "devise-webauthn"
         RUBY
       )
 
@@ -18,7 +19,7 @@ RSpec.describe Railwyrm::FeatureDetector do
         File.join(app_path, "app/models/user.rb"),
         <<~RUBY
           class User < ApplicationRecord
-            devise :trackable, :magic_link_authenticatable, :confirmable
+            devise :trackable, :magic_link_authenticatable, :passkey_authenticatable, :confirmable
           end
         RUBY
       )
@@ -36,7 +37,7 @@ RSpec.describe Railwyrm::FeatureDetector do
       )
 
       detector = described_class.new(app_path: app_path, devise_user_model: "User")
-      expect(detector.detect).to eq(%w[confirmable trackable magic_link])
+      expect(detector.detect).to eq(%w[confirmable trackable magic_link passkeys])
     end
   end
 end

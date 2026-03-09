@@ -1,0 +1,110 @@
+<div id="passkey-setup" data-passkeys-count="<%= resource.passkeys.count %>" class="w-full bg-primary px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+  <div class="mx-auto flex w-full max-w-2xl items-center justify-center">
+    <div class="w-full rounded-2xl bg-secondary_subtle p-2 shadow-2xl ring-1 ring-secondary sm:p-3">
+      <div class="mx-auto rounded-xl bg-primary px-5 py-7 sm:px-8 sm:py-10">
+        <p class="text-sm font-semibold text-brand-secondary">Passkey Setup</p>
+        <h1 class="mt-1 text-display-sm font-semibold text-primary">Secure your account</h1>
+        <p class="mt-2 text-sm text-tertiary">
+          Create a passkey now for faster and safer sign-in.
+        </p>
+
+        <% if flash[:alert].present? %>
+          <div class="mt-4 rounded-lg bg-error-primary px-3 py-2 text-sm text-error-primary">
+            <%= flash[:alert] %>
+          </div>
+        <% end %>
+
+        <% if flash[:notice].present? %>
+          <div class="mt-4 rounded-lg bg-success-primary px-3 py-2 text-sm text-success-primary">
+            <%= flash[:notice] %>
+          </div>
+        <% end %>
+
+        <div class="mt-6 space-y-4">
+          <%= passkey_creation_form_for(resource, form_classes: "space-y-4") do |form| %>
+            <%= render Ui::Input::Component.new(
+              label: "Passkey name",
+              type: "text",
+              name: "name",
+              placeholder: "My laptop passkey",
+              required: true,
+              size: :md
+            ) %>
+
+            <div class="pt-1">
+              <%= render Ui::Button::Component.new(type: "submit", size: :md, class: "w-full justify-center") do %>
+                Create passkey now
+              <% end %>
+            </div>
+          <% end %>
+
+          <p id="passkey-support-note" class="text-sm text-tertiary"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function supportsWebAuthn() {
+    return window.isSecureContext && !!window.PublicKeyCredential && !!navigator.credentials;
+  }
+
+  function attemptAutoPasskeyPrompt() {
+    var setup = document.getElementById("passkey-setup");
+    if (!setup) return;
+
+    var passkeysCount = Number(setup.dataset.passkeysCount || "0");
+    if (passkeysCount > 0) return;
+
+    if (!supportsWebAuthn()) return;
+
+    var webauthnCreate = document.querySelector("webauthn-create");
+    var form = webauthnCreate ? webauthnCreate.closest("form") : null;
+    if (!form) return;
+
+    if (sessionStorage.getItem("passkey-autoprompted") === "1") return;
+    sessionStorage.setItem("passkey-autoprompted", "1");
+
+    var nameInput = form.querySelector('input[name="name"]');
+    if (nameInput && !nameInput.value.trim()) {
+      nameInput.value = "Default passkey";
+    }
+
+    form.requestSubmit();
+  }
+
+  document.addEventListener("turbo:load", function () {
+    var note = document.getElementById("passkey-support-note");
+    if (note && !supportsWebAuthn()) {
+      note.textContent = "Passkeys require a supported browser and secure origin. Use http://localhost:3000 in Chrome, Safari, or Edge.";
+    }
+
+    var webauthnCreate = document.querySelector("webauthn-create");
+    var form = webauthnCreate ? webauthnCreate.closest("form") : null;
+    if (form) {
+      form.addEventListener("submit", function (event) {
+        if (!supportsWebAuthn()) {
+          event.preventDefault();
+          if (note) note.textContent = "Passkeys are not supported in this environment.";
+        }
+      });
+    }
+
+    setTimeout(attemptAutoPasskeyPrompt, 100);
+  });
+
+  document.addEventListener("webauthn:unsupported", function () {
+    var note = document.getElementById("passkey-support-note");
+    if (note) {
+      note.textContent = "This browser does not support passkeys.";
+    }
+  });
+
+  document.addEventListener("webauthn:prompt:error", function (event) {
+    var note = document.getElementById("passkey-support-note");
+    if (note) {
+      note.textContent = event && event.detail && event.detail.error ? event.detail.error : "Passkey prompt failed. Please try again.";
+    }
+  });
+</script>
