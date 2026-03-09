@@ -69,6 +69,7 @@ Install features into an existing app:
 ```bash
 bundle exec ruby exe/railwyrm feature list
 bundle exec ruby exe/railwyrm feature status --app /path/to/existing_app
+bundle exec ruby exe/railwyrm feature sync --app /path/to/existing_app
 bundle exec ruby exe/railwyrm feature install magic_link --app /path/to/existing_app
 ```
 
@@ -77,6 +78,7 @@ Feature state tracking:
 - Railwyrm records installed features in `.railwyrm/features.yml` inside each generated app.
 - `feature install` uses tracked state plus app detection to skip already-installed features safely.
 - `feature status` shows `installed`, `tracked_only`, and `detected_only` feature sets for diagnostics.
+- `feature sync` rebuilds `.railwyrm/features.yml` from detected app state.
 
 ## CLI Commands
 
@@ -84,6 +86,7 @@ Feature state tracking:
 bundle exec ruby exe/railwyrm new [APP_NAME]
 bundle exec ruby exe/railwyrm feature list
 bundle exec ruby exe/railwyrm feature status --app /path/to/app
+bundle exec ruby exe/railwyrm feature sync --app /path/to/app
 bundle exec ruby exe/railwyrm feature install FEATURE [FEATURE ...] --app /path/to/app
 bundle exec ruby exe/railwyrm serve
 bundle exec ruby exe/railwyrm doctor

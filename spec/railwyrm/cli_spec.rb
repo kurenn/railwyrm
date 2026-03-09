@@ -55,6 +55,30 @@ RSpec.describe Railwyrm::CLI do
     )
   end
 
+  it "syncs feature manifest for an existing app via feature command" do
+    sync_service = instance_double(
+      Railwyrm::FeatureSync,
+      run!: {
+        app_path: "/tmp/demo_app",
+        manifest_path: "/tmp/demo_app/.railwyrm/features.yml",
+        dry_run: false,
+        changed: true,
+        added: ["magic_link"],
+        removed: ["confirmable"],
+        tracked_after: %w[trackable magic_link]
+      }
+    )
+    allow(Railwyrm::FeatureSync).to receive(:new).and_return(sync_service)
+
+    expect do
+      described_class.start(["feature", "sync", "--app", "/tmp/demo_app"])
+    end.to output(/Feature sync.*added: magic_link.*removed: confirmable.*Feature manifest synchronized/m).to_stdout
+
+    expect(Railwyrm::FeatureSync).to have_received(:new).with(
+      hash_including(app_path: "/tmp/demo_app", devise_user_model: "User", dry_run: false)
+    )
+  end
+
   it "requires APP_NAME when non-interactive" do
     Dir.mktmpdir do |workspace|
       expect do

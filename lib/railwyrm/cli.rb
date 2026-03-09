@@ -76,6 +76,40 @@ module Railwyrm
         exit(1)
       end
 
+      desc "sync", "Rebuild feature manifest from detected app state"
+      option :app, aliases: "-a", type: :string, default: Dir.pwd, desc: "Path to existing Rails app"
+      option :devise_user_model, type: :string, default: "User", desc: "Devise model name"
+      option :dry_run, aliases: "--dry_run", type: :boolean, default: false,
+                        desc: "Print intended changes without writing files"
+      def sync
+        ui = UI::Console.new(verbose: false)
+        result = FeatureSync.new(
+          app_path: options[:app],
+          ui: ui,
+          dry_run: options[:dry_run],
+          devise_user_model: options[:devise_user_model]
+        ).run!
+
+        ui.headline("Feature sync for #{result.fetch(:app_path)}")
+        ui.info("Manifest: #{result.fetch(:manifest_path)}")
+        ui.info("added: #{format_feature_list(result.fetch(:added))}")
+        ui.info("removed: #{format_feature_list(result.fetch(:removed))}")
+        ui.info("tracked_after: #{format_feature_list(result.fetch(:tracked_after))}")
+
+        if result.fetch(:changed)
+          if result.fetch(:dry_run)
+            ui.warn("Dry run: manifest was not updated.")
+          else
+            ui.success("Feature manifest synchronized.")
+          end
+        else
+          ui.success("Feature manifest already synchronized.")
+        end
+      rescue StandardError => e
+        ui.error(e.message)
+        exit(1)
+      end
+
       private
 
       def normalize_features(values)
