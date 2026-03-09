@@ -55,10 +55,38 @@ module Railwyrm
         exit(1)
       end
 
+      desc "status", "Show feature tracking and detection status for an existing Rails app"
+      option :app, aliases: "-a", type: :string, default: Dir.pwd, desc: "Path to existing Rails app"
+      option :devise_user_model, type: :string, default: "User", desc: "Devise model name"
+      def status
+        ui = UI::Console.new(verbose: false)
+        summary = FeatureStatus.new(
+          app_path: options[:app],
+          devise_user_model: options[:devise_user_model]
+        ).snapshot
+
+        ui.headline("Feature status for #{summary.fetch(:app_path)}")
+        ui.info("Manifest: #{summary.fetch(:manifest_path)}")
+        ui.info("installed: #{format_feature_list(summary.fetch(:installed))}")
+        ui.warn("tracked_only: #{format_feature_list(summary.fetch(:tracked_only))}") unless summary.fetch(:tracked_only).empty?
+        ui.warn("detected_only: #{format_feature_list(summary.fetch(:detected_only))}") unless summary.fetch(:detected_only).empty?
+        ui.info("available: #{format_feature_list(summary.fetch(:available))}")
+      rescue StandardError => e
+        ui.error(e.message)
+        exit(1)
+      end
+
       private
 
       def normalize_features(values)
         Array(values).flat_map { |value| value.to_s.split(",") }.map(&:strip).reject(&:empty?).uniq
+      end
+
+      def format_feature_list(values)
+        list = Array(values)
+        return "none" if list.empty?
+
+        list.join(", ")
       end
     end
 

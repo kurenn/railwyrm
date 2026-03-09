@@ -32,6 +32,29 @@ RSpec.describe Railwyrm::CLI do
     end
   end
 
+  it "shows feature status for an existing app via feature command" do
+    status_service = instance_double(
+      Railwyrm::FeatureStatus,
+      snapshot: {
+        app_path: "/tmp/demo_app",
+        manifest_path: "/tmp/demo_app/.railwyrm/features.yml",
+        installed: ["trackable"],
+        tracked_only: ["confirmable"],
+        detected_only: [],
+        available: %w[confirmable lockable timeoutable trackable magic_link]
+      }
+    )
+    allow(Railwyrm::FeatureStatus).to receive(:new).and_return(status_service)
+
+    expect do
+      described_class.start(["feature", "status", "--app", "/tmp/demo_app"])
+    end.to output(/Feature status.*installed: trackable.*tracked_only: confirmable/m).to_stdout
+
+    expect(Railwyrm::FeatureStatus).to have_received(:new).with(
+      hash_including(app_path: "/tmp/demo_app", devise_user_model: "User")
+    )
+  end
+
   it "requires APP_NAME when non-interactive" do
     Dir.mktmpdir do |workspace|
       expect do
