@@ -103,6 +103,8 @@ module Railwyrm
         devise_confirmable: truthy?(payload["devise_confirmable"]),
         devise_lockable: truthy?(payload["devise_lockable"]),
         devise_timeoutable: truthy?(payload["devise_timeoutable"]),
+        devise_trackable: truthy?(payload["devise_trackable"]),
+        devise_magic_link: truthy?(payload["devise_magic_link"]),
         dry_run: truthy?(payload["dry_run"]),
         verbose: true
       )
@@ -260,6 +262,17 @@ module Railwyrm
                 <input id="devise_timeoutable" name="devise_timeoutable" type="checkbox" style="width:auto;" />
                 Auto sign out inactive users (Devise timeoutable)
               </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem;">
+                <input id="devise_trackable" name="devise_trackable" type="checkbox" style="width:auto;" />
+                Track sign-in count, timestamps, and IPs (Devise trackable)
+              </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem;">
+                <input id="devise_magic_link" name="devise_magic_link" type="checkbox" style="width:auto;" />
+                Enable magic-link sign-in by email
+              </label>
+              <p style="margin:0.2rem 0 0; font-size:0.85rem; color:#9ca3af;">
+                Note: Magic-link sign-in automatically enables Devise trackable.
+              </p>
 
               <label>Sign-in layout</label>
               <div class="layout-grid">
@@ -306,6 +319,8 @@ Password     Forgot password
                 devise_confirmable: document.getElementById("devise_confirmable").checked,
                 devise_lockable: document.getElementById("devise_lockable").checked,
                 devise_timeoutable: document.getElementById("devise_timeoutable").checked,
+                devise_trackable: document.getElementById("devise_trackable").checked,
+                devise_magic_link: document.getElementById("devise_magic_link").checked,
                 sign_in_layout: document.querySelector("input[name='sign_in_layout']:checked")?.value || "card_combined"
               };
 

@@ -289,6 +289,8 @@ RSpec.describe Railwyrm::CLI do
         expect(config.devise_confirmable?).to be(true)
         expect(config.devise_lockable?).to be(false)
         expect(config.devise_timeoutable?).to be(false)
+        expect(config.devise_trackable?).to be(false)
+        expect(config.devise_magic_link?).to be(false)
         expect(config.install_devise_user?).to be(true)
         expect(ui).to be_a(Railwyrm::UI::Console)
         generator
@@ -320,6 +322,8 @@ RSpec.describe Railwyrm::CLI do
         expect(config.devise_confirmable?).to be(false)
         expect(config.devise_lockable?).to be(true)
         expect(config.devise_timeoutable?).to be(true)
+        expect(config.devise_trackable?).to be(false)
+        expect(config.devise_magic_link?).to be(false)
         expect(config.install_devise_user?).to be(true)
         expect(ui).to be_a(Railwyrm::UI::Console)
         generator
@@ -335,6 +339,72 @@ RSpec.describe Railwyrm::CLI do
             workspace,
             "--devise_lockable=true",
             "--devise_timeoutable=true",
+            "--no-banner"
+          ]
+        )
+      end.not_to raise_error
+    end
+  end
+
+  it "passes devise magic-link option in non-interactive new flow" do
+    Dir.mktmpdir do |workspace|
+      app_name = "magic_link_cli_app"
+      app_path = File.join(workspace, app_name)
+      generator = instance_double(Railwyrm::Generator, run!: app_path)
+
+      expect(Railwyrm::Generator).to receive(:new) do |config, ui:|
+        expect(config.devise_confirmable?).to be(false)
+        expect(config.devise_lockable?).to be(false)
+        expect(config.devise_timeoutable?).to be(false)
+        expect(config.devise_trackable?).to be(true)
+        expect(config.devise_magic_link?).to be(true)
+        expect(config.install_devise_user?).to be(true)
+        expect(ui).to be_a(Railwyrm::UI::Console)
+        generator
+      end
+
+      expect do
+        described_class.start(
+          [
+            "new",
+            app_name,
+            "--interactive=false",
+            "--path",
+            workspace,
+            "--devise_magic_link=true",
+            "--no-banner"
+          ]
+        )
+      end.not_to raise_error
+    end
+  end
+
+  it "passes devise trackable option in non-interactive new flow" do
+    Dir.mktmpdir do |workspace|
+      app_name = "trackable_cli_app"
+      app_path = File.join(workspace, app_name)
+      generator = instance_double(Railwyrm::Generator, run!: app_path)
+
+      expect(Railwyrm::Generator).to receive(:new) do |config, ui:|
+        expect(config.devise_confirmable?).to be(false)
+        expect(config.devise_lockable?).to be(false)
+        expect(config.devise_timeoutable?).to be(false)
+        expect(config.devise_trackable?).to be(true)
+        expect(config.devise_magic_link?).to be(false)
+        expect(config.install_devise_user?).to be(true)
+        expect(ui).to be_a(Railwyrm::UI::Console)
+        generator
+      end
+
+      expect do
+        described_class.start(
+          [
+            "new",
+            app_name,
+            "--interactive=false",
+            "--path",
+            workspace,
+            "--devise_trackable=true",
             "--no-banner"
           ]
         )
@@ -400,6 +470,12 @@ RSpec.describe Railwyrm::CLI do
         .and_return(false)
       expect(prompt).to receive(:yes?)
         .with("⏱️ Enable Devise timeoutable (auto sign out inactive users)?", default: false)
+        .and_return(false)
+      expect(prompt).to receive(:yes?)
+        .with("📈 Enable Devise trackable (track sign in count, timestamps, and IPs)?", default: false)
+        .and_return(false)
+      expect(prompt).to receive(:yes?)
+        .with("✨ Enable magic-link sign-in by email?", default: false)
         .and_return(false)
       expect(prompt).to receive(:select)
         .with("🧩 Select sign-in layout:", default: "Card Combined (recommended)")

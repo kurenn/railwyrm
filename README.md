@@ -41,7 +41,12 @@ Every generated app includes:
   - `bin/rails generate untitled_ui:install`
 - Claude on Rails gem:
   - `gem "claude-on-rails"`
-  - `bin/rails generate claude_on_rails:swarm`
+  - `bin/rails generate claude_on_rails:swarm --force`
+- Optional magic-link sign-in:
+  - `gem "devise-passwordless"`
+  - `bin/rails generate devise:passwordless:install --force`
+  - Development mail delivery configured to file output at `tmp/mails`
+  - Plain-text magic-link mail template is installed for copy/paste-friendly links in development
 
 ## Quick Start
 
@@ -83,7 +88,8 @@ bundle exec ruby exe/railwyrm new
 Interactive wizard note:
 
 - If `--recipe` is not provided, the wizard asks whether to apply a recipe and shows the currently available recipes for selection.
-- If Devise user generation is enabled, the wizard asks whether to enable Devise `confirmable`, `lockable`, and `timeoutable`.
+- If Devise user generation is enabled, the wizard asks whether to enable Devise `confirmable`, `lockable`, `timeoutable`, `trackable`, and magic-link sign-in.
+- If magic-link sign-in is enabled, Railwyrm automatically enables Devise `trackable` and prints an info message.
 
 Run non-interactive mode:
 
@@ -120,6 +126,8 @@ Common flags:
 - `--devise_confirmable` enable Devise `confirmable` for the generated user model
 - `--devise_lockable` enable Devise `lockable` for the generated user model
 - `--devise_timeoutable` enable Devise `timeoutable` for the generated user model
+- `--devise_trackable` enable Devise `trackable` for the generated user model
+- `--devise_magic_link` enable Devise magic-link sign-in via email (`devise-passwordless`)
 - `--recipe` apply a recipe by name (e.g. `ats`) or `recipe.yml` path during `new`
 - `--with` enable optional recipe modules (for example `background_jobs`)
 - `--deploy` apply recipe deploy preset (for example `render`, `fly`)

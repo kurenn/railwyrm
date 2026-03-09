@@ -37,6 +37,12 @@ module Railwyrm
         end
       end
 
+      if configuration.devise_magic_link?
+        ui.step("Install magic-link authentication") do
+          enable_magic_link_authentication!
+        end
+      end
+
       optional_devise_modules = selected_optional_devise_modules
       unless optional_devise_modules.empty?
         ui.step("Enable Devise modules: #{optional_devise_modules.join(', ')}") do
@@ -82,7 +88,8 @@ module Railwyrm
       raise InvalidConfiguration, "Gemfile not found at #{gemfile_path}" unless File.exist?(gemfile_path)
 
       gemfile = File.read(gemfile_path)
-      additions = blueprint.gem_entries.each_with_object([]) do |entry, snippets|
+      entries = blueprint.gem_entries + blueprint.optional_gem_entries(configuration)
+      additions = entries.each_with_object([]) do |entry, snippets|
         snippets << entry[:snippet] unless gemfile.include?(entry[:marker])
       end
 
@@ -146,7 +153,29 @@ module Railwyrm
       migration_created = false
       migration_created ||= ensure_confirmable_migration! if module_names.include?("confirmable")
       migration_created ||= ensure_lockable_migration! if module_names.include?("lockable")
+      migration_created ||= ensure_trackable_migration! if module_names.include?("trackable")
       shell.run!("bin/rails", "db:migrate", chdir: configuration.app_path) if migration_created
+    end
+
+    def enable_magic_link_authentication!
+      if configuration.dry_run
+        ui.info("Dry run enabled: magic-link setup skipped.")
+        return
+      end
+
+      unless configuration.install_devise_user?
+        raise InvalidConfiguration, "Devise magic link requires generating a Devise user model."
+      end
+
+      shell.run!("bin/rails", "generate", "devise:passwordless:install", "--force", chdir: configuration.app_path)
+
+      resource_key = pluralize(underscore(configuration.devise_user_model))
+      ensure_model_includes_magic_link_authenticatable!
+      ensure_passwordless_routes!(resource_key)
+      ensure_passwordless_session_template!
+      ensure_passwordless_mailer_templates!
+      ensure_devise_paranoid_mode!
+      ensure_development_mail_file_delivery!
     end
 
     def normalize_application_main_layout!
@@ -170,30 +199,150 @@ module Railwyrm
       File.write(layout_path, updated) unless updated == layout
     end
 
+    def ensure_model_includes_magic_link_authenticatable!
+      model_relative_path = "app/models/#{underscore(configuration.devise_user_model)}.rb"
+      model_path = File.join(configuration.app_path, model_relative_path)
+      raise InvalidConfiguration, "Devise model file not found: #{model_relative_path}" unless File.exist?(model_path)
+
+      model_content = File.read(model_path)
+      updated = inject_devise_modules_into_model(model_content, ["magic_link_authenticatable"], model_relative_path)
+      File.write(model_path, updated)
+    end
+
+    def ensure_passwordless_routes!(resource_key)
+      routes_path = File.join(configuration.app_path, "config/routes.rb")
+      raise InvalidConfiguration, "Routes file not found: #{routes_path}" unless File.exist?(routes_path)
+
+      routes_content = File.read(routes_path)
+      route_snippet = "controllers: { sessions: \"devise/passwordless/sessions\" }"
+      return if routes_content.include?(route_snippet)
+
+      insertion = <<~RUBY
+
+          namespace :passwordless do
+            devise_for :#{resource_key}, controllers: { sessions: "devise/passwordless/sessions" }
+          end
+      RUBY
+      updated = routes_content.sub(/\nend\s*\z/, "#{insertion}\nend\n")
+      raise InvalidConfiguration, "Unable to inject passwordless routes into #{routes_path}" if updated == routes_content
+
+      File.write(routes_path, updated)
+    end
+
+    def ensure_passwordless_session_template!
+      source = File.join(
+        File.expand_path("..", __dir__),
+        "railwyrm",
+        "templates",
+        "devise",
+        "passwordless",
+        "sessions",
+        "new.html.erb"
+      )
+      raise InvalidConfiguration, "Passwordless session template missing: #{source}" unless File.exist?(source)
+
+      destination = File.join(configuration.app_path, "app/views/devise/passwordless/sessions/new.html.erb")
+      FileUtils.mkdir_p(File.dirname(destination))
+      FileUtils.cp(source, destination)
+    end
+
+    def ensure_passwordless_mailer_templates!
+      source = File.join(
+        File.expand_path("..", __dir__),
+        "railwyrm",
+        "templates",
+        "devise",
+        "passwordless",
+        "mailer",
+        "magic_link.text.erb"
+      )
+      raise InvalidConfiguration, "Passwordless mailer template missing: #{source}" unless File.exist?(source)
+
+      destination = File.join(configuration.app_path, "app/views/devise/mailer/magic_link.text.erb")
+      FileUtils.mkdir_p(File.dirname(destination))
+      FileUtils.cp(source, destination)
+    end
+
+    def ensure_devise_paranoid_mode!
+      initializer_path = File.join(configuration.app_path, "config/initializers/devise.rb")
+      return unless File.exist?(initializer_path)
+
+      content = File.read(initializer_path)
+      updated = if content.match?(/^\s*#?\s*config\.paranoid\s*=.*$/)
+                  content.gsub(/^\s*#?\s*config\.paranoid\s*=.*$/, "  config.paranoid = true")
+                else
+                  content.sub(/Devise\.setup do \|config\|\n/, "Devise.setup do |config|\n  config.paranoid = true\n")
+                end
+      File.write(initializer_path, updated) unless updated == content
+    end
+
+    def ensure_development_mail_file_delivery!
+      development_path = File.join(configuration.app_path, "config/environments/development.rb")
+      return unless File.exist?(development_path)
+
+      content = File.read(development_path)
+      updated = content
+
+      delivery_method_line = "  config.action_mailer.delivery_method = :file"
+      file_settings_line = '  config.action_mailer.file_settings = { location: Rails.root.join("tmp/mails") }'
+
+      if updated.match?(/^\s*#?\s*config\.action_mailer\.delivery_method\s*=.*$/)
+        updated = updated.gsub(/^\s*#?\s*config\.action_mailer\.delivery_method\s*=.*$/, delivery_method_line)
+      elsif !updated.include?(delivery_method_line)
+        updated = updated.sub(/Rails\.application\.configure do\s*\n/, "Rails.application.configure do\n#{delivery_method_line}\n")
+      end
+
+      if updated.match?(/^\s*#?\s*config\.action_mailer\.file_settings\s*=.*$/)
+        updated = updated.gsub(/^\s*#?\s*config\.action_mailer\.file_settings\s*=.*$/, file_settings_line)
+      elsif !updated.include?(file_settings_line)
+        updated = updated.sub("#{delivery_method_line}\n", "#{delivery_method_line}\n#{file_settings_line}\n")
+      end
+
+      File.write(development_path, updated) unless updated == content
+    end
+
     def selected_optional_devise_modules
       modules = []
       modules << "confirmable" if configuration.devise_confirmable?
       modules << "lockable" if configuration.devise_lockable?
       modules << "timeoutable" if configuration.devise_timeoutable?
+      modules << "trackable" if configuration.devise_trackable?
       modules
     end
 
     def inject_devise_modules_into_model(model_content, module_names, model_relative_path)
-      missing = module_names.reject { |mod| model_content.include?(":#{mod}") }
+      lines = model_content.lines
+      declaration_start, declaration_end = find_devise_declaration_range(lines, model_relative_path)
+      existing_modules = lines[declaration_start..declaration_end].join.scan(/:([a-z_]+)/).flatten
+      missing = module_names.reject { |mod| existing_modules.include?(mod) }
       return model_content if missing.empty?
 
-      updated = model_content.sub(/^\s*devise\s+.+$/) do |line|
-        indentation = line[/^\s*/]
-        modules = line.sub(/^\s*devise\s+/, "")
-        missing_prefix = missing.map { |mod| ":#{mod}" }.join(", ")
-        "#{indentation}devise #{missing_prefix}, #{modules}"
-      end
+      first_line = lines[declaration_start]
+      indentation = first_line[/^\s*/]
+      modules = first_line.sub(/^\s*devise\s+/, "")
+      missing_prefix = missing.map { |mod| ":#{mod}" }.join(", ")
+      lines[declaration_start] = "#{indentation}devise #{missing_prefix}, #{modules}"
+      updated = lines.join
 
       if updated == model_content
-        raise InvalidConfiguration, "Could not find Devise module declaration in #{model_relative_path}"
+        raise InvalidConfiguration, "Could not update Devise module declaration in #{model_relative_path}"
       end
 
       updated
+    end
+
+    def find_devise_declaration_range(lines, model_relative_path)
+      declaration_start = lines.index { |line| line.match?(/^\s*devise\s+/) }
+      if declaration_start.nil?
+        raise InvalidConfiguration, "Could not find Devise module declaration in #{model_relative_path}"
+      end
+
+      declaration_end = declaration_start
+      while declaration_end + 1 < lines.length && lines[declaration_end].rstrip.end_with?(",")
+        declaration_end += 1
+      end
+
+      [declaration_start, declaration_end]
     end
 
     def ensure_confirmable_migration!
@@ -254,6 +403,39 @@ module Railwyrm
               add_column :#{table_name}, :unlock_token, :string
               add_column :#{table_name}, :locked_at, :datetime
               add_index :#{table_name}, :unlock_token, unique: true
+            end
+          end
+        RUBY
+      )
+      true
+    end
+
+    def ensure_trackable_migration!
+      migration_dir = File.join(configuration.app_path, "db/migrate")
+      FileUtils.mkdir_p(migration_dir)
+
+      table_name = pluralize(underscore(configuration.devise_user_model))
+      existing = Dir.glob(File.join(migration_dir, "*_add_trackable_to_#{table_name}.rb")).sort.last
+      if existing
+        ui.info("Trackable migration already exists: #{File.basename(existing)}")
+        return false
+      end
+
+      timestamp = Time.now.utc.strftime("%Y%m%d%H%M%S")
+      migration_filename = "#{timestamp}_add_trackable_to_#{table_name}.rb"
+      migration_path = File.join(migration_dir, migration_filename)
+      migration_class = "AddTrackableTo#{camelize(table_name)}"
+
+      File.write(
+        migration_path,
+        <<~RUBY
+          class #{migration_class} < ActiveRecord::Migration[#{migration_version}]
+            def change
+              add_column :#{table_name}, :sign_in_count, :integer, default: 0, null: false
+              add_column :#{table_name}, :current_sign_in_at, :datetime
+              add_column :#{table_name}, :last_sign_in_at, :datetime
+              add_column :#{table_name}, :current_sign_in_ip, :string
+              add_column :#{table_name}, :last_sign_in_ip, :string
             end
           end
         RUBY

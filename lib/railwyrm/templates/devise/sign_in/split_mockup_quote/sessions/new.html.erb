@@ -57,6 +57,14 @@
             <% end %>
           </div>
 
+          <% passwordless_sign_in_helper = :"new_passwordless_#{resource_name}_session_path" %>
+          <% if respond_to?(passwordless_sign_in_helper) %>
+            <p class="text-sm text-tertiary">
+              Prefer magic-link login?
+              <%= link_to "Email me a sign-in link", public_send(passwordless_sign_in_helper), class: "font-semibold text-brand-secondary hover:text-brand-secondary_hover" %>
+            </p>
+          <% end %>
+
           <%= render Ui::Button::Component.new(type: "submit", size: :md, class: "w-full justify-center") do %>
             Sign in
           <% end %>

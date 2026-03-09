@@ -16,6 +16,8 @@ module Railwyrm
       devise_confirmable: false,
       devise_lockable: false,
       devise_timeoutable: false,
+      devise_trackable: false,
+      devise_magic_link: false,
       dry_run: false,
       verbose: false
     )
@@ -27,6 +29,8 @@ module Railwyrm
       @devise_confirmable = !!devise_confirmable
       @devise_lockable = !!devise_lockable
       @devise_timeoutable = !!devise_timeoutable
+      @devise_magic_link = !!devise_magic_link
+      @devise_trackable = !!devise_trackable || @devise_magic_link
       @dry_run = dry_run
       @verbose = verbose
 
@@ -49,6 +53,14 @@ module Railwyrm
       @devise_timeoutable
     end
 
+    def devise_trackable?
+      @devise_trackable
+    end
+
+    def devise_magic_link?
+      @devise_magic_link
+    end
+
     def app_path
       File.join(workspace, name)
     end
@@ -63,6 +75,8 @@ module Railwyrm
         devise_confirmable: devise_confirmable?,
         devise_lockable: devise_lockable?,
         devise_timeoutable: devise_timeoutable?,
+        devise_trackable: devise_trackable?,
+        devise_magic_link: devise_magic_link?,
         dry_run: dry_run,
         verbose: verbose
       }
@@ -82,6 +96,12 @@ module Railwyrm
       end
       if devise_timeoutable? && !install_devise_user?
         raise InvalidConfiguration, "Devise timeoutable requires generating a Devise user model."
+      end
+      if devise_magic_link? && !install_devise_user?
+        raise InvalidConfiguration, "Devise magic link requires generating a Devise user model."
+      end
+      if devise_trackable? && !install_devise_user?
+        raise InvalidConfiguration, "Devise trackable requires generating a Devise user model."
       end
 
       return if SIGN_IN_LAYOUTS.include?(sign_in_layout)
