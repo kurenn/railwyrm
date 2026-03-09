@@ -40,6 +40,16 @@ RSpec.describe Railwyrm::RailsBlueprint do
     end
   end
 
+  describe "#gem_entries" do
+    it "includes dotenv-rails and ruby-lsp in the default stack" do
+      markers = blueprint.gem_entries.map { |entry| entry.fetch(:marker) }
+      snippets = blueprint.gem_entries.map { |entry| entry.fetch(:snippet) }.join("\n")
+
+      expect(markers).to include('gem "ruby-lsp"')
+      expect(snippets).to include('gem "dotenv-rails"')
+    end
+  end
+
   describe "#optional_gem_entries" do
     it "includes devise-passwordless when magic-link sign-in is requested" do
       config = Railwyrm::Configuration.new(name: "demo_app", workspace: "/tmp", devise_magic_link: true)

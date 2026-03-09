@@ -107,6 +107,8 @@ RSpec.describe Railwyrm::Generator do
       expect(gemfile).to include('gem "devise"')
       expect(gemfile).to include('gem "untitled_ui", github: "coba-ai/untitled.ui", branch: "main"')
       expect(gemfile).to include('gem "rspec-rails"')
+      expect(gemfile).to include('gem "dotenv-rails"')
+      expect(gemfile).to include('gem "ruby-lsp", require: false')
       expect(gemfile).to include('gem "claude-on-rails"')
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }

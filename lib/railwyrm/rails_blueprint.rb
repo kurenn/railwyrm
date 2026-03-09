@@ -28,6 +28,15 @@ module Railwyrm
           snippet: <<~RUBY.strip
             group :development, :test do
               gem "rspec-rails"
+              gem "dotenv-rails"
+            end
+          RUBY
+        },
+        {
+          marker: 'gem "ruby-lsp"',
+          snippet: <<~RUBY.strip
+            group :development do
+              gem "ruby-lsp", require: false
             end
           RUBY
         },

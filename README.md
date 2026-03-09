@@ -29,6 +29,8 @@ Every generated app includes:
 - Tailwind CSS (`rails new --css=tailwind` + `./bin/rails tailwindcss:install`)
 - PostgreSQL (`rails new --database=postgresql`)
 - RSpec (`gem "rspec-rails"` + `bin/rails generate rspec:install`)
+- Dotenv (`gem "dotenv-rails"` for development/test env vars)
+- Ruby LSP (`gem "ruby-lsp", require: false` for editor tooling)
 - Devise sessions (`gem "devise"` + `bin/rails generate devise:install` + `bin/rails generate devise User`)
 - Selectable Devise auth layouts (sessions, registrations, passwords, confirmations, unlocks) generated with Untitled UI view components and no social login buttons:
   - `simple_minimal`
