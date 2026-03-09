@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "yaml"
 
 RSpec.describe Railwyrm::Generator do
   class FakeShell
@@ -139,6 +140,13 @@ RSpec.describe Railwyrm::Generator do
       expect(app_layout).to include("min-h-screen")
       expect(app_layout).not_to include("mt-28")
       expect(app_layout).not_to include("container")
+
+      feature_manifest = YAML.safe_load(
+        File.read(File.join(configuration.app_path, ".railwyrm/features.yml")),
+        permitted_classes: [],
+        aliases: false
+      )
+      expect(feature_manifest.fetch("features")).to eq([])
     end
   end
 
@@ -313,6 +321,13 @@ RSpec.describe Railwyrm::Generator do
       development_config = File.read(File.join(configuration.app_path, "config/environments/development.rb"))
       expect(development_config).to include("config.action_mailer.delivery_method = :file")
       expect(development_config).to include('config.action_mailer.file_settings = { location: Rails.root.join("tmp/mails") }')
+
+      feature_manifest = YAML.safe_load(
+        File.read(File.join(configuration.app_path, ".railwyrm/features.yml")),
+        permitted_classes: [],
+        aliases: false
+      )
+      expect(feature_manifest.fetch("features")).to eq(%w[trackable magic_link])
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed).to include("bin/rails generate devise:passwordless:install --force")

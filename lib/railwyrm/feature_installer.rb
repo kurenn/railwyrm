@@ -3,151 +3,130 @@
 require "fileutils"
 
 module Railwyrm
-  class Generator
-    RESPONSIVE_MAIN_CLASSES = "w-full min-h-screen flex justify-center".freeze
+  class FeatureInstaller
+    OPTIONAL_DEVISE_MODULES = %w[confirmable lockable timeoutable trackable].freeze
 
-    def initialize(configuration, ui:, shell: nil, blueprint: RailsBlueprint.new)
-      @configuration = configuration
+    def initialize(app_path:, ui:, shell:, dry_run: false, devise_user_model: "User")
+      @app_path = File.expand_path(app_path)
       @ui = ui
-      @blueprint = blueprint
-      @shell = shell || Shell.new(ui: ui, dry_run: configuration.dry_run, verbose: configuration.verbose)
+      @shell = shell
+      @dry_run = dry_run
+      @devise_user_model = devise_user_model.to_s.strip.empty? ? "User" : devise_user_model.to_s.strip
     end
 
-    def run!
-      ensure_workspace!
-      ensure_destination_available!
+    def install!(feature_names)
+      requested_features = FeatureRegistry.resolve(feature_names)
+      ensure_app_path!
 
-      ui.headline("Forging #{configuration.name} in #{configuration.workspace}")
+      ui.headline("Installing features in #{app_path}")
+      ui.info("Requested features: #{requested_features.join(', ')}")
 
-      ui.step("Bootstrapping base Rails app") do
-        shell.run!(*blueprint.rails_new_command(configuration), chdir: configuration.workspace)
+      tracked_features = feature_state.tracked_features
+      detected_features = feature_detector.detect
+      sync_untracked_features!(tracked_features, detected_features)
+      tracked_features = feature_state.tracked_features unless dry_run
+
+      drift = tracked_features - detected_features
+      unless drift.empty?
+        ui.warn("Tracked but not detected in app: #{drift.join(', ')}")
+        ui.warn("Railwyrm will attempt reinstallation if these are requested.")
       end
 
-      ui.step("Injecting default gems") do
-        inject_default_gems!
+      features = requested_features - detected_features
+      if features.empty?
+        ui.success("All requested features are already installed.")
+        return requested_features
       end
 
-      ui.step("Installing bundle") do
-        shell.run!("bundle", "install", chdir: configuration.app_path)
-      end
+      ui.info("Applying features: #{features.join(', ')}")
 
-      blueprint.post_bundle_steps(configuration).each do |label, command|
-        ui.step(label) do
-          shell.run!(*command, chdir: configuration.app_path)
+      gems_changed = ensure_feature_gems!(features)
+      if gems_changed
+        ui.step("Install bundle for feature gems") do
+          shell.run!("bundle", "install", chdir: app_path)
         end
       end
 
-      if configuration.devise_magic_link?
+      module_features = features & OPTIONAL_DEVISE_MODULES
+      unless module_features.empty?
+        ui.step("Enable Devise modules: #{module_features.join(', ')}") do
+          enable_optional_devise_modules!(module_features)
+        end
+      end
+
+      if features.include?("magic_link")
         ui.step("Install magic-link authentication") do
           enable_magic_link_authentication!
         end
       end
 
-      optional_devise_modules = selected_optional_devise_modules
-      unless optional_devise_modules.empty?
-        ui.step("Enable Devise modules: #{optional_devise_modules.join(', ')}") do
-          enable_optional_devise_modules!(optional_devise_modules)
-        end
-      end
+      feature_state.mark_installed!(requested_features)
 
-      ui.step("Normalize application layout main container") do
-        normalize_application_main_layout!
-      end
-
-      ui.step("Apply Devise auth view templates") do
-        apply_devise_view_templates!
-      end
-
-      ui.step("Record installed feature state") do
-        persist_feature_state!
-      end
-
-      ui.success("Rails realm forged at #{configuration.app_path}")
-      configuration.app_path
+      ui.success("Feature install complete: #{requested_features.join(', ')}")
+      requested_features
     end
 
     private
 
-    attr_reader :configuration, :ui, :blueprint, :shell
+    attr_reader :app_path, :ui, :shell, :dry_run, :devise_user_model
 
-    def ensure_workspace!
-      return if configuration.dry_run
+    def ensure_app_path!
+      return if dry_run
 
-      FileUtils.mkdir_p(configuration.workspace)
+      raise InvalidConfiguration, "Rails app path not found: #{app_path}" unless Dir.exist?(app_path)
+
+      gemfile_path = File.join(app_path, "Gemfile")
+      raise InvalidConfiguration, "Gemfile not found at #{gemfile_path}" unless File.exist?(gemfile_path)
     end
 
-    def ensure_destination_available!
-      return if configuration.dry_run
+    def sync_untracked_features!(tracked_features, detected_features)
+      untracked = detected_features - tracked_features
+      return if untracked.empty?
 
-      raise InvalidConfiguration, "Destination already exists: #{configuration.app_path}" if Dir.exist?(configuration.app_path)
+      ui.info("Detected installed but untracked features: #{untracked.join(', ')}")
+      feature_state.mark_installed!(untracked)
+      ui.info("Feature manifest synchronized with detected app state.") unless dry_run
     end
 
-    def inject_default_gems!
-      if configuration.dry_run
-        ui.info("Dry run enabled: Gemfile update skipped.")
-        return
+    def ensure_feature_gems!(features)
+      entries = []
+
+      if features.include?("magic_link")
+        entries << {
+          marker: 'gem "devise-passwordless"',
+          snippet: 'gem "devise-passwordless"'
+        }
       end
 
-      gemfile_path = File.join(configuration.app_path, "Gemfile")
-      raise InvalidConfiguration, "Gemfile not found at #{gemfile_path}" unless File.exist?(gemfile_path)
+      return false if entries.empty?
 
-      gemfile = File.read(gemfile_path)
-      entries = blueprint.gem_entries + blueprint.optional_gem_entries(configuration)
+      gemfile_path = File.join(app_path, "Gemfile")
+      gemfile = File.exist?(gemfile_path) ? File.read(gemfile_path) : ""
       additions = entries.each_with_object([]) do |entry, snippets|
         snippets << entry[:snippet] unless gemfile.include?(entry[:marker])
       end
 
-      if additions.empty?
-        ui.info("All default gems already exist in Gemfile.")
-        return
+      return false if additions.empty?
+
+      if dry_run
+        ui.info("Dry run enabled: Gemfile update skipped.")
+        return true
       end
 
       updated = "#{gemfile.rstrip}\n\n#{additions.join("\n\n")}\n"
       File.write(gemfile_path, updated)
-      ui.success("Gemfile updated with Rails starter stack.")
-    end
-
-    def apply_devise_view_templates!
-      if configuration.dry_run
-        ui.info("Dry run enabled: Devise template copy skipped.")
-        return
-      end
-
-      source_root = File.join(
-        File.expand_path("..", __dir__),
-        "railwyrm",
-        "templates",
-        "devise",
-        "sign_in",
-        configuration.sign_in_layout
-      )
-
-      unless Dir.exist?(source_root)
-        raise InvalidConfiguration, "Devise templates not found for '#{configuration.sign_in_layout}'"
-      end
-
-      destination_root = File.join(configuration.app_path, "app/views/devise")
-
-      Dir.glob(File.join(source_root, "**", "*.erb")).sort.each do |source|
-        relative_path = source.delete_prefix("#{source_root}/")
-        destination = File.join(destination_root, relative_path)
-        FileUtils.mkdir_p(File.dirname(destination))
-        FileUtils.cp(source, destination)
-      end
+      ui.success("Gemfile updated for selected features.")
+      true
     end
 
     def enable_optional_devise_modules!(module_names)
-      if configuration.dry_run
+      if dry_run
         ui.info("Dry run enabled: optional Devise module setup skipped.")
         return
       end
 
-      unless configuration.install_devise_user?
-        raise InvalidConfiguration, "Optional Devise modules require generating a Devise user model."
-      end
-
-      model_relative_path = "app/models/#{underscore(configuration.devise_user_model)}.rb"
-      model_path = File.join(configuration.app_path, model_relative_path)
+      model_relative_path = "app/models/#{underscore(devise_user_model)}.rb"
+      model_path = File.join(app_path, model_relative_path)
       raise InvalidConfiguration, "Devise model file not found: #{model_relative_path}" unless File.exist?(model_path)
 
       model_content = File.read(model_path)
@@ -158,22 +137,18 @@ module Railwyrm
       migration_created ||= ensure_confirmable_migration! if module_names.include?("confirmable")
       migration_created ||= ensure_lockable_migration! if module_names.include?("lockable")
       migration_created ||= ensure_trackable_migration! if module_names.include?("trackable")
-      shell.run!("bin/rails", "db:migrate", chdir: configuration.app_path) if migration_created
+      shell.run!("bin/rails", "db:migrate", chdir: app_path) if migration_created
     end
 
     def enable_magic_link_authentication!
-      if configuration.dry_run
+      if dry_run
         ui.info("Dry run enabled: magic-link setup skipped.")
         return
       end
 
-      unless configuration.install_devise_user?
-        raise InvalidConfiguration, "Devise magic link requires generating a Devise user model."
-      end
+      shell.run!("bin/rails", "generate", "devise:passwordless:install", "--force", chdir: app_path)
 
-      shell.run!("bin/rails", "generate", "devise:passwordless:install", "--force", chdir: configuration.app_path)
-
-      resource_key = pluralize(underscore(configuration.devise_user_model))
+      resource_key = pluralize(underscore(devise_user_model))
       ensure_model_includes_magic_link_authenticatable!
       ensure_passwordless_routes!(resource_key)
       ensure_passwordless_session_template!
@@ -182,30 +157,9 @@ module Railwyrm
       ensure_development_mail_file_delivery!
     end
 
-    def normalize_application_main_layout!
-      if configuration.dry_run
-        ui.info("Dry run enabled: application layout update skipped.")
-        return
-      end
-
-      layout_path = File.join(configuration.app_path, "app/views/layouts/application.html.erb")
-      return unless File.exist?(layout_path)
-
-      layout = File.read(layout_path)
-      updated = if layout.match?(/<main\s+class="[^"]*">/)
-                  layout.sub(/<main\s+class="[^"]*">/, %(<main class="#{RESPONSIVE_MAIN_CLASSES}">))
-                elsif layout.match?(/<main>/)
-                  layout.sub(/<main>/, %(<main class="#{RESPONSIVE_MAIN_CLASSES}">))
-                else
-                  layout
-                end
-
-      File.write(layout_path, updated) unless updated == layout
-    end
-
     def ensure_model_includes_magic_link_authenticatable!
-      model_relative_path = "app/models/#{underscore(configuration.devise_user_model)}.rb"
-      model_path = File.join(configuration.app_path, model_relative_path)
+      model_relative_path = "app/models/#{underscore(devise_user_model)}.rb"
+      model_path = File.join(app_path, model_relative_path)
       raise InvalidConfiguration, "Devise model file not found: #{model_relative_path}" unless File.exist?(model_path)
 
       model_content = File.read(model_path)
@@ -214,7 +168,7 @@ module Railwyrm
     end
 
     def ensure_passwordless_routes!(resource_key)
-      routes_path = File.join(configuration.app_path, "config/routes.rb")
+      routes_path = File.join(app_path, "config/routes.rb")
       raise InvalidConfiguration, "Routes file not found: #{routes_path}" unless File.exist?(routes_path)
 
       routes_content = File.read(routes_path)
@@ -235,9 +189,7 @@ module Railwyrm
 
     def ensure_passwordless_session_template!
       source = File.join(
-        File.expand_path("..", __dir__),
-        "railwyrm",
-        "templates",
+        template_root,
         "devise",
         "passwordless",
         "sessions",
@@ -245,16 +197,14 @@ module Railwyrm
       )
       raise InvalidConfiguration, "Passwordless session template missing: #{source}" unless File.exist?(source)
 
-      destination = File.join(configuration.app_path, "app/views/devise/passwordless/sessions/new.html.erb")
+      destination = File.join(app_path, "app/views/devise/passwordless/sessions/new.html.erb")
       FileUtils.mkdir_p(File.dirname(destination))
       FileUtils.cp(source, destination)
     end
 
     def ensure_passwordless_mailer_templates!
       source = File.join(
-        File.expand_path("..", __dir__),
-        "railwyrm",
-        "templates",
+        template_root,
         "devise",
         "passwordless",
         "mailer",
@@ -262,13 +212,13 @@ module Railwyrm
       )
       raise InvalidConfiguration, "Passwordless mailer template missing: #{source}" unless File.exist?(source)
 
-      destination = File.join(configuration.app_path, "app/views/devise/mailer/magic_link.text.erb")
+      destination = File.join(app_path, "app/views/devise/mailer/magic_link.text.erb")
       FileUtils.mkdir_p(File.dirname(destination))
       FileUtils.cp(source, destination)
     end
 
     def ensure_devise_paranoid_mode!
-      initializer_path = File.join(configuration.app_path, "config/initializers/devise.rb")
+      initializer_path = File.join(app_path, "config/initializers/devise.rb")
       return unless File.exist?(initializer_path)
 
       content = File.read(initializer_path)
@@ -281,7 +231,7 @@ module Railwyrm
     end
 
     def ensure_development_mail_file_delivery!
-      development_path = File.join(configuration.app_path, "config/environments/development.rb")
+      development_path = File.join(app_path, "config/environments/development.rb")
       return unless File.exist?(development_path)
 
       content = File.read(development_path)
@@ -303,26 +253,6 @@ module Railwyrm
       end
 
       File.write(development_path, updated) unless updated == content
-    end
-
-    def selected_optional_devise_modules
-      modules = []
-      modules << "confirmable" if configuration.devise_confirmable?
-      modules << "lockable" if configuration.devise_lockable?
-      modules << "timeoutable" if configuration.devise_timeoutable?
-      modules << "trackable" if configuration.devise_trackable?
-      modules
-    end
-
-    def selected_feature_registry_names
-      selected = selected_optional_devise_modules
-      selected << "magic_link" if configuration.devise_magic_link?
-      selected.uniq
-    end
-
-    def persist_feature_state!
-      feature_state = FeatureState.new(app_path: configuration.app_path, ui: ui, dry_run: configuration.dry_run)
-      feature_state.replace!(selected_feature_registry_names)
     end
 
     def inject_devise_modules_into_model(model_content, module_names, model_relative_path)
@@ -361,10 +291,10 @@ module Railwyrm
     end
 
     def ensure_confirmable_migration!
-      migration_dir = File.join(configuration.app_path, "db/migrate")
+      migration_dir = File.join(app_path, "db/migrate")
       FileUtils.mkdir_p(migration_dir)
 
-      table_name = pluralize(underscore(configuration.devise_user_model))
+      table_name = pluralize(underscore(devise_user_model))
       existing = Dir.glob(File.join(migration_dir, "*_add_confirmable_to_#{table_name}.rb")).sort.last
       if existing
         ui.info("Confirmable migration already exists: #{File.basename(existing)}")
@@ -394,10 +324,10 @@ module Railwyrm
     end
 
     def ensure_lockable_migration!
-      migration_dir = File.join(configuration.app_path, "db/migrate")
+      migration_dir = File.join(app_path, "db/migrate")
       FileUtils.mkdir_p(migration_dir)
 
-      table_name = pluralize(underscore(configuration.devise_user_model))
+      table_name = pluralize(underscore(devise_user_model))
       existing = Dir.glob(File.join(migration_dir, "*_add_lockable_to_#{table_name}.rb")).sort.last
       if existing
         ui.info("Lockable migration already exists: #{File.basename(existing)}")
@@ -426,10 +356,10 @@ module Railwyrm
     end
 
     def ensure_trackable_migration!
-      migration_dir = File.join(configuration.app_path, "db/migrate")
+      migration_dir = File.join(app_path, "db/migrate")
       FileUtils.mkdir_p(migration_dir)
 
-      table_name = pluralize(underscore(configuration.devise_user_model))
+      table_name = pluralize(underscore(devise_user_model))
       existing = Dir.glob(File.join(migration_dir, "*_add_trackable_to_#{table_name}.rb")).sort.last
       if existing
         ui.info("Trackable migration already exists: #{File.basename(existing)}")
@@ -459,7 +389,7 @@ module Railwyrm
     end
 
     def migration_version
-      Dir.glob(File.join(configuration.app_path, "db/migrate/*.rb")).sort.each do |path|
+      Dir.glob(File.join(app_path, "db/migrate/*.rb")).sort.each do |path|
         match = File.read(path).match(/ActiveRecord::Migration\[(\d+\.\d+)\]/)
         return match[1] if match
       end
@@ -467,10 +397,22 @@ module Railwyrm
       "8.0"
     end
 
+    def template_root
+      File.join(File.expand_path("..", __dir__), "railwyrm", "templates")
+    end
+
+    def feature_state
+      @feature_state ||= FeatureState.new(app_path: app_path, ui: ui, dry_run: dry_run)
+    end
+
+    def feature_detector
+      @feature_detector ||= FeatureDetector.new(app_path: app_path, devise_user_model: devise_user_model)
+    end
+
     def underscore(value)
       value.to_s
-           .gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
-           .gsub(/([a-z\d])([A-Z])/, '\1_\2')
+           .gsub(/([A-Z]+)([A-Z][a-z])/, '\\1_\\2')
+           .gsub(/([a-z\d])([A-Z])/, '\\1_\\2')
            .tr("-", "_")
            .downcase
     end
