@@ -22,6 +22,10 @@ module Railwyrm
       "magic_link" => {
         description: "Enable passwordless email magic-link sign in",
         dependencies: ["trackable"]
+      },
+      "passkeys" => {
+        description: "Enable passkeys sign-in with WebAuthn (devise-webauthn)",
+        dependencies: []
       }
     }.freeze
 

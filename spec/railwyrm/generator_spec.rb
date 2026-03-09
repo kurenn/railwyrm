@@ -92,6 +92,19 @@ RSpec.describe Railwyrm::Generator do
         )
       end
 
+      if command[0] == "bin/rails" && command[1] == "generate" && command[2] == "devise:webauthn:install"
+        migration_file = File.join(chdir, "db/migrate/20260102000000_devise_webauthn_create_credentials.rb")
+        FileUtils.mkdir_p(File.dirname(migration_file))
+        File.write(
+          migration_file,
+          <<~RUBY
+            class DeviseWebauthnCreateCredentials < ActiveRecord::Migration[8.1]
+              def change; end
+            end
+          RUBY
+        )
+      end
+
       true
     end
   end
@@ -331,6 +344,37 @@ RSpec.describe Railwyrm::Generator do
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed).to include("bin/rails generate devise:passwordless:install --force")
+      expect(executed.count { |line| line == "bin/rails db:migrate" }).to eq(2)
+    end
+  end
+
+  it "installs passkeys authentication when requested" do
+    Dir.mktmpdir do |workspace|
+      configuration = Railwyrm::Configuration.new(
+        name: "passkeys_app",
+        workspace: workspace,
+        devise_passkeys: true
+      )
+      shell = FakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+
+      described_class.new(configuration, ui: ui, shell: shell).run!
+
+      gemfile = File.read(File.join(configuration.app_path, "Gemfile"))
+      expect(gemfile).to include('gem "devise-webauthn"')
+
+      user_model = File.read(File.join(configuration.app_path, "app/models/user.rb"))
+      expect(user_model).to include(":passkey_authenticatable")
+
+      feature_manifest = YAML.safe_load(
+        File.read(File.join(configuration.app_path, ".railwyrm/features.yml")),
+        permitted_classes: [],
+        aliases: false
+      )
+      expect(feature_manifest.fetch("features")).to eq(%w[passkeys])
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed).to include("bin/rails generate devise:webauthn:install --force")
       expect(executed.count { |line| line == "bin/rails db:migrate" }).to eq(2)
     end
   end

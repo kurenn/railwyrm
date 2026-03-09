@@ -43,6 +43,12 @@ module Railwyrm
         end
       end
 
+      if configuration.devise_passkeys?
+        ui.step("Install passkeys authentication") do
+          enable_passkeys_authentication!
+        end
+      end
+
       optional_devise_modules = selected_optional_devise_modules
       unless optional_devise_modules.empty?
         ui.step("Enable Devise modules: #{optional_devise_modules.join(', ')}") do
@@ -182,6 +188,21 @@ module Railwyrm
       ensure_development_mail_file_delivery!
     end
 
+    def enable_passkeys_authentication!
+      if configuration.dry_run
+        ui.info("Dry run enabled: passkeys setup skipped.")
+        return
+      end
+
+      unless configuration.install_devise_user?
+        raise InvalidConfiguration, "Devise passkeys requires generating a Devise user model."
+      end
+
+      shell.run!("bin/rails", "generate", "devise:webauthn:install", "--force", chdir: configuration.app_path)
+      ensure_model_includes_passkey_authenticatable!
+      shell.run!("bin/rails", "db:migrate", chdir: configuration.app_path)
+    end
+
     def normalize_application_main_layout!
       if configuration.dry_run
         ui.info("Dry run enabled: application layout update skipped.")
@@ -210,6 +231,16 @@ module Railwyrm
 
       model_content = File.read(model_path)
       updated = inject_devise_modules_into_model(model_content, ["magic_link_authenticatable"], model_relative_path)
+      File.write(model_path, updated)
+    end
+
+    def ensure_model_includes_passkey_authenticatable!
+      model_relative_path = "app/models/#{underscore(configuration.devise_user_model)}.rb"
+      model_path = File.join(configuration.app_path, model_relative_path)
+      raise InvalidConfiguration, "Devise model file not found: #{model_relative_path}" unless File.exist?(model_path)
+
+      model_content = File.read(model_path)
+      updated = inject_devise_modules_into_model(model_content, ["passkey_authenticatable"], model_relative_path)
       File.write(model_path, updated)
     end
 
@@ -317,6 +348,7 @@ module Railwyrm
     def selected_feature_registry_names
       selected = selected_optional_devise_modules
       selected << "magic_link" if configuration.devise_magic_link?
+      selected << "passkeys" if configuration.devise_passkeys?
       selected.uniq
     end
 

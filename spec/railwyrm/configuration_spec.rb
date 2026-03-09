@@ -12,6 +12,7 @@ RSpec.describe Railwyrm::Configuration do
     expect(config.devise_timeoutable?).to be(false)
     expect(config.devise_trackable?).to be(false)
     expect(config.devise_magic_link?).to be(false)
+    expect(config.devise_passkeys?).to be(false)
   end
 
   it "accepts each supported sign_in_layout" do
@@ -80,6 +81,17 @@ RSpec.describe Railwyrm::Configuration do
         devise_trackable: true
       )
     end.to raise_error(Railwyrm::InvalidConfiguration, /trackable requires generating a Devise user model/)
+  end
+
+  it "raises when passkeys is enabled while devise user generation is disabled" do
+    expect do
+      described_class.new(
+        name: "demo_app",
+        workspace: "/tmp",
+        install_devise_user: false,
+        devise_passkeys: true
+      )
+    end.to raise_error(Railwyrm::InvalidConfiguration, /passkeys requires generating a Devise user model/)
   end
 
   it "forces trackable when magic link is enabled" do

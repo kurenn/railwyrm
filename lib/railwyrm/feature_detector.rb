@@ -25,6 +25,11 @@ module Railwyrm
         detected << "magic_link"
       end
 
+      if devise_modules.include?("passkey_authenticatable") ||
+         gemfile_content.include?('gem "devise-webauthn"')
+        detected << "passkeys"
+      end
+
       ordered_features(detected)
     end
 

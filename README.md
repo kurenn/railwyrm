@@ -36,6 +36,7 @@ During `railwyrm new`, the wizard can configure:
   - `timeoutable`
   - `trackable`
   - `magic_link` (via `devise-passwordless`)
+  - `passkeys` (via `devise-webauthn`)
 - Devise sign-in layout:
   - `simple_minimal`
   - `card_combined`
@@ -49,6 +50,13 @@ Magic-link behavior:
 - Auto-enables `trackable`
 - Configures development mail delivery to file output at `tmp/mails`
 - Installs a plain-text magic-link template for copy/paste-friendly URLs in development
+
+Passkeys behavior:
+
+- Installs `devise-webauthn`
+- Runs `bin/rails generate devise:webauthn:install --force`
+- Adds `:passkey_authenticatable` to the Devise model
+- Runs migrations for the generated WebAuthn tables
 
 ## Quick Start
 
@@ -105,6 +113,7 @@ Common flags:
 - `--devise_timeoutable` enable Devise timeoutable
 - `--devise_trackable` enable Devise trackable
 - `--devise_magic_link` enable magic-link sign-in
+- `--devise_passkeys` enable passkeys sign-in (WebAuthn)
 
 Feature install options:
 
@@ -120,6 +129,7 @@ Installable features:
 - `timeoutable`
 - `trackable`
 - `magic_link` (automatically installs `trackable`)
+- `passkeys`
 
 ## Development
 

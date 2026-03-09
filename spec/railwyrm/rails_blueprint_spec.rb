@@ -63,5 +63,12 @@ RSpec.describe Railwyrm::RailsBlueprint do
 
       expect(markers).to be_empty
     end
+
+    it "includes devise-webauthn when passkeys sign-in is requested" do
+      config = Railwyrm::Configuration.new(name: "demo_app", workspace: "/tmp", devise_passkeys: true)
+      markers = blueprint.optional_gem_entries(config).map { |entry| entry.fetch(:marker) }
+
+      expect(markers).to include('gem "devise-webauthn"')
+    end
   end
 end

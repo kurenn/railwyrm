@@ -105,6 +105,7 @@ module Railwyrm
         devise_timeoutable: truthy?(payload["devise_timeoutable"]),
         devise_trackable: truthy?(payload["devise_trackable"]),
         devise_magic_link: truthy?(payload["devise_magic_link"]),
+        devise_passkeys: truthy?(payload["devise_passkeys"]),
         dry_run: truthy?(payload["dry_run"]),
         verbose: true
       )
@@ -270,6 +271,10 @@ module Railwyrm
                 <input id="devise_magic_link" name="devise_magic_link" type="checkbox" style="width:auto;" />
                 Enable magic-link sign-in by email
               </label>
+              <label style="display:flex; align-items:center; gap:0.5rem; margin-top:0.4rem;">
+                <input id="devise_passkeys" name="devise_passkeys" type="checkbox" style="width:auto;" />
+                Enable passkeys sign-in via WebAuthn (devise-webauthn)
+              </label>
               <p style="margin:0.2rem 0 0; font-size:0.85rem; color:#9ca3af;">
                 Note: Magic-link sign-in automatically enables Devise trackable.
               </p>
@@ -321,6 +326,7 @@ Password     Forgot password
                 devise_timeoutable: document.getElementById("devise_timeoutable").checked,
                 devise_trackable: document.getElementById("devise_trackable").checked,
                 devise_magic_link: document.getElementById("devise_magic_link").checked,
+                devise_passkeys: document.getElementById("devise_passkeys").checked,
                 sign_in_layout: document.querySelector("input[name='sign_in_layout']:checked")?.value || "card_combined"
               };
 

@@ -147,4 +147,35 @@ RSpec.describe Railwyrm::FeatureInstaller do
       expect(executed).to eq([])
     end
   end
+
+  it "installs passkeys feature into an existing app" do
+    Dir.mktmpdir do |app_path|
+      build_minimal_app!(app_path)
+
+      shell = FeatureInstallerFakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+      installer = described_class.new(app_path: app_path, ui: ui, shell: shell)
+
+      installed = installer.install!(["passkeys"])
+      expect(installed).to eq(["passkeys"])
+
+      gemfile = File.read(File.join(app_path, "Gemfile"))
+      expect(gemfile).to include('gem "devise-webauthn"')
+
+      user_model = File.read(File.join(app_path, "app/models/user.rb"))
+      expect(user_model).to include(":passkey_authenticatable")
+
+      feature_manifest = YAML.safe_load(
+        File.read(File.join(app_path, ".railwyrm/features.yml")),
+        permitted_classes: [],
+        aliases: false
+      )
+      expect(feature_manifest.fetch("features")).to eq(["passkeys"])
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed).to include("bundle install")
+      expect(executed).to include("bin/rails generate devise:webauthn:install --force")
+      expect(executed).to include("bin/rails db:migrate")
+    end
+  end
 end

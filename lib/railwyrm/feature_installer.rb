@@ -60,6 +60,12 @@ module Railwyrm
         end
       end
 
+      if features.include?("passkeys")
+        ui.step("Install passkeys authentication") do
+          enable_passkeys_authentication!
+        end
+      end
+
       feature_state.mark_installed!(requested_features)
 
       ui.success("Feature install complete: #{requested_features.join(', ')}")
@@ -95,6 +101,13 @@ module Railwyrm
         entries << {
           marker: 'gem "devise-passwordless"',
           snippet: 'gem "devise-passwordless"'
+        }
+      end
+
+      if features.include?("passkeys")
+        entries << {
+          marker: 'gem "devise-webauthn"',
+          snippet: 'gem "devise-webauthn"'
         }
       end
 
@@ -157,6 +170,17 @@ module Railwyrm
       ensure_development_mail_file_delivery!
     end
 
+    def enable_passkeys_authentication!
+      if dry_run
+        ui.info("Dry run enabled: passkeys setup skipped.")
+        return
+      end
+
+      shell.run!("bin/rails", "generate", "devise:webauthn:install", "--force", chdir: app_path)
+      ensure_model_includes_passkey_authenticatable!
+      shell.run!("bin/rails", "db:migrate", chdir: app_path)
+    end
+
     def ensure_model_includes_magic_link_authenticatable!
       model_relative_path = "app/models/#{underscore(devise_user_model)}.rb"
       model_path = File.join(app_path, model_relative_path)
@@ -164,6 +188,16 @@ module Railwyrm
 
       model_content = File.read(model_path)
       updated = inject_devise_modules_into_model(model_content, ["magic_link_authenticatable"], model_relative_path)
+      File.write(model_path, updated)
+    end
+
+    def ensure_model_includes_passkey_authenticatable!
+      model_relative_path = "app/models/#{underscore(devise_user_model)}.rb"
+      model_path = File.join(app_path, model_relative_path)
+      raise InvalidConfiguration, "Devise model file not found: #{model_relative_path}" unless File.exist?(model_path)
+
+      model_content = File.read(model_path)
+      updated = inject_devise_modules_into_model(model_content, ["passkey_authenticatable"], model_relative_path)
       File.write(model_path, updated)
     end
 

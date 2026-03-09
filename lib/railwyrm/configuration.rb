@@ -18,6 +18,7 @@ module Railwyrm
       devise_timeoutable: false,
       devise_trackable: false,
       devise_magic_link: false,
+      devise_passkeys: false,
       dry_run: false,
       verbose: false
     )
@@ -31,6 +32,7 @@ module Railwyrm
       @devise_timeoutable = !!devise_timeoutable
       @devise_magic_link = !!devise_magic_link
       @devise_trackable = !!devise_trackable || @devise_magic_link
+      @devise_passkeys = !!devise_passkeys
       @dry_run = dry_run
       @verbose = verbose
 
@@ -61,6 +63,10 @@ module Railwyrm
       @devise_magic_link
     end
 
+    def devise_passkeys?
+      @devise_passkeys
+    end
+
     def app_path
       File.join(workspace, name)
     end
@@ -77,6 +83,7 @@ module Railwyrm
         devise_timeoutable: devise_timeoutable?,
         devise_trackable: devise_trackable?,
         devise_magic_link: devise_magic_link?,
+        devise_passkeys: devise_passkeys?,
         dry_run: dry_run,
         verbose: verbose
       }
@@ -102,6 +109,9 @@ module Railwyrm
       end
       if devise_trackable? && !install_devise_user?
         raise InvalidConfiguration, "Devise trackable requires generating a Devise user model."
+      end
+      if devise_passkeys? && !install_devise_user?
+        raise InvalidConfiguration, "Devise passkeys requires generating a Devise user model."
       end
 
       return if SIGN_IN_LAYOUTS.include?(sign_in_layout)
