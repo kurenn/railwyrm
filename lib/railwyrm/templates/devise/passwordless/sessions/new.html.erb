@@ -1,0 +1,62 @@
+<% email_value = params.dig(resource_name, :email) || params.dig(resource_name, "email") || resource&.email %>
+<% remember_checked = params.dig(resource_name, :remember_me).to_s == "1" || params.dig(resource_name, "remember_me").to_s == "1" %>
+
+<div class="w-full bg-secondary_subtle px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+  <div class="mx-auto flex w-full max-w-3xl flex-col justify-center gap-6 sm:gap-8 lg:max-w-4xl">
+    <div class="space-y-2 text-center">
+      <p class="text-sm font-semibold uppercase tracking-wide text-brand-secondary">Passwordless sign-in</p>
+      <h1 class="text-display-sm font-semibold text-primary">Email me a magic link</h1>
+      <p class="text-sm text-tertiary">We'll send a secure sign-in link if your account exists.</p>
+    </div>
+
+    <div class="rounded-2xl bg-primary p-6 shadow-xl ring-1 ring-secondary sm:p-8 lg:p-10 xl:p-12">
+      <% if flash[:alert].present? %>
+        <div class="mb-4 rounded-lg bg-error-primary px-3 py-2 text-sm text-error-primary">
+          <%= flash[:alert] %>
+        </div>
+      <% end %>
+
+      <% if flash[:notice].present? %>
+        <div class="mb-4 rounded-lg bg-success-primary px-3 py-2 text-sm text-success-primary">
+          <%= flash[:notice] %>
+        </div>
+      <% end %>
+
+      <% passwordless_session_helper = :"passwordless_#{resource_name}_session_path" %>
+      <% passwordless_session_url = respond_to?(passwordless_session_helper) ? public_send(passwordless_session_helper) : session_path(resource_name) %>
+      <%= form_for(resource, as: resource_name, url: passwordless_session_url, html: { class: "space-y-5 sm:space-y-6" }) do |f| %>
+        <%= render Ui::Input::Component.new(
+          label: "Email",
+          type: "email",
+          name: "#{resource_name}[email]",
+          value: email_value,
+          placeholder: "you@company.com",
+          required: true,
+          size: :md
+        ) %>
+
+        <% if devise_mapping.rememberable? %>
+          <%= render Ui::Checkbox::Component.new(
+            label: "Remember me",
+            name: "#{resource_name}[remember_me]",
+            value: "1",
+            checked: remember_checked,
+            size: :sm
+          ) %>
+        <% end %>
+
+        <%= render Ui::Button::Component.new(type: "submit", size: :md, class: "w-full justify-center") do %>
+          Send magic link
+        <% end %>
+      <% end %>
+
+      <% password_sign_in_helper = :"new_#{resource_name}_session_path" %>
+      <% if respond_to?(password_sign_in_helper) %>
+        <p class="mt-5 text-center text-sm text-tertiary">
+          Prefer password login?
+          <%= link_to "Use password instead", public_send(password_sign_in_helper), class: "font-semibold text-brand-secondary hover:text-brand-secondary_hover" %>
+        </p>
+      <% end %>
+    </div>
+  </div>
+</div>

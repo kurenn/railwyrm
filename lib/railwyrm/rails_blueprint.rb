@@ -42,6 +42,19 @@ module Railwyrm
       ]
     end
 
+    def optional_gem_entries(configuration)
+      entries = []
+
+      if configuration.devise_magic_link?
+        entries << {
+          marker: 'gem "devise-passwordless"',
+          snippet: 'gem "devise-passwordless"'
+        }
+      end
+
+      entries
+    end
+
     def post_bundle_steps(configuration)
       steps = [
         ["Install Tailwind CSS", ["./bin/rails", "tailwindcss:install"]],

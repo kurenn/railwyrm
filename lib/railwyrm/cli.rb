@@ -269,6 +269,8 @@ module Railwyrm
     option :devise_confirmable, type: :boolean, default: false, desc: "Enable Devise confirmable module"
     option :devise_lockable, type: :boolean, default: false, desc: "Enable Devise lockable module"
     option :devise_timeoutable, type: :boolean, default: false, desc: "Enable Devise timeoutable module"
+    option :devise_trackable, type: :boolean, default: false, desc: "Enable Devise trackable module"
+    option :devise_magic_link, type: :boolean, default: false, desc: "Enable magic-link sign-in via email"
     option :recipe, type: :string, desc: "Recipe name (e.g. ats) or path to recipe.yml"
     option :with, type: :array, default: [], desc: "Enable optional recipe modules when applying a recipe"
     option :deploy, type: :string, desc: "Deploy preset to apply with the recipe (e.g. render)"
@@ -464,6 +466,8 @@ module Railwyrm
       devise_confirmable = options[:devise_confirmable]
       devise_lockable = options[:devise_lockable]
       devise_timeoutable = options[:devise_timeoutable]
+      devise_trackable = options[:devise_trackable]
+      devise_magic_link = options[:devise_magic_link]
 
       if interactive
         name = prompt.ask("⚒️  App name (snake_case):", default: name, required: true)
@@ -485,10 +489,20 @@ module Railwyrm
               "⏱️ Enable Devise timeoutable (auto sign out inactive users)?",
               default: devise_timeoutable
             )
+            devise_trackable = prompt.yes?(
+              "📈 Enable Devise trackable (track sign in count, timestamps, and IPs)?",
+              default: devise_trackable
+            )
+            devise_magic_link = prompt.yes?(
+              "✨ Enable magic-link sign-in by email?",
+              default: devise_magic_link
+            )
           else
             devise_confirmable = false
             devise_lockable = false
             devise_timeoutable = false
+            devise_trackable = false
+            devise_magic_link = false
           end
         end
 
@@ -505,6 +519,11 @@ module Railwyrm
         raise InvalidConfiguration, "APP_NAME is required when --interactive=false"
       end
 
+      if devise_magic_link && !devise_trackable
+        ui.info("Magic-link sign-in requires Devise trackable; enabling trackable automatically.")
+        devise_trackable = true
+      end
+
       Configuration.new(
         name: name,
         workspace: workspace,
@@ -514,6 +533,8 @@ module Railwyrm
         devise_confirmable: devise_confirmable,
         devise_lockable: devise_lockable,
         devise_timeoutable: devise_timeoutable,
+        devise_trackable: devise_trackable,
+        devise_magic_link: devise_magic_link,
         dry_run: options[:dry_run],
         verbose: options[:verbose]
       )

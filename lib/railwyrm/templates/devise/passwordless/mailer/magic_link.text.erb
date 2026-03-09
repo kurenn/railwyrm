@@ -1,0 +1,8 @@
+Hello <%= @resource.email %>!
+
+Use this magic link to sign in:
+<%= magic_link_url(@resource, @scope_name => { email: @resource.email, token: @token, remember_me: @remember_me }) %>
+
+This link will expire in <%= Devise.passwordless_login_within.inspect %>.
+
+If you did not request this, you can ignore this email.
