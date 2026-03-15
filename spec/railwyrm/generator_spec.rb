@@ -151,7 +151,7 @@ RSpec.describe Railwyrm::Generator do
       expect(gemfile).to include('gem "rspec-rails"')
       expect(gemfile).to include('gem "dotenv-rails"')
       expect(gemfile).to include('gem "ruby-lsp", require: false')
-      expect(gemfile).to include('gem "claude-on-rails"')
+      expect(gemfile).to include('gem "claude-on-rails", github: "kurenn/claude-on-rails", branch: "main"')
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed).to include("bundle install")

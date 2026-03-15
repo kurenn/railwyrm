@@ -44,7 +44,7 @@ module Railwyrm
           marker: 'gem "claude-on-rails"',
           snippet: <<~RUBY.strip
             group :development do
-              gem "claude-on-rails"
+              gem "claude-on-rails", github: "kurenn/claude-on-rails", branch: "main"
             end
           RUBY
         }

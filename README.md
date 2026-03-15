@@ -23,7 +23,7 @@ Every generated app includes:
 - Active Storage (`bin/rails active_storage:install`)
 - ActionText (`bin/rails action_text:install`)
 - Untitled UI (`gem "untitled_ui"` + installer)
-- Claude on Rails (`gem "claude-on-rails"` + swarm generator)
+- Claude on Rails (`gem "claude-on-rails", github: "kurenn/claude-on-rails", branch: "main"` + swarm generator)
 
 ## Wizard Features
 
