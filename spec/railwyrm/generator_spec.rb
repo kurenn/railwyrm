@@ -100,6 +100,23 @@ RSpec.describe Railwyrm::Generator do
         )
       end
 
+      if command[0] == "bin/rails" && command[1] == "generate" && command[2] == "devise:install"
+        FileUtils.mkdir_p(File.join(chdir, "config/initializers"))
+        File.write(
+          File.join(chdir, "config/initializers/devise.rb"),
+          <<~RUBY
+            Devise.setup do |config|
+              config.mailer_sender = 'please-change-me-at-config-initializers-devise@example.com'
+              require 'devise/orm/active_record'
+              config.case_insensitive_keys = [:email]
+              config.strip_whitespace_keys = [:email]
+              config.skip_session_storage = [:http_auth]
+              # config.paranoid = true
+            end
+          RUBY
+        )
+      end
+
       if command[0] == "bin/rails" && command[1] == "generate" && command[2] == "devise:passwordless:install"
         FileUtils.mkdir_p(File.join(chdir, "app/views/devise/mailer"))
         File.write(
@@ -180,9 +197,16 @@ RSpec.describe Railwyrm::Generator do
       expect(password_view).to include("Send reset instructions")
 
       development_config = File.read(File.join(configuration.app_path, "config/environments/development.rb"))
-      expect(development_config).to include("config.after_initialize do")
+      expect(development_config).to include("  config.after_initialize do")
       expect(development_config).to include("Bullet.enable = true")
       expect(development_config).to include("Bullet.rails_logger = true")
+
+      devise_initializer = File.read(File.join(configuration.app_path, "config/initializers/devise.rb"))
+      expect(devise_initializer).to include('config.mailer_sender = "please-change-me-at-config-initializers-devise@example.com"')
+      expect(devise_initializer).to include('require "devise/orm/active_record"')
+      expect(devise_initializer).to include("config.case_insensitive_keys = [ :email ]")
+      expect(devise_initializer).to include("config.strip_whitespace_keys = [ :email ]")
+      expect(devise_initializer).to include("config.skip_session_storage = [ :http_auth ]")
 
       ci_workflow = File.read(File.join(configuration.app_path, ".github/workflows/ci.yml"))
       expect(ci_workflow).to include("name: CI")

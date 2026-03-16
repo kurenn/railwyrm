@@ -84,6 +84,7 @@ CI behavior:
 - Generates `.github/workflows/ci.yml` by default for new apps
 - Provides `railwyrm feature install ci --app /path/to/app` for existing apps
 - Workflow runs database prep, RSpec, RuboCop, and Brakeman on push/pull_request
+- Generator normalizes default Bullet/Devise config formatting to keep RuboCop green in fresh apps
 
 ## Quick Start
 
