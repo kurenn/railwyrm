@@ -47,6 +47,7 @@ RSpec.describe Railwyrm::RailsBlueprint do
 
       expect(markers).to include('gem "ruby-lsp"')
       expect(markers).to include('gem "brakeman"')
+      expect(markers).to include('gem "rubocop-rails"')
       expect(markers).to include('gem "bullet"')
       expect(snippets).to include('gem "dotenv-rails"')
       expect(snippets).to include('gem "rubocop", require: false')
