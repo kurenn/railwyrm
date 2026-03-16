@@ -22,6 +22,7 @@ Every generated app includes:
 - Brakeman (`gem "brakeman", require: false` in development/test)
 - RuboCop (`gem "rubocop"` + `gem "rubocop-rails"` in development/test)
 - Bullet (`gem "bullet"` in development + auto-configured in `config/environments/development.rb`)
+- GitHub Actions CI (`.github/workflows/ci.yml` running RSpec, RuboCop, and Brakeman)
 - Devise (`gem "devise"` + install + user generation by default)
 - Active Storage (`bin/rails active_storage:install`)
 - ActionText (`bin/rails action_text:install`)
@@ -78,6 +79,13 @@ Passkeys smoke test checklist (generated app):
 2. Create a passkey and confirm the page no longer forces enrollment on next sign-in.
 3. Sign out and use "Sign in with passkey" from the sign-in page to confirm passwordless passkey authentication works.
 
+CI behavior:
+
+- Generates `.github/workflows/ci.yml` by default for new apps
+- Provides `railwyrm feature install ci --app /path/to/app` for existing apps
+- Workflow runs database prep, RSpec, RuboCop, and Brakeman on push/pull_request
+- Generator normalizes default Bullet/Devise config formatting to keep RuboCop green in fresh apps
+
 ## Quick Start
 
 ```bash
@@ -99,6 +107,7 @@ bundle exec ruby exe/railwyrm feature list
 bundle exec ruby exe/railwyrm feature status --app /path/to/existing_app
 bundle exec ruby exe/railwyrm feature sync --app /path/to/existing_app
 bundle exec ruby exe/railwyrm feature install magic_link --app /path/to/existing_app
+bundle exec ruby exe/railwyrm feature install ci --app /path/to/existing_app
 ```
 
 Feature state tracking:
@@ -150,6 +159,7 @@ Installable features:
 - `trackable`
 - `magic_link` (automatically installs `trackable`)
 - `passkeys`
+- `ci`
 
 ## Development
 

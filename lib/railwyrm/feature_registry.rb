@@ -26,6 +26,10 @@ module Railwyrm
       "passkeys" => {
         description: "Enable passkeys sign-in with WebAuthn (devise-webauthn)",
         dependencies: []
+      },
+      "ci" => {
+        description: "Add a GitHub Actions CI workflow (RSpec, RuboCop, Brakeman)",
+        dependencies: []
       }
     }.freeze
 

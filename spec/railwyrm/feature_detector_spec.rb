@@ -36,8 +36,11 @@ RSpec.describe Railwyrm::FeatureDetector do
         RUBY
       )
 
+      FileUtils.mkdir_p(File.join(app_path, ".github/workflows"))
+      File.write(File.join(app_path, ".github/workflows/ci.yml"), "name: CI\n")
+
       detector = described_class.new(app_path: app_path, devise_user_model: "User")
-      expect(detector.detect).to eq(%w[confirmable trackable magic_link passkeys])
+      expect(detector.detect).to eq(%w[confirmable trackable magic_link passkeys ci])
     end
   end
 end

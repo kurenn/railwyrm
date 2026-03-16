@@ -69,6 +69,14 @@ module Railwyrm
         ensure_bullet_development_configuration!
       end
 
+      ui.step("Normalize generated lint defaults") do
+        ensure_devise_initializer_lint_defaults!
+      end
+
+      ui.step("Configure GitHub Actions CI workflow") do
+        ensure_ci_workflow!
+      end
+
       ui.step("Record installed feature state") do
         persist_feature_state!
       end
@@ -563,18 +571,62 @@ module Railwyrm
 
       bullet_block = <<~RUBY
 
-          config.after_initialize do
-            Bullet.enable = true
-            Bullet.alert = true
-            Bullet.bullet_logger = true
-            Bullet.rails_logger = true
-          end
+        config.after_initialize do
+          Bullet.enable = true
+          Bullet.alert = true
+          Bullet.bullet_logger = true
+          Bullet.rails_logger = true
+        end
       RUBY
 
-      updated = content.sub(/\nend\s*\z/, "#{bullet_block}\nend\n")
+      updated = content.sub(/\nend\s*\z/, "\n#{indent_block(bullet_block.rstrip, 2)}\nend\n")
       raise InvalidConfiguration, "Unable to inject Bullet config into #{development_path}" if updated == content
 
       File.write(development_path, updated)
+    end
+
+    def ensure_devise_initializer_lint_defaults!
+      if configuration.dry_run
+        ui.info("Dry run enabled: Devise lint normalization skipped.")
+        return
+      end
+
+      initializer_path = File.join(configuration.app_path, "config/initializers/devise.rb")
+      return unless File.exist?(initializer_path)
+
+      content = File.read(initializer_path)
+      updated = content.dup
+
+      updated.gsub!(
+        "config.mailer_sender = 'please-change-me-at-config-initializers-devise@example.com'",
+        'config.mailer_sender = "please-change-me-at-config-initializers-devise@example.com"'
+      )
+      updated.gsub!("require 'devise/orm/active_record'", 'require "devise/orm/active_record"')
+      updated.gsub!("config.case_insensitive_keys = [:email]", "config.case_insensitive_keys = [ :email ]")
+      updated.gsub!("config.strip_whitespace_keys = [:email]", "config.strip_whitespace_keys = [ :email ]")
+      updated.gsub!("config.skip_session_storage = [:http_auth]", "config.skip_session_storage = [ :http_auth ]")
+
+      File.write(initializer_path, updated) unless updated == content
+    end
+
+    def ensure_ci_workflow!
+      if configuration.dry_run
+        ui.info("Dry run enabled: CI workflow setup skipped.")
+        return
+      end
+
+      source = File.join(
+        File.expand_path("..", __dir__),
+        "railwyrm",
+        "templates",
+        "ci",
+        "github_actions_ci.yml"
+      )
+      raise InvalidConfiguration, "CI workflow template missing: #{source}" unless File.exist?(source)
+
+      destination = File.join(configuration.app_path, ".github/workflows/ci.yml")
+      FileUtils.mkdir_p(File.dirname(destination))
+      FileUtils.cp(source, destination)
     end
 
     def selected_optional_devise_modules
@@ -587,7 +639,7 @@ module Railwyrm
     end
 
     def selected_feature_registry_names
-      selected = selected_optional_devise_modules
+      selected = ["ci"] + selected_optional_devise_modules
       selected << "magic_link" if configuration.devise_magic_link?
       selected << "passkeys" if configuration.devise_passkeys?
       selected.uniq
@@ -761,6 +813,11 @@ module Railwyrm
 
     def app_display_name
       configuration.name.to_s.tr("-", "_").split("_").map(&:capitalize).join(" ")
+    end
+
+    def indent_block(content, spaces)
+      prefix = " " * spaces
+      content.lines.map { |line| line.strip.empty? ? line : "#{prefix}#{line}" }.join
     end
   end
 end

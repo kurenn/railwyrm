@@ -4,7 +4,7 @@ require "spec_helper"
 
 RSpec.describe Railwyrm::FeatureRegistry do
   it "lists supported features" do
-    expect(described_class.list).to include("confirmable", "lockable", "timeoutable", "trackable", "magic_link", "passkeys")
+    expect(described_class.list).to include("confirmable", "lockable", "timeoutable", "trackable", "magic_link", "passkeys", "ci")
   end
 
   it "resolves dependencies for requested features" do

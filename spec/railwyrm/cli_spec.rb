@@ -41,7 +41,7 @@ RSpec.describe Railwyrm::CLI do
         installed: ["trackable"],
         tracked_only: ["confirmable"],
         detected_only: [],
-        available: %w[confirmable lockable timeoutable trackable magic_link passkeys]
+        available: %w[confirmable lockable timeoutable trackable magic_link passkeys ci]
       }
     )
     allow(Railwyrm::FeatureStatus).to receive(:new).and_return(status_service)

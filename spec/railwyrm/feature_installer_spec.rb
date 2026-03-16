@@ -261,4 +261,32 @@ RSpec.describe Railwyrm::FeatureInstaller do
       expect(executed).to include("bin/rails db:migrate")
     end
   end
+
+  it "installs ci feature into an existing app" do
+    Dir.mktmpdir do |app_path|
+      build_minimal_app!(app_path)
+
+      shell = FeatureInstallerFakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+      installer = described_class.new(app_path: app_path, ui: ui, shell: shell)
+
+      installed = installer.install!(["ci"])
+      expect(installed).to eq(["ci"])
+
+      workflow_path = File.join(app_path, ".github/workflows/ci.yml")
+      expect(File).to exist(workflow_path)
+      workflow = File.read(workflow_path)
+      expect(workflow).to include("name: CI")
+      expect(workflow).to include("bundle exec rspec")
+      expect(workflow).to include("bundle exec rubocop")
+      expect(workflow).to include("bundle exec brakeman")
+
+      feature_manifest = YAML.safe_load(
+        File.read(File.join(app_path, ".railwyrm/features.yml")),
+        permitted_classes: [],
+        aliases: false
+      )
+      expect(feature_manifest.fetch("features")).to eq(["ci"])
+    end
+  end
 end
