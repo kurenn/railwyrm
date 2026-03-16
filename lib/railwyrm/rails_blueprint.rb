@@ -41,6 +41,24 @@ module Railwyrm
           RUBY
         },
         {
+          marker: 'gem "brakeman"',
+          snippet: <<~RUBY.strip
+            group :development, :test do
+              gem "brakeman", require: false
+              gem "rubocop", require: false
+              gem "rubocop-rails", require: false
+            end
+          RUBY
+        },
+        {
+          marker: 'gem "bullet"',
+          snippet: <<~RUBY.strip
+            group :development do
+              gem "bullet"
+            end
+          RUBY
+        },
+        {
           marker: 'gem "claude-on-rails"',
           snippet: <<~RUBY.strip
             group :development do
