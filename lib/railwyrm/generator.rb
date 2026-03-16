@@ -65,6 +65,10 @@ module Railwyrm
         apply_devise_view_templates!
       end
 
+      ui.step("Configure development quality tools") do
+        ensure_bullet_development_configuration!
+      end
+
       ui.step("Record installed feature state") do
         persist_feature_state!
       end
@@ -543,6 +547,34 @@ module Railwyrm
       end
 
       File.write(development_path, updated) unless updated == content
+    end
+
+    def ensure_bullet_development_configuration!
+      if configuration.dry_run
+        ui.info("Dry run enabled: Bullet development config skipped.")
+        return
+      end
+
+      development_path = File.join(configuration.app_path, "config/environments/development.rb")
+      return unless File.exist?(development_path)
+
+      content = File.read(development_path)
+      return if content.include?("Bullet.enable = true")
+
+      bullet_block = <<~RUBY
+
+          config.after_initialize do
+            Bullet.enable = true
+            Bullet.alert = true
+            Bullet.bullet_logger = true
+            Bullet.rails_logger = true
+          end
+      RUBY
+
+      updated = content.sub(/\nend\s*\z/, "#{bullet_block}\nend\n")
+      raise InvalidConfiguration, "Unable to inject Bullet config into #{development_path}" if updated == content
+
+      File.write(development_path, updated)
     end
 
     def selected_optional_devise_modules

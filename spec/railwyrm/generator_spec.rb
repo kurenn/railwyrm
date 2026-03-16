@@ -151,6 +151,10 @@ RSpec.describe Railwyrm::Generator do
       expect(gemfile).to include('gem "rspec-rails"')
       expect(gemfile).to include('gem "dotenv-rails"')
       expect(gemfile).to include('gem "ruby-lsp", require: false')
+      expect(gemfile).to include('gem "brakeman", require: false')
+      expect(gemfile).to include('gem "rubocop", require: false')
+      expect(gemfile).to include('gem "rubocop-rails", require: false')
+      expect(gemfile).to include('gem "bullet"')
       expect(gemfile).to include('gem "claude-on-rails", github: "kurenn/claude-on-rails", branch: "main"')
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
@@ -174,6 +178,11 @@ RSpec.describe Railwyrm::Generator do
 
       password_view = File.read(File.join(configuration.app_path, "app/views/devise/passwords/new.html.erb"))
       expect(password_view).to include("Send reset instructions")
+
+      development_config = File.read(File.join(configuration.app_path, "config/environments/development.rb"))
+      expect(development_config).to include("config.after_initialize do")
+      expect(development_config).to include("Bullet.enable = true")
+      expect(development_config).to include("Bullet.rails_logger = true")
 
       app_layout = File.read(File.join(configuration.app_path, "app/views/layouts/application.html.erb"))
       expect(app_layout).to include("justify-center")
