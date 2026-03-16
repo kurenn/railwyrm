@@ -67,6 +67,12 @@ module Railwyrm
         end
       end
 
+      if features.include?("ci")
+        ui.step("Install GitHub Actions CI workflow") do
+          enable_ci_workflow!
+        end
+      end
+
       feature_state.mark_installed!(requested_features)
 
       ui.success("Feature install complete: #{requested_features.join(', ')}")
@@ -191,6 +197,15 @@ module Railwyrm
       shell.run!("bin/rails", "db:migrate", chdir: app_path)
     end
 
+    def enable_ci_workflow!
+      if dry_run
+        ui.info("Dry run enabled: CI workflow setup skipped.")
+        return
+      end
+
+      ensure_ci_workflow_file!
+    end
+
     def ensure_model_includes_magic_link_authenticatable!
       model_relative_path = "app/models/#{underscore(devise_user_model)}.rb"
       model_path = File.join(app_path, model_relative_path)
@@ -292,6 +307,15 @@ module Railwyrm
       FileUtils.mkdir_p(File.dirname(destination))
       content = File.read(source).gsub("__PASSKEYS_SUPPORT_NOTE__", PASSKEYS_SUPPORT_NOTE)
       File.write(destination, content)
+    end
+
+    def ensure_ci_workflow_file!
+      source = File.join(template_root, "ci", "github_actions_ci.yml")
+      raise InvalidConfiguration, "CI workflow template missing: #{source}" unless File.exist?(source)
+
+      destination = File.join(app_path, ".github/workflows/ci.yml")
+      FileUtils.mkdir_p(File.dirname(destination))
+      FileUtils.cp(source, destination)
     end
 
     def ensure_devise_paranoid_mode!

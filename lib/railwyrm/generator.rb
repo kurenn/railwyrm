@@ -69,6 +69,10 @@ module Railwyrm
         ensure_bullet_development_configuration!
       end
 
+      ui.step("Configure GitHub Actions CI workflow") do
+        ensure_ci_workflow!
+      end
+
       ui.step("Record installed feature state") do
         persist_feature_state!
       end
@@ -577,6 +581,26 @@ module Railwyrm
       File.write(development_path, updated)
     end
 
+    def ensure_ci_workflow!
+      if configuration.dry_run
+        ui.info("Dry run enabled: CI workflow setup skipped.")
+        return
+      end
+
+      source = File.join(
+        File.expand_path("..", __dir__),
+        "railwyrm",
+        "templates",
+        "ci",
+        "github_actions_ci.yml"
+      )
+      raise InvalidConfiguration, "CI workflow template missing: #{source}" unless File.exist?(source)
+
+      destination = File.join(configuration.app_path, ".github/workflows/ci.yml")
+      FileUtils.mkdir_p(File.dirname(destination))
+      FileUtils.cp(source, destination)
+    end
+
     def selected_optional_devise_modules
       modules = []
       modules << "confirmable" if configuration.devise_confirmable?
@@ -587,7 +611,7 @@ module Railwyrm
     end
 
     def selected_feature_registry_names
-      selected = selected_optional_devise_modules
+      selected = ["ci"] + selected_optional_devise_modules
       selected << "magic_link" if configuration.devise_magic_link?
       selected << "passkeys" if configuration.devise_passkeys?
       selected.uniq

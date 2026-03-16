@@ -184,6 +184,12 @@ RSpec.describe Railwyrm::Generator do
       expect(development_config).to include("Bullet.enable = true")
       expect(development_config).to include("Bullet.rails_logger = true")
 
+      ci_workflow = File.read(File.join(configuration.app_path, ".github/workflows/ci.yml"))
+      expect(ci_workflow).to include("name: CI")
+      expect(ci_workflow).to include("bundle exec rspec")
+      expect(ci_workflow).to include("bundle exec rubocop")
+      expect(ci_workflow).to include("bundle exec brakeman")
+
       app_layout = File.read(File.join(configuration.app_path, "app/views/layouts/application.html.erb"))
       expect(app_layout).to include("justify-center")
       expect(app_layout).to include("w-full")
@@ -196,7 +202,7 @@ RSpec.describe Railwyrm::Generator do
         permitted_classes: [],
         aliases: false
       )
-      expect(feature_manifest.fetch("features")).to eq([])
+      expect(feature_manifest.fetch("features")).to eq(["ci"])
     end
   end
 
@@ -377,7 +383,7 @@ RSpec.describe Railwyrm::Generator do
         permitted_classes: [],
         aliases: false
       )
-      expect(feature_manifest.fetch("features")).to eq(%w[trackable magic_link])
+      expect(feature_manifest.fetch("features")).to eq(%w[ci trackable magic_link])
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed).to include("bin/rails generate devise:passwordless:install --force")
@@ -408,7 +414,7 @@ RSpec.describe Railwyrm::Generator do
         permitted_classes: [],
         aliases: false
       )
-      expect(feature_manifest.fetch("features")).to eq(%w[passkeys])
+      expect(feature_manifest.fetch("features")).to eq(%w[ci passkeys])
 
       routes = File.read(File.join(configuration.app_path, "config/routes.rb"))
       expect(routes).to include('devise_for :users, controllers: { passkeys: "users/passkeys" }')

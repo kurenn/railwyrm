@@ -11,6 +11,7 @@ module Railwyrm
       model_content = read_optional_file("app/models/#{underscore(devise_user_model)}.rb")
       routes_content = read_optional_file("config/routes.rb")
       gemfile_content = read_optional_file("Gemfile")
+      ci_workflow = read_optional_file(".github/workflows/ci.yml")
       devise_modules = extract_devise_modules(model_content)
 
       detected = []
@@ -29,6 +30,8 @@ module Railwyrm
          gemfile_content.include?('gem "devise-webauthn"')
         detected << "passkeys"
       end
+
+      detected << "ci" unless ci_workflow.strip.empty?
 
       ordered_features(detected)
     end
