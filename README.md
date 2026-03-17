@@ -2,6 +2,8 @@
 
 Railwyrm is a Ruby CLI that bootstraps Rails apps with an opinionated default stack and an interactive feature wizard.
 
+Project page: [docs/index.html](docs/index.html) (Tailwind CSS / GitHub Pages-ready)
+
 ## Product Focus
 
 - Deterministic Rails app generation
