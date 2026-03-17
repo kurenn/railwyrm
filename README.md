@@ -86,6 +86,13 @@ CI behavior:
 - Workflow runs database prep, RSpec, RuboCop, and Brakeman on push/pull_request
 - Generator normalizes default Bullet/Devise config formatting to keep RuboCop green in fresh apps
 
+Quality feature behavior:
+
+- Provides `railwyrm feature install quality --app /path/to/app` for existing apps
+- Automatically installs dependency `ci` (workflow setup) when missing
+- Ensures `brakeman`, `rubocop`, `rubocop-rails`, and `bullet` gems are present
+- Injects Bullet development config (`Bullet.enable`, alerts, and Rails logger hooks)
+
 ## Quick Start
 
 ```bash
@@ -108,6 +115,7 @@ bundle exec ruby exe/railwyrm feature status --app /path/to/existing_app
 bundle exec ruby exe/railwyrm feature sync --app /path/to/existing_app
 bundle exec ruby exe/railwyrm feature install magic_link --app /path/to/existing_app
 bundle exec ruby exe/railwyrm feature install ci --app /path/to/existing_app
+bundle exec ruby exe/railwyrm feature install quality --app /path/to/existing_app
 ```
 
 Feature state tracking:
@@ -160,6 +168,7 @@ Installable features:
 - `magic_link` (automatically installs `trackable`)
 - `passkeys`
 - `ci`
+- `quality` (automatically installs `ci`)
 
 ## Development
 

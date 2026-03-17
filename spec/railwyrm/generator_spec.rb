@@ -226,7 +226,7 @@ RSpec.describe Railwyrm::Generator do
         permitted_classes: [],
         aliases: false
       )
-      expect(feature_manifest.fetch("features")).to eq(["ci"])
+      expect(feature_manifest.fetch("features")).to eq(%w[ci quality])
     end
   end
 
@@ -407,7 +407,7 @@ RSpec.describe Railwyrm::Generator do
         permitted_classes: [],
         aliases: false
       )
-      expect(feature_manifest.fetch("features")).to eq(%w[ci trackable magic_link])
+      expect(feature_manifest.fetch("features")).to eq(%w[ci quality trackable magic_link])
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed).to include("bin/rails generate devise:passwordless:install --force")
@@ -438,7 +438,7 @@ RSpec.describe Railwyrm::Generator do
         permitted_classes: [],
         aliases: false
       )
-      expect(feature_manifest.fetch("features")).to eq(%w[ci passkeys])
+      expect(feature_manifest.fetch("features")).to eq(%w[ci quality passkeys])
 
       routes = File.read(File.join(configuration.app_path, "config/routes.rb"))
       expect(routes).to include('devise_for :users, controllers: { passkeys: "users/passkeys" }')

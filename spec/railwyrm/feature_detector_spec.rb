@@ -11,6 +11,10 @@ RSpec.describe Railwyrm::FeatureDetector do
           source "https://rubygems.org"
           gem "devise-passwordless"
           gem "devise-webauthn"
+          gem "brakeman", require: false
+          gem "rubocop", require: false
+          gem "rubocop-rails", require: false
+          gem "bullet"
         RUBY
       )
 
@@ -39,8 +43,20 @@ RSpec.describe Railwyrm::FeatureDetector do
       FileUtils.mkdir_p(File.join(app_path, ".github/workflows"))
       File.write(File.join(app_path, ".github/workflows/ci.yml"), "name: CI\n")
 
+      FileUtils.mkdir_p(File.join(app_path, "config/environments"))
+      File.write(
+        File.join(app_path, "config/environments/development.rb"),
+        <<~RUBY
+          Rails.application.configure do
+            config.after_initialize do
+              Bullet.enable = true
+            end
+          end
+        RUBY
+      )
+
       detector = described_class.new(app_path: app_path, devise_user_model: "User")
-      expect(detector.detect).to eq(%w[confirmable trackable magic_link passkeys ci])
+      expect(detector.detect).to eq(%w[confirmable trackable magic_link passkeys ci quality])
     end
   end
 end

@@ -73,6 +73,12 @@ module Railwyrm
         end
       end
 
+      if features.include?("quality")
+        ui.step("Configure development quality tooling") do
+          enable_quality_tooling!
+        end
+      end
+
       feature_state.mark_installed!(requested_features)
 
       ui.success("Feature install complete: #{requested_features.join(', ')}")
@@ -116,6 +122,29 @@ module Railwyrm
           marker: 'gem "devise-webauthn"',
           snippet: 'gem "devise-webauthn"'
         }
+      end
+
+      if features.include?("quality")
+        entries.concat(
+          [
+            {
+              marker: 'gem "brakeman"',
+              snippet: 'gem "brakeman", require: false'
+            },
+            {
+              marker: 'gem "rubocop"',
+              snippet: 'gem "rubocop", require: false'
+            },
+            {
+              marker: 'gem "rubocop-rails"',
+              snippet: 'gem "rubocop-rails", require: false'
+            },
+            {
+              marker: 'gem "bullet"',
+              snippet: 'gem "bullet"'
+            }
+          ]
+        )
       end
 
       return false if entries.empty?
@@ -204,6 +233,15 @@ module Railwyrm
       end
 
       ensure_ci_workflow_file!
+    end
+
+    def enable_quality_tooling!
+      if dry_run
+        ui.info("Dry run enabled: quality tooling setup skipped.")
+        return
+      end
+
+      ensure_bullet_development_configuration!
     end
 
     def ensure_model_includes_magic_link_authenticatable!
@@ -316,6 +354,29 @@ module Railwyrm
       destination = File.join(app_path, ".github/workflows/ci.yml")
       FileUtils.mkdir_p(File.dirname(destination))
       FileUtils.cp(source, destination)
+    end
+
+    def ensure_bullet_development_configuration!
+      development_path = File.join(app_path, "config/environments/development.rb")
+      return unless File.exist?(development_path)
+
+      content = File.read(development_path)
+      return if content.include?("Bullet.enable = true")
+
+      bullet_block = <<~RUBY
+
+        config.after_initialize do
+          Bullet.enable = true
+          Bullet.alert = true
+          Bullet.bullet_logger = true
+          Bullet.rails_logger = true
+        end
+      RUBY
+
+      updated = content.sub(/\nend\s*\z/, "\n#{indent_block(bullet_block.rstrip, 2)}\nend\n")
+      raise InvalidConfiguration, "Unable to inject Bullet config into #{development_path}" if updated == content
+
+      File.write(development_path, updated)
     end
 
     def ensure_devise_paranoid_mode!
@@ -693,6 +754,11 @@ module Railwyrm
 
     def app_display_name
       File.basename(app_path).tr("-", "_").split("_").map(&:capitalize).join(" ")
+    end
+
+    def indent_block(value, spaces)
+      indent = " " * spaces
+      value.lines.map { |line| line.strip.empty? ? line : "#{indent}#{line}" }.join
     end
   end
 end

@@ -12,6 +12,7 @@ module Railwyrm
       routes_content = read_optional_file("config/routes.rb")
       gemfile_content = read_optional_file("Gemfile")
       ci_workflow = read_optional_file(".github/workflows/ci.yml")
+      development_content = read_optional_file("config/environments/development.rb")
       devise_modules = extract_devise_modules(model_content)
 
       detected = []
@@ -33,6 +34,10 @@ module Railwyrm
 
       detected << "ci" unless ci_workflow.strip.empty?
 
+      if quality_tooling_detected?(gemfile_content, development_content) && detected.include?("ci")
+        detected << "quality"
+      end
+
       ordered_features(detected)
     end
 
@@ -51,6 +56,14 @@ module Railwyrm
       values.each_with_object([]) do |value, ordered|
         ordered << value unless ordered.include?(value)
       end
+    end
+
+    def quality_tooling_detected?(gemfile_content, development_content)
+      gemfile_content.include?('gem "brakeman"') &&
+        gemfile_content.include?('gem "rubocop"') &&
+        gemfile_content.include?('gem "rubocop-rails"') &&
+        gemfile_content.include?('gem "bullet"') &&
+        development_content.include?("Bullet.enable = true")
     end
 
     def extract_devise_modules(model_content)

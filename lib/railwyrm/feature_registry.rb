@@ -30,6 +30,10 @@ module Railwyrm
       "ci" => {
         description: "Add a GitHub Actions CI workflow (RSpec, RuboCop, Brakeman)",
         dependencies: []
+      },
+      "quality" => {
+        description: "Install CI + quality tooling baseline (Brakeman, RuboCop, Bullet)",
+        dependencies: ["ci"]
       }
     }.freeze
 

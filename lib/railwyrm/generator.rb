@@ -639,7 +639,7 @@ module Railwyrm
     end
 
     def selected_feature_registry_names
-      selected = ["ci"] + selected_optional_devise_modules
+      selected = %w[ci quality] + selected_optional_devise_modules
       selected << "magic_link" if configuration.devise_magic_link?
       selected << "passkeys" if configuration.devise_passkeys?
       selected.uniq

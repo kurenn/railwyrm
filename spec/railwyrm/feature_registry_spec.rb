@@ -4,13 +4,19 @@ require "spec_helper"
 
 RSpec.describe Railwyrm::FeatureRegistry do
   it "lists supported features" do
-    expect(described_class.list).to include("confirmable", "lockable", "timeoutable", "trackable", "magic_link", "passkeys", "ci")
+    expect(described_class.list).to include("confirmable", "lockable", "timeoutable", "trackable", "magic_link", "passkeys", "ci", "quality")
   end
 
   it "resolves dependencies for requested features" do
     resolved = described_class.resolve(["magic_link"])
 
     expect(resolved).to eq(%w[trackable magic_link])
+  end
+
+  it "resolves dependencies for quality feature" do
+    resolved = described_class.resolve(["quality"])
+
+    expect(resolved).to eq(%w[ci quality])
   end
 
   it "raises for unknown features" do

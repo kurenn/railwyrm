@@ -289,4 +289,42 @@ RSpec.describe Railwyrm::FeatureInstaller do
       expect(feature_manifest.fetch("features")).to eq(["ci"])
     end
   end
+
+  it "installs quality feature and dependency changes into an existing app" do
+    Dir.mktmpdir do |app_path|
+      build_minimal_app!(app_path)
+
+      shell = FeatureInstallerFakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+      installer = described_class.new(app_path: app_path, ui: ui, shell: shell)
+
+      installed = installer.install!(["quality"])
+      expect(installed).to eq(%w[ci quality])
+
+      gemfile = File.read(File.join(app_path, "Gemfile"))
+      expect(gemfile).to include('gem "brakeman"')
+      expect(gemfile).to include('gem "rubocop"')
+      expect(gemfile).to include('gem "rubocop-rails"')
+      expect(gemfile).to include('gem "bullet"')
+
+      workflow_path = File.join(app_path, ".github/workflows/ci.yml")
+      expect(File).to exist(workflow_path)
+
+      development_config = File.read(File.join(app_path, "config/environments/development.rb"))
+      expect(development_config).to include("Bullet.enable = true")
+      expect(development_config).to include("Bullet.alert = true")
+      expect(development_config).to include("Bullet.bullet_logger = true")
+      expect(development_config).to include("Bullet.rails_logger = true")
+
+      feature_manifest = YAML.safe_load(
+        File.read(File.join(app_path, ".railwyrm/features.yml")),
+        permitted_classes: [],
+        aliases: false
+      )
+      expect(feature_manifest.fetch("features")).to eq(%w[ci quality])
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed).to include("bundle install")
+    end
+  end
 end
