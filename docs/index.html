@@ -142,6 +142,7 @@
       <div class="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
         <a href="../README.md" class="rounded text-lg font-semibold tracking-tight focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-300">Railwyrm</a>
         <nav aria-label="Primary" class="hidden gap-6 text-sm text-slate-300 md:flex">
+          <a href="#install" class="rounded hover:text-emerald-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-300">Install</a>
           <a href="#usage" class="rounded hover:text-emerald-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-300">Usage</a>
           <a href="#features" class="rounded hover:text-emerald-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-300">Features</a>
           <a href="#vision" class="rounded hover:text-emerald-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-300">Vision</a>
@@ -169,6 +170,21 @@
           <pre class="mt-3 overflow-x-auto rounded-xl bg-slate-950 p-4 font-mono text-sm text-emerald-300">bundle exec ruby exe/railwyrm new my_app</pre>
           <p class="mt-3 text-sm text-slate-400">Deterministic generation flow with optional interactive wizard.</p>
         </div>
+      </section>
+
+      <section id="install" class="mt-16 rounded-2xl border border-slate-800 bg-slate-900/65 p-6">
+        <h2 class="flex items-center gap-2 text-2xl font-semibold text-slate-50">
+          <svg class="h-6 w-6 text-emerald-300" viewBox="0 0 24 24"><use href="#pi-terminal"></use></svg>
+          How to install
+        </h2>
+        <p class="mt-2 text-sm text-slate-400">If you are starting fresh:</p>
+        <pre class="mt-4 overflow-x-auto rounded-xl bg-slate-950 p-4 font-mono text-sm text-slate-200">git clone https://github.com/kurenn/railwyrm.git
+cd railwyrm
+bundle install
+bundle exec ruby exe/railwyrm new my_app</pre>
+        <p class="mt-3 text-sm text-slate-400">
+          Optional: use non-interactive mode for scripts and CI with `--interactive=false`.
+        </p>
       </section>
 
       <section class="mt-14 grid gap-6 md:grid-cols-2">
