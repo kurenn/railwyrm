@@ -31,6 +31,11 @@ Every generated app includes:
 - Untitled UI (`gem "untitled_ui"` + installer)
 - Claude on Rails (`gem "claude-on-rails", github: "kurenn/claude-on-rails", branch: "main"` + swarm generator)
 
+Rails compatibility behavior:
+
+- Railwyrm pins generated apps to Ruby `3.3.0` by writing `.ruby-version` and `ruby "3.3.0"` in the generated Gemfile.
+- Because generated apps target Ruby `3.3.0`, Railwyrm pins Rails to `~> 8.0.3` before `bundle install`.
+
 ## Wizard Features
 
 During `railwyrm new`, the wizard can configure:

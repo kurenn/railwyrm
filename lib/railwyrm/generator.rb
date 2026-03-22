@@ -6,6 +6,7 @@ module Railwyrm
   class Generator
     RESPONSIVE_MAIN_CLASSES = "w-full min-h-screen flex justify-center".freeze
     PASSKEYS_SUPPORT_NOTE = "Passkey registration could not start. Please try again on a supported browser.".freeze
+    TARGET_RUBY_VERSION = "3.3.0".freeze
 
     def initialize(configuration, ui:, shell: nil, blueprint: RailsBlueprint.new)
       @configuration = configuration
@@ -22,6 +23,14 @@ module Railwyrm
 
       ui.step("Bootstrapping base Rails app") do
         shell.run!(*blueprint.rails_new_command(configuration), chdir: configuration.workspace)
+      end
+
+      ui.step("Checking Rails and Ruby compatibility") do
+        ensure_generated_rails_version_compatible!
+      end
+
+      ui.step("Pinning generated Ruby version") do
+        ensure_generated_ruby_version!
       end
 
       ui.step("Injecting default gems") do
@@ -124,6 +133,67 @@ module Railwyrm
       updated = "#{gemfile.rstrip}\n\n#{additions.join("\n\n")}\n"
       File.write(gemfile_path, updated)
       ui.success("Gemfile updated with Rails starter stack.")
+    end
+
+    def ensure_generated_rails_version_compatible!
+      if configuration.dry_run
+        ui.info("Dry run enabled: Rails compatibility check skipped.")
+        return
+      end
+
+      gemfile_path = File.join(configuration.app_path, "Gemfile")
+      raise InvalidConfiguration, "Gemfile not found at #{gemfile_path}" unless File.exist?(gemfile_path)
+
+      required_version = blueprint.compatible_rails_requirement(target_ruby_version)
+      return if required_version.nil?
+
+      gemfile = File.read(gemfile_path)
+      rails_line_pattern = /^(gem ["']rails["'],\s*["'])~> 8\.1\.[^"']+(["'])$/
+      return unless gemfile.match?(rails_line_pattern)
+
+      updated = gemfile.sub(rails_line_pattern, "\\1#{required_version}\\2")
+      return if updated == gemfile
+
+      File.write(gemfile_path, updated)
+      ensure_generated_load_defaults_version!(required_version)
+      ui.info("Generated app targets Ruby #{target_ruby_version}; pinning Rails to #{required_version}.")
+    end
+
+    def ensure_generated_ruby_version!
+      if configuration.dry_run
+        ui.info("Dry run enabled: Ruby version pin skipped.")
+        return
+      end
+
+      ruby_version_path = File.join(configuration.app_path, ".ruby-version")
+      File.write(ruby_version_path, "#{target_ruby_version}\n")
+
+      gemfile_path = File.join(configuration.app_path, "Gemfile")
+      raise InvalidConfiguration, "Gemfile not found at #{gemfile_path}" unless File.exist?(gemfile_path)
+
+      gemfile = File.read(gemfile_path)
+      ruby_line_pattern = /^ruby ["'][^"']+["']$/
+      ruby_line = %(ruby "#{target_ruby_version}")
+
+      updated = if gemfile.match?(ruby_line_pattern)
+                  gemfile.sub(ruby_line_pattern, ruby_line)
+                else
+                  "#{gemfile.rstrip}\n\n#{ruby_line}\n"
+                end
+
+      File.write(gemfile_path, updated) unless updated == gemfile
+    end
+
+    def ensure_generated_load_defaults_version!(rails_requirement)
+      application_path = File.join(configuration.app_path, "config/application.rb")
+      return unless File.exist?(application_path)
+
+      load_defaults_version = rails_requirement[/\d+\.\d+/]
+      return if load_defaults_version.nil?
+
+      application = File.read(application_path)
+      updated = application.gsub(/config\.load_defaults\s+\d+\.\d+/, "config.load_defaults #{load_defaults_version}")
+      File.write(application_path, updated) unless updated == application
     end
 
     def apply_devise_view_templates!
@@ -813,6 +883,14 @@ module Railwyrm
 
     def app_display_name
       configuration.name.to_s.tr("-", "_").split("_").map(&:capitalize).join(" ")
+    end
+
+    def current_ruby_version
+      RUBY_VERSION
+    end
+
+    def target_ruby_version
+      TARGET_RUBY_VERSION
     end
 
     def indent_block(content, spaces)

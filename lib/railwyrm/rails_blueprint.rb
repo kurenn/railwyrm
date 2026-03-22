@@ -2,6 +2,7 @@
 
 module Railwyrm
   class RailsBlueprint
+    RUBY_33_RAILS_REQUIREMENT = "~> 8.0.3".freeze
     RAILS_NEW_FLAGS = [
       "--database=postgresql",
       "--css=tailwind",
@@ -11,6 +12,12 @@ module Railwyrm
 
     def rails_new_command(configuration)
       ["rails", "new", configuration.name, *RAILS_NEW_FLAGS]
+    end
+
+    def compatible_rails_requirement(ruby_version)
+      return RUBY_33_RAILS_REQUIREMENT if Gem::Version.new(ruby_version) < Gem::Version.new("3.4.0")
+
+      nil
     end
 
     def gem_entries

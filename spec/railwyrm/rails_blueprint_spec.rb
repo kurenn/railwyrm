@@ -17,6 +17,16 @@ RSpec.describe Railwyrm::RailsBlueprint do
     end
   end
 
+  describe "#compatible_rails_requirement" do
+    it "pins Rails 8.0 for Ruby 3.3" do
+      expect(blueprint.compatible_rails_requirement("3.3.0")).to eq("~> 8.0.3")
+    end
+
+    it "does not pin Rails for Ruby 3.4 or newer" do
+      expect(blueprint.compatible_rails_requirement("3.4.0")).to be_nil
+    end
+  end
+
   describe "#post_bundle_steps" do
     it "includes tailwind installer command" do
       commands = blueprint.post_bundle_steps(configuration).map { |(_label, command)| command.join(" ") }

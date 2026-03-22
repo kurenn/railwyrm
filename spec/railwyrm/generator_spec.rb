@@ -18,12 +18,29 @@ RSpec.describe Railwyrm::Generator do
         app_name = command[2]
         app_path = File.join(chdir, app_name)
         FileUtils.mkdir_p(app_path)
-        File.write(File.join(app_path, "Gemfile"), "source \"https://rubygems.org\"\n")
+        File.write(
+          File.join(app_path, "Gemfile"),
+          <<~RUBY
+            source "https://rubygems.org"
+
+            gem "rails", "~> 8.1.2"
+          RUBY
+        )
         FileUtils.mkdir_p(File.join(app_path, "app/views/layouts"))
         FileUtils.mkdir_p(File.join(app_path, "app/controllers"))
         FileUtils.mkdir_p(File.join(app_path, "config/initializers"))
         FileUtils.mkdir_p(File.join(app_path, "config/environments"))
         FileUtils.mkdir_p(File.join(app_path, "config/locales"))
+        File.write(
+          File.join(app_path, "config/application.rb"),
+          <<~RUBY
+            module #{app_name.split("_").map(&:capitalize).join}
+              class Application < Rails::Application
+                config.load_defaults 8.1
+              end
+            end
+          RUBY
+        )
         File.write(
           File.join(app_path, "app/views/layouts/application.html.erb"),
           <<~ERB
@@ -160,9 +177,19 @@ RSpec.describe Railwyrm::Generator do
       shell = FakeShell.new
       ui = Railwyrm::UI::Buffer.new
 
-      described_class.new(configuration, ui: ui, shell: shell).run!
+      generator = described_class.new(configuration, ui: ui, shell: shell)
+      allow(generator).to receive(:current_ruby_version).and_return("3.3.0")
+
+      generator.run!
 
       gemfile = File.read(File.join(configuration.app_path, "Gemfile"))
+      ruby_version = File.read(File.join(configuration.app_path, ".ruby-version"))
+      application_config = File.read(File.join(configuration.app_path, "config/application.rb"))
+
+      expect(ruby_version).to eq("3.3.0\n")
+      expect(gemfile).to include('gem "rails", "~> 8.0.3"')
+      expect(gemfile).to include('ruby "3.3.0"')
+      expect(application_config).to include("config.load_defaults 8.0")
       expect(gemfile).to include('gem "devise"')
       expect(gemfile).to include('gem "untitled_ui", github: "coba-ai/untitled.ui", branch: "main"')
       expect(gemfile).to include('gem "rspec-rails"')
@@ -227,6 +254,28 @@ RSpec.describe Railwyrm::Generator do
         aliases: false
       )
       expect(feature_manifest.fetch("features")).to eq(%w[ci quality])
+    end
+  end
+
+  it "pins the generated app to Ruby 3.3 even on newer local Ruby versions" do
+    Dir.mktmpdir do |workspace|
+      configuration = Railwyrm::Configuration.new(name: "rails_81_ok", workspace: workspace)
+      shell = FakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+
+      generator = described_class.new(configuration, ui: ui, shell: shell)
+      allow(generator).to receive(:current_ruby_version).and_return("3.4.0")
+
+      generator.run!
+
+      gemfile = File.read(File.join(configuration.app_path, "Gemfile"))
+      ruby_version = File.read(File.join(configuration.app_path, ".ruby-version"))
+      application_config = File.read(File.join(configuration.app_path, "config/application.rb"))
+
+      expect(ruby_version).to eq("3.3.0\n")
+      expect(gemfile).to include('ruby "3.3.0"')
+      expect(gemfile).to include('gem "rails", "~> 8.0.3"')
+      expect(application_config).to include("config.load_defaults 8.0")
     end
   end
 
