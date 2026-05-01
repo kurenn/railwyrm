@@ -8,6 +8,13 @@ module Railwyrm
     PASSKEYS_SUPPORT_NOTE = "Passkey registration could not start. Please try again on a supported browser.".freeze
     TARGET_RUBY_VERSION = "3.3.0".freeze
 
+    AGENT_PROMPT_APPENDICES = {
+      "views.md" => "views_appendix.md",
+      "models.md" => "models_appendix.md",
+      "controllers.md" => "controllers_appendix.md",
+      "tests.md" => "tests_appendix.md"
+    }.freeze
+
     def initialize(configuration, ui:, shell: nil, blueprint: RailsBlueprint.new)
       @configuration = configuration
       @ui = ui
@@ -45,6 +52,18 @@ module Railwyrm
         ui.step(label) do
           shell.run!(*command, chdir: configuration.app_path)
         end
+      end
+
+      ui.step("Extend CLAUDE.md with stack conventions") do
+        extend_claude_md!
+      end
+
+      ui.step("Extend claude-on-rails agent prompts") do
+        extend_agent_prompts!
+      end
+
+      ui.step("Generate PROMPT_CONTEXT.md") do
+        generate_prompt_context!
       end
 
       if configuration.devise_magic_link?
@@ -194,6 +213,80 @@ module Railwyrm
       application = File.read(application_path)
       updated = application.gsub(/config\.load_defaults\s+\d+\.\d+/, "config.load_defaults #{load_defaults_version}")
       File.write(application_path, updated) unless updated == application
+    end
+
+    def extend_claude_md!
+      if configuration.dry_run
+        ui.info("Dry run enabled: CLAUDE.md extension skipped.")
+        return
+      end
+
+      claude_md_path = File.join(configuration.app_path, "CLAUDE.md")
+      appendix_source = File.join(
+        File.expand_path("..", __dir__),
+        "railwyrm",
+        "templates",
+        "claude",
+        "claude_md_appendix.md"
+      )
+      raise InvalidConfiguration, "CLAUDE.md appendix template missing: #{appendix_source}" unless File.exist?(appendix_source)
+
+      existing = File.exist?(claude_md_path) ? File.read(claude_md_path) : ""
+      appendix = File.read(appendix_source)
+      return if existing.include?("## Untitled UI Component Map")
+
+      File.write(claude_md_path, "#{existing.rstrip}\n\n#{appendix}\n")
+    end
+
+    def extend_agent_prompts!
+      if configuration.dry_run
+        ui.info("Dry run enabled: agent prompt extension skipped.")
+        return
+      end
+
+      prompts_dir = File.join(configuration.app_path, ".claude-on-rails", "prompts")
+      appendix_dir = File.join(
+        File.expand_path("..", __dir__),
+        "railwyrm",
+        "templates",
+        "claude",
+        "prompts"
+      )
+
+      AGENT_PROMPT_APPENDICES.each do |target_filename, appendix_filename|
+        target_path = File.join(prompts_dir, target_filename)
+        appendix_path = File.join(appendix_dir, appendix_filename)
+        next unless File.exist?(appendix_path)
+        next unless File.exist?(target_path)
+
+        existing = File.read(target_path)
+        appendix = File.read(appendix_path)
+        marker = appendix.lines.first&.strip
+        next if marker && existing.include?(marker)
+
+        File.write(target_path, "#{existing.rstrip}\n\n#{appendix}\n")
+      end
+    end
+
+    def generate_prompt_context!
+      if configuration.dry_run
+        ui.info("Dry run enabled: PROMPT_CONTEXT.md generation skipped.")
+        return
+      end
+
+      source = File.join(
+        File.expand_path("..", __dir__),
+        "railwyrm",
+        "templates",
+        "claude",
+        "prompt_context.md"
+      )
+      raise InvalidConfiguration, "PROMPT_CONTEXT.md template missing: #{source}" unless File.exist?(source)
+
+      destination = File.join(configuration.app_path, "PROMPT_CONTEXT.md")
+      return if File.exist?(destination)
+
+      FileUtils.cp(source, destination)
     end
 
     def apply_devise_view_templates!
