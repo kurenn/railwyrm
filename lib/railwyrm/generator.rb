@@ -221,21 +221,10 @@ module Railwyrm
         return
       end
 
-      claude_md_path = File.join(configuration.app_path, "CLAUDE.md")
-      appendix_source = File.join(
-        File.expand_path("..", __dir__),
-        "railwyrm",
-        "templates",
-        "claude",
-        "claude_md_appendix.md"
+      append_appendix!(
+        target_path: File.join(configuration.app_path, "CLAUDE.md"),
+        appendix_path: claude_template_path("claude_md_appendix.md")
       )
-      raise InvalidConfiguration, "CLAUDE.md appendix template missing: #{appendix_source}" unless File.exist?(appendix_source)
-
-      existing = File.exist?(claude_md_path) ? File.read(claude_md_path) : ""
-      appendix = File.read(appendix_source)
-      return if existing.include?("## Untitled UI Component Map")
-
-      File.write(claude_md_path, "#{existing.rstrip}\n\n#{appendix}\n")
     end
 
     def extend_agent_prompts!
@@ -245,26 +234,12 @@ module Railwyrm
       end
 
       prompts_dir = File.join(configuration.app_path, ".claude-on-rails", "prompts")
-      appendix_dir = File.join(
-        File.expand_path("..", __dir__),
-        "railwyrm",
-        "templates",
-        "claude",
-        "prompts"
-      )
 
       AGENT_PROMPT_APPENDICES.each do |target_filename, appendix_filename|
-        target_path = File.join(prompts_dir, target_filename)
-        appendix_path = File.join(appendix_dir, appendix_filename)
-        next unless File.exist?(appendix_path)
-        next unless File.exist?(target_path)
-
-        existing = File.read(target_path)
-        appendix = File.read(appendix_path)
-        marker = appendix.lines.first&.strip
-        next if marker && existing.include?(marker)
-
-        File.write(target_path, "#{existing.rstrip}\n\n#{appendix}\n")
+        append_appendix!(
+          target_path: File.join(prompts_dir, target_filename),
+          appendix_path: claude_template_path("prompts", appendix_filename)
+        )
       end
     end
 
@@ -274,19 +249,35 @@ module Railwyrm
         return
       end
 
-      source = File.join(
-        File.expand_path("..", __dir__),
-        "railwyrm",
-        "templates",
-        "claude",
-        "prompt_context.md"
-      )
+      source = claude_template_path("prompt_context.md")
       raise InvalidConfiguration, "PROMPT_CONTEXT.md template missing: #{source}" unless File.exist?(source)
 
       destination = File.join(configuration.app_path, "PROMPT_CONTEXT.md")
       return if File.exist?(destination)
 
       FileUtils.cp(source, destination)
+    end
+
+    def claude_template_path(*parts)
+      File.join(File.expand_path("..", __dir__), "railwyrm", "templates", "claude", *parts)
+    end
+
+    def append_appendix!(target_path:, appendix_path:)
+      raise InvalidConfiguration, "Appendix template missing: #{appendix_path}" unless File.exist?(appendix_path)
+
+      unless File.exist?(target_path)
+        ui.warn("Skipping appendix: expected file not found at #{target_path}. Did claude-on-rails change its output layout?")
+        return
+      end
+
+      appendix = File.read(appendix_path)
+      marker = appendix.lines.find { |line| !line.strip.empty? }&.strip
+      raise InvalidConfiguration, "Appendix template has no content: #{appendix_path}" unless marker
+
+      existing = File.read(target_path)
+      return if existing.include?(marker)
+
+      File.write(target_path, "#{existing.rstrip}\n\n#{appendix}\n")
     end
 
     def apply_devise_view_templates!
