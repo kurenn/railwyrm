@@ -27,10 +27,6 @@ module Railwyrm
           snippet: 'gem "devise"'
         },
         {
-          marker: 'gem "untitled_ui"',
-          snippet: 'gem "untitled_ui", github: "coba-ai/untitled.ui", branch: "main"'
-        },
-        {
           marker: 'gem "rspec-rails"',
           snippet: <<~RUBY.strip
             group :development, :test do
@@ -67,14 +63,6 @@ module Railwyrm
               gem "bullet"
             end
           RUBY
-        },
-        {
-          marker: 'gem "claude-on-rails"',
-          snippet: <<~RUBY.strip
-            group :development do
-              gem "claude-on-rails", github: "kurenn/claude-on-rails", branch: "main"
-            end
-          RUBY
         }
       ]
     end
@@ -104,9 +92,8 @@ module Railwyrm
         ["Install Tailwind CSS", ["./bin/rails", "tailwindcss:install"]],
         ["Install Active Storage", ["bin/rails", "active_storage:install"]],
         ["Install ActionText", ["bin/rails", "action_text:install"]],
-        ["Install Untitled UI", ["bin/rails", "generate", "untitled_ui:install"]],
         ["Install RSpec", ["bin/rails", "generate", "rspec:install"]],
-          ["Install Devise", ["bin/rails", "generate", "devise:install"]]
+        ["Install Devise", ["bin/rails", "generate", "devise:install"]]
       ]
 
       if configuration.install_devise_user?
@@ -118,7 +105,6 @@ module Railwyrm
 
       steps.concat(
         [
-          ["Install Claude on Rails swarm", ["bin/rails", "generate", "claude_on_rails:swarm", "--force"]],
           ["Create database", ["bin/rails", "db:create"]],
           ["Run database migrations", ["bin/rails", "db:migrate"]]
         ]

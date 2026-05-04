@@ -28,8 +28,6 @@ Every generated app includes:
 - Devise (`gem "devise"` + install + user generation by default)
 - Active Storage (`bin/rails active_storage:install`)
 - ActionText (`bin/rails action_text:install`)
-- Untitled UI (`gem "untitled_ui"` + installer)
-- Claude on Rails (`gem "claude-on-rails", github: "kurenn/claude-on-rails", branch: "main"` + swarm generator)
 
 Rails compatibility behavior:
 
@@ -48,10 +46,6 @@ During `railwyrm new`, the wizard can configure:
   - `trackable`
   - `magic_link` (via `devise-passwordless`)
   - `passkeys` (via `devise-webauthn`)
-- Devise sign-in layout:
-  - `simple_minimal`
-  - `card_combined`
-  - `split_mockup_quote`
 
 Magic-link behavior:
 
@@ -150,7 +144,6 @@ Common flags:
 - `--no-banner` hide mascot/banner
 - `--verbose` stream command output
 - `--dry_run` print commands without executing
-- `--sign_in_layout` choose auth page layout
 - `--skip_devise_user` skip Devise model generation
 - `--devise_confirmable` enable Devise confirmable
 - `--devise_lockable` enable Devise lockable
@@ -191,5 +184,5 @@ bundle exec rspec
 - `lib/railwyrm/cli.rb` Thor commands
 - `lib/railwyrm/generator.rb` generation workflow
 - `lib/railwyrm/rails_blueprint.rb` stack defaults and setup commands
-- `lib/railwyrm/templates/devise/*` auth templates
+- `lib/railwyrm/templates/devise/{passkeys,passwordless}` magic-link and passkey auth templates
 - `AGENTS.md` Codex repo instructions

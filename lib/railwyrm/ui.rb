@@ -37,7 +37,7 @@ ASCII
 
         io.puts colored_logo
         io.puts pastel.decorate("🐉 Emberclaw the forge-dragon is ready.", :bright_red, :bold)
-        io.puts pastel.decorate("⚔️  Tailwind + PG + RSpec + Devise + ActiveStorage + ActionText + Untitled UI + Claude-on-Rails", :bright_black)
+        io.puts pastel.decorate("⚔️  Tailwind + PG + RSpec + Devise + ActiveStorage + ActionText", :bright_black)
         io.puts pastel.decorate(MASCOT, :bright_yellow)
       end
     end
@@ -89,10 +89,6 @@ ASCII
       rescue StandardError
         spinner.error(@pastel.decorate("failed", :red))
         raise
-      end
-
-      def render_sign_in_layout_gallery
-        SignInLayoutGallery.new(pastel: @pastel).render(io: @io)
       end
     end
 
@@ -150,71 +146,6 @@ ASCII
           level: level,
           message: message.to_s
         }
-      end
-    end
-
-    class SignInLayoutGallery
-      def initialize(pastel: Pastel.new)
-        @pastel = pastel
-      end
-
-      def render(io: $stdout)
-        io.puts @pastel.decorate("🎨 Choose your Devise sign-in look", :bright_cyan, :bold)
-        io.puts @pastel.decorate("Each option generates app/views/devise/sessions/new.html.erb with Untitled UI components.", :bright_black)
-        io.puts
-        io.puts layout_card(
-          key: "simple_minimal",
-          title: "Simple Minimal",
-          subtitle: "clean / centered / fast",
-          accent: :bright_magenta,
-          lines: [
-            "┌────────────────────────────────────┐",
-            "│  Welcome back                      │",
-            "│  [ Email ]                         │",
-            "│  [ Password ]                      │",
-            "│  [ Sign in ]                       │",
-            "└────────────────────────────────────┘"
-          ]
-        )
-        io.puts
-        io.puts layout_card(
-          key: "card_combined",
-          title: "Card Combined",
-          subtitle: "balanced / polished / default",
-          accent: :bright_yellow,
-          lines: [
-            "┌──────────── Auth Card ─────────────┐",
-            "│ Email                              │",
-            "│ Password            Forgot password│",
-            "│ ☐ Remember me      [ Sign in ]     │",
-            "└────────────────────────────────────┘"
-          ]
-        )
-        io.puts
-        io.puts layout_card(
-          key: "split_mockup_quote",
-          title: "Split Mockup Quote",
-          subtitle: "marketing / testimonial / visual",
-          accent: :bright_red,
-          lines: [
-            "┌──────── Form ───────┬─ Quote Panel ─┐",
-            "│ [ Email ]           │ \"Teams ship   │",
-            "│ [ Password ]        │  faster with  │",
-            "│ [ Sign in ]         │  our stack.\"  │",
-            "└─────────────────────┴───────────────┘"
-          ]
-        )
-        io.puts
-      end
-
-      private
-
-      def layout_card(key:, title:, subtitle:, accent:, lines:)
-        header = @pastel.decorate("• #{key}", accent, :bold)
-        name = @pastel.decorate(title, :white, :bold)
-        sub = @pastel.decorate(subtitle, :bright_black)
-        preview = lines.map { |line| @pastel.decorate(line, accent) }.join("\n")
-        "#{header}  #{name}  #{sub}\n#{preview}"
       end
     end
   end

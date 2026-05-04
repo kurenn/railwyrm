@@ -191,7 +191,6 @@ RSpec.describe Railwyrm::Generator do
       expect(gemfile).to include('ruby "3.3.0"')
       expect(application_config).to include("config.load_defaults 8.0")
       expect(gemfile).to include('gem "devise"')
-      expect(gemfile).to include('gem "untitled_ui", github: "coba-ai/untitled.ui", branch: "main"')
       expect(gemfile).to include('gem "rspec-rails"')
       expect(gemfile).to include('gem "dotenv-rails"')
       expect(gemfile).to include('gem "ruby-lsp", require: false')
@@ -199,29 +198,16 @@ RSpec.describe Railwyrm::Generator do
       expect(gemfile).to include('gem "rubocop", require: false')
       expect(gemfile).to include('gem "rubocop-rails", require: false')
       expect(gemfile).to include('gem "bullet"')
-      expect(gemfile).to include('gem "claude-on-rails", github: "kurenn/claude-on-rails", branch: "main"')
+      expect(gemfile).not_to include('gem "untitled_ui"')
+      expect(gemfile).not_to include('gem "claude-on-rails"')
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed).to include("bundle install")
       expect(executed).to include("./bin/rails tailwindcss:install")
-      expect(executed).to include("bin/rails generate untitled_ui:install")
       expect(executed).to include("bin/rails generate devise User")
-      expect(executed).to include("bin/rails generate claude_on_rails:swarm --force")
       expect(executed).to include("bin/rails db:migrate")
-
-      session_view = File.read(File.join(configuration.app_path, "app/views/devise/sessions/new.html.erb"))
-      expect(session_view).to include("Ui::Input::Component")
-      expect(session_view).to include("Ui::Button::Component")
-      expect(session_view).to include("Ui::Checkbox::Component")
-      expect(session_view).not_to include("Google")
-
-      registration_view = File.read(File.join(configuration.app_path, "app/views/devise/registrations/new.html.erb"))
-      expect(registration_view).to include("Ui::Input::Component")
-      expect(registration_view).to include("Create account")
-      expect(registration_view).to include("Railwyrm Access")
-
-      password_view = File.read(File.join(configuration.app_path, "app/views/devise/passwords/new.html.erb"))
-      expect(password_view).to include("Send reset instructions")
+      expect(executed).not_to include("bin/rails generate untitled_ui:install")
+      expect(executed).not_to include("bin/rails generate claude_on_rails:swarm --force")
 
       development_config = File.read(File.join(configuration.app_path, "config/environments/development.rb"))
       expect(development_config).to include("  config.after_initialize do")
@@ -276,43 +262,6 @@ RSpec.describe Railwyrm::Generator do
       expect(gemfile).to include('ruby "3.3.0"')
       expect(gemfile).to include('gem "rails", "~> 8.0.3"')
       expect(application_config).to include("config.load_defaults 8.0")
-    end
-  end
-
-  it "applies the selected devise auth template pack" do
-    Dir.mktmpdir do |workspace|
-      configuration = Railwyrm::Configuration.new(
-        name: "split_layout_app",
-        workspace: workspace,
-        sign_in_layout: "split_mockup_quote"
-      )
-      shell = FakeShell.new
-      ui = Railwyrm::UI::Buffer.new
-
-      described_class.new(configuration, ui: ui, shell: shell).run!
-
-      expected_views = %w[
-        sessions/new
-        registrations/new
-        registrations/edit
-        passwords/new
-        passwords/edit
-        confirmations/new
-        unlocks/new
-      ]
-
-      expected_views.each do |view_name|
-        expect(File).to exist(File.join(configuration.app_path, "app/views/devise/#{view_name}.html.erb"))
-      end
-
-      session_view = File.read(File.join(configuration.app_path, "app/views/devise/sessions/new.html.erb"))
-      expect(session_view).to include("Trusted by teams")
-      expect(session_view).to include("Ui::Input::Component")
-      expect(session_view).not_to include("Google")
-
-      registration_view = File.read(File.join(configuration.app_path, "app/views/devise/registrations/new.html.erb"))
-      expect(registration_view).to include("Trusted by teams")
-      expect(registration_view).to include("Create account")
     end
   end
 
@@ -441,9 +390,6 @@ RSpec.describe Railwyrm::Generator do
       expect(passwordless_mail_text).to include("Use this magic link to sign in")
       expect(passwordless_mail_text).to include("magic_link_url")
 
-      session_view = File.read(File.join(configuration.app_path, "app/views/devise/sessions/new.html.erb"))
-      expect(session_view).to include("Email me a sign-in link")
-
       devise_initializer = File.read(File.join(configuration.app_path, "config/initializers/devise.rb"))
       expect(devise_initializer).to include("config.paranoid = true")
 
@@ -499,9 +445,6 @@ RSpec.describe Railwyrm::Generator do
       passkeys_view = File.read(File.join(configuration.app_path, "app/views/devise/passkeys/new.html.erb"))
       expect(passkeys_view).to include("passkey_creation_form_for")
       expect(passkeys_view).to include("Create passkey now")
-
-      session_view = File.read(File.join(configuration.app_path, "app/views/devise/sessions/new.html.erb"))
-      expect(session_view).to include("login_with_passkey_button")
 
       app_layout = File.read(File.join(configuration.app_path, "app/views/layouts/application.html.erb"))
       expect(app_layout).to include('javascript_include_tag "devise/webauthn", type: "module"')
