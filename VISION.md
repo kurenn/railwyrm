@@ -1,5 +1,7 @@
 # Railwyrm Vision
 
+> **Note (2026-05-04):** the recipe roadmap and the Untitled UI design baseline have been shelved. Railwyrm now ships deterministic Rails scaffolding only — auth (Devise), tests (RSpec), styling (plain Tailwind), CI/quality. The recipe contract and AI-asset sections below remain as historical context.
+
 ## North Star
 
 Railwyrm exists to help teams kickstart production-ready Rails applications and expand them with AI-native feature delivery. Every recipe should produce a reproducible base app first, then provide recipe-specific expert assets that make feature delivery faster with Claude or Codex.

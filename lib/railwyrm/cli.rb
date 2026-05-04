@@ -8,12 +8,6 @@ module Railwyrm
       true
     end
 
-    SIGN_IN_LAYOUT_MENU_CHOICES = [
-      { label: "Simple Minimal (centered form)", value: "simple_minimal" },
-      { label: "Card Combined (recommended)", value: "card_combined" },
-      { label: "Split Mockup Quote (marketing side panel)", value: "split_mockup_quote" }
-    ].freeze
-
     class Features < Thor
       package_name "railwyrm feature"
 
@@ -137,8 +131,6 @@ module Railwyrm
     option :path, aliases: "-p", type: :string, default: Dir.pwd, desc: "Workspace path"
     option :interactive, type: :boolean, default: true, desc: "Prompt for app settings"
     option :devise_user_model, type: :string, default: "User", desc: "Devise model name"
-    option :sign_in_layout, type: :string, default: "card_combined",
-                            desc: "Sign-in layout: simple_minimal, card_combined, split_mockup_quote"
     option :skip_devise_user, type: :boolean, default: false, desc: "Skip creating the Devise model"
     option :devise_confirmable, type: :boolean, default: false, desc: "Enable Devise confirmable module"
     option :devise_lockable, type: :boolean, default: false, desc: "Enable Devise lockable module"
@@ -232,7 +224,6 @@ module Railwyrm
       workspace = options[:path]
       install_devise_user = !options[:skip_devise_user]
       devise_user_model = options[:devise_user_model]
-      sign_in_layout = options[:sign_in_layout]
       devise_confirmable = options[:devise_confirmable]
       devise_lockable = options[:devise_lockable]
       devise_timeoutable = options[:devise_timeoutable]
@@ -281,16 +272,6 @@ module Railwyrm
             devise_passkeys = false
           end
         end
-
-        ui.render_sign_in_layout_gallery
-        sign_in_layout = prompt.select(
-          "🧩 Select sign-in layout:",
-          default: sign_in_layout_default_label(sign_in_layout)
-        ) do |menu|
-          SIGN_IN_LAYOUT_MENU_CHOICES.each do |choice|
-            menu.choice choice.fetch(:label), choice.fetch(:value)
-          end
-        end
       elsif name.nil? || name.strip.empty?
         raise InvalidConfiguration, "APP_NAME is required when --interactive=false"
       end
@@ -304,7 +285,6 @@ module Railwyrm
         name: name,
         workspace: workspace,
         devise_user_model: devise_user_model,
-        sign_in_layout: sign_in_layout,
         install_devise_user: install_devise_user,
         devise_confirmable: devise_confirmable,
         devise_lockable: devise_lockable,
@@ -315,13 +295,6 @@ module Railwyrm
         dry_run: options[:dry_run],
         verbose: options[:verbose]
       )
-    end
-
-    def sign_in_layout_default_label(layout_value)
-      selected = SIGN_IN_LAYOUT_MENU_CHOICES.find { |choice| choice.fetch(:value) == layout_value.to_s }
-      return selected.fetch(:label) if selected
-
-      SIGN_IN_LAYOUT_MENU_CHOICES.find { |choice| choice.fetch(:value) == "card_combined" }.fetch(:label)
     end
   end
 end

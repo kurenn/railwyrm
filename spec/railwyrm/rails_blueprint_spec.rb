@@ -33,16 +33,6 @@ RSpec.describe Railwyrm::RailsBlueprint do
       expect(commands).to include("./bin/rails tailwindcss:install")
     end
 
-    it "includes untitled_ui installer command" do
-      commands = blueprint.post_bundle_steps(configuration).map { |(_label, command)| command.join(" ") }
-      expect(commands).to include("bin/rails generate untitled_ui:install")
-    end
-
-    it "includes claude-on-rails installer command" do
-      commands = blueprint.post_bundle_steps(configuration).map { |(_label, command)| command.join(" ") }
-      expect(commands).to include("bin/rails generate claude_on_rails:swarm --force")
-    end
-
     it "can skip devise user generation" do
       config = Railwyrm::Configuration.new(name: "demo_app", workspace: "/tmp", install_devise_user: false)
       commands = blueprint.post_bundle_steps(config).map { |(_label, command)| command.join(" ") }
@@ -51,7 +41,7 @@ RSpec.describe Railwyrm::RailsBlueprint do
   end
 
   describe "#gem_entries" do
-    it "includes quality tooling and claude-on-rails github source in the default stack" do
+    it "includes quality tooling in the default stack" do
       markers = blueprint.gem_entries.map { |entry| entry.fetch(:marker) }
       snippets = blueprint.gem_entries.map { |entry| entry.fetch(:snippet) }.join("\n")
 
@@ -62,7 +52,6 @@ RSpec.describe Railwyrm::RailsBlueprint do
       expect(snippets).to include('gem "dotenv-rails"')
       expect(snippets).to include('gem "rubocop", require: false')
       expect(snippets).to include('gem "rubocop-rails", require: false')
-      expect(snippets).to include('gem "claude-on-rails", github: "kurenn/claude-on-rails", branch: "main"')
     end
   end
 

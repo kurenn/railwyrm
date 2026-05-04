@@ -261,7 +261,6 @@ RSpec.describe Railwyrm::CLI do
         expect(config.devise_trackable?).to be(true)
         expect(config.devise_magic_link?).to be(false)
         expect(config.devise_passkeys?).to be(false)
-        expect(config.sign_in_layout).to eq("card_combined")
         expect(ui).to be_a(Railwyrm::UI::Console)
         generator
       end
@@ -295,9 +294,6 @@ RSpec.describe Railwyrm::CLI do
       expect(prompt).to receive(:yes?)
         .with("🔑 Enable passkeys sign-in via WebAuthn?", default: false)
         .and_return(false)
-      expect(prompt).to receive(:select)
-        .with("🧩 Select sign-in layout:", default: "Card Combined (recommended)")
-        .and_return("card_combined")
 
       expect { described_class.start(["new", app_name, "--path", workspace, "--no-banner"]) }.not_to raise_error
     end

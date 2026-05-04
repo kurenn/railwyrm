@@ -98,7 +98,6 @@ module Railwyrm
         name: name,
         workspace: payload["workspace"] || workspace,
         devise_user_model: payload["devise_user_model"] || "User",
-        sign_in_layout: payload["sign_in_layout"] || "card_combined",
         install_devise_user: !truthy?(payload["skip_devise_user"]),
         devise_confirmable: truthy?(payload["devise_confirmable"]),
         devise_lockable: truthy?(payload["devise_lockable"]),
@@ -182,42 +181,6 @@ module Railwyrm
               background: rgba(17,24,39,0.8);
               color: var(--text);
             }
-            .layout-grid {
-              margin-top: 0.6rem;
-              display: grid;
-              gap: 0.75rem;
-              grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            }
-            .layout-card {
-              border: 1px solid rgba(255,255,255,0.16);
-              border-radius: 12px;
-              padding: 0.7rem;
-              background: rgba(2, 6, 23, 0.55);
-              cursor: pointer;
-            }
-            .layout-card input[type="radio"] {
-              width: auto;
-              margin-right: 0.4rem;
-              accent-color: #f59e0b;
-            }
-            .layout-card:hover {
-              border-color: rgba(245,158,11,0.65);
-            }
-            .layout-title {
-              display: flex;
-              align-items: center;
-              font-weight: 700;
-              margin-bottom: 0.45rem;
-            }
-            .layout-wireframe {
-              border: 1px solid rgba(255,255,255,0.15);
-              border-radius: 8px;
-              padding: 0.45rem;
-              font-size: 0.75rem;
-              color: #d1d5db;
-              background: rgba(17,24,39,0.8);
-              white-space: pre-line;
-            }
             button {
               margin-top: 1rem;
               background: linear-gradient(90deg, var(--accent), var(--accent-2));
@@ -279,30 +242,6 @@ module Railwyrm
                 Note: Magic-link sign-in automatically enables Devise trackable.
               </p>
 
-              <label>Sign-in layout</label>
-              <div class="layout-grid">
-                <label class="layout-card">
-                  <div class="layout-title"><input type="radio" name="sign_in_layout" value="simple_minimal">Simple Minimal</div>
-                  <div class="layout-wireframe">Welcome back
-[ Email ]
-[ Password ]
-[ Sign in ]</div>
-                </label>
-                <label class="layout-card">
-                  <div class="layout-title"><input type="radio" name="sign_in_layout" value="card_combined" checked>Card Combined</div>
-                  <div class="layout-wireframe">┌ Auth Card ┐
-Email
-Password     Forgot password
-☐ Remember   [ Sign in ]</div>
-                </label>
-                <label class="layout-card">
-                  <div class="layout-title"><input type="radio" name="sign_in_layout" value="split_mockup_quote">Split Mockup Quote</div>
-                  <div class="layout-wireframe">Form | Quote Panel
-[ Email ]   "Teams ship faster"
-[ Password ]</div>
-                </label>
-              </div>
-
               <button type="submit">Forge New App</button>
             </form>
             <pre id="logs">Awaiting command...</pre>
@@ -326,8 +265,7 @@ Password     Forgot password
                 devise_timeoutable: document.getElementById("devise_timeoutable").checked,
                 devise_trackable: document.getElementById("devise_trackable").checked,
                 devise_magic_link: document.getElementById("devise_magic_link").checked,
-                devise_passkeys: document.getElementById("devise_passkeys").checked,
-                sign_in_layout: document.querySelector("input[name='sign_in_layout']:checked")?.value || "card_combined"
+                devise_passkeys: document.getElementById("devise_passkeys").checked
               };
 
               write("Starting forge job...\n");

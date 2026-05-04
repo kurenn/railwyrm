@@ -31,7 +31,7 @@ When you run `railwyrm new`, Railwyrm:
 
 1. Creates a Rails app with PostgreSQL + Tailwind.
 2. Installs baseline gems and tooling.
-3. Runs framework setup steps (Devise, Active Storage, ActionText, Untitled UI, RSpec, CI, etc.).
+3. Runs framework setup steps (Devise, Active Storage, ActionText, RSpec, CI, etc.).
 4. Applies selected auth features from the wizard.
 5. Writes feature state to `.railwyrm/features.yml`.
 
@@ -75,8 +75,6 @@ bundle exec ruby exe/railwyrm feature sync --app /path/to/app
 - RSpec + CI workflow
 - Devise auth baseline
 - Active Storage + ActionText
-- Untitled UI integration
-- Claude on Rails swarm bootstrap
 - Dev quality/security stack:
   - RuboCop
   - Brakeman

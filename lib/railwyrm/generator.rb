@@ -70,10 +70,6 @@ module Railwyrm
         normalize_application_main_layout!
       end
 
-      ui.step("Apply Devise auth view templates") do
-        apply_devise_view_templates!
-      end
-
       ui.step("Configure development quality tools") do
         ensure_bullet_development_configuration!
       end
@@ -194,35 +190,6 @@ module Railwyrm
       application = File.read(application_path)
       updated = application.gsub(/config\.load_defaults\s+\d+\.\d+/, "config.load_defaults #{load_defaults_version}")
       File.write(application_path, updated) unless updated == application
-    end
-
-    def apply_devise_view_templates!
-      if configuration.dry_run
-        ui.info("Dry run enabled: Devise template copy skipped.")
-        return
-      end
-
-      source_root = File.join(
-        File.expand_path("..", __dir__),
-        "railwyrm",
-        "templates",
-        "devise",
-        "sign_in",
-        configuration.sign_in_layout
-      )
-
-      unless Dir.exist?(source_root)
-        raise InvalidConfiguration, "Devise templates not found for '#{configuration.sign_in_layout}'"
-      end
-
-      destination_root = File.join(configuration.app_path, "app/views/devise")
-
-      Dir.glob(File.join(source_root, "**", "*.erb")).sort.each do |source|
-        relative_path = source.delete_prefix("#{source_root}/")
-        destination = File.join(destination_root, relative_path)
-        FileUtils.mkdir_p(File.dirname(destination))
-        FileUtils.cp(source, destination)
-      end
     end
 
     def enable_optional_devise_modules!(module_names)
