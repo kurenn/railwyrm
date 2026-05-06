@@ -17,6 +17,7 @@ module Railwyrm
       devise_trackable: false,
       devise_magic_link: false,
       devise_passkeys: false,
+      claude_marketplace: false,
       dry_run: false,
       verbose: false
     )
@@ -30,6 +31,7 @@ module Railwyrm
       @devise_magic_link = !!devise_magic_link
       @devise_trackable = !!devise_trackable || @devise_magic_link
       @devise_passkeys = !!devise_passkeys
+      @claude_marketplace = !!claude_marketplace
       @dry_run = dry_run
       @verbose = verbose
 
@@ -64,6 +66,10 @@ module Railwyrm
       @devise_passkeys
     end
 
+    def claude_marketplace?
+      @claude_marketplace
+    end
+
     def app_path
       File.join(workspace, name)
     end
@@ -80,6 +86,7 @@ module Railwyrm
         devise_trackable: devise_trackable?,
         devise_magic_link: devise_magic_link?,
         devise_passkeys: devise_passkeys?,
+        claude_marketplace: claude_marketplace?,
         dry_run: dry_run,
         verbose: verbose
       }
