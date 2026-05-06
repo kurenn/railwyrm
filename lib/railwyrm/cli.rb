@@ -138,6 +138,8 @@ module Railwyrm
     option :devise_trackable, type: :boolean, default: false, desc: "Enable Devise trackable module"
     option :devise_magic_link, type: :boolean, default: false, desc: "Enable magic-link sign-in via email"
     option :devise_passkeys, type: :boolean, default: false, desc: "Enable passkeys via WebAuthn (devise-webauthn)"
+    option :claude_marketplace, type: :boolean, default: false,
+                                desc: "Print the kurenn/marketplace install command after generation"
     def new(app_name = nil)
       ui = UI::Console.new(verbose: options[:verbose])
       UI::Banner.new.render unless options[:no_banner]
@@ -148,6 +150,8 @@ module Railwyrm
       ui.success("Next steps:")
       ui.info("cd #{config.app_path}")
       ui.info("bin/dev")
+
+      render_claude_marketplace_recommendation(ui, config)
     rescue StandardError => e
       ui.error(e.message)
       exit(1)
@@ -230,6 +234,7 @@ module Railwyrm
       devise_trackable = options[:devise_trackable]
       devise_magic_link = options[:devise_magic_link]
       devise_passkeys = options[:devise_passkeys]
+      claude_marketplace = options[:claude_marketplace]
 
       if interactive
         name = prompt.ask("⚒️  App name (snake_case):", default: name, required: true)
@@ -272,6 +277,11 @@ module Railwyrm
             devise_passkeys = false
           end
         end
+
+        claude_marketplace = prompt.yes?(
+          "🪄 Show install command for the Claude marketplace by @kurenn?",
+          default: claude_marketplace
+        )
       elsif name.nil? || name.strip.empty?
         raise InvalidConfiguration, "APP_NAME is required when --interactive=false"
       end
@@ -292,9 +302,26 @@ module Railwyrm
         devise_trackable: devise_trackable,
         devise_magic_link: devise_magic_link,
         devise_passkeys: devise_passkeys,
+        claude_marketplace: claude_marketplace,
         dry_run: options[:dry_run],
         verbose: options[:verbose]
       )
+    end
+
+    CLAUDE_MARKETPLACE_REPO = "kurenn/marketplace"
+    CLAUDE_MARKETPLACE_URL = "https://github.com/kurenn/marketplace"
+
+    def render_claude_marketplace_recommendation(ui, config)
+      ui.headline("🪄 Recommended: Claude marketplace by @kurenn")
+      ui.info("Curated Claude Code skills, agents, and slash commands for Rails work.")
+      ui.info(CLAUDE_MARKETPLACE_URL)
+
+      if config.claude_marketplace?
+        ui.info("Inside Claude Code, run:")
+        ui.command("/plugin marketplace add #{CLAUDE_MARKETPLACE_REPO}")
+      else
+        ui.info("To install later, run inside Claude Code: /plugin marketplace add #{CLAUDE_MARKETPLACE_REPO}")
+      end
     end
   end
 end

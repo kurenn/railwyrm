@@ -12,6 +12,14 @@ RSpec.describe Railwyrm::Configuration do
     expect(config.devise_trackable?).to be(false)
     expect(config.devise_magic_link?).to be(false)
     expect(config.devise_passkeys?).to be(false)
+    expect(config.claude_marketplace?).to be(false)
+  end
+
+  it "exposes claude_marketplace when enabled" do
+    config = described_class.new(name: "demo_app", workspace: "/tmp", claude_marketplace: true)
+
+    expect(config.claude_marketplace?).to be(true)
+    expect(config.to_h).to include(claude_marketplace: true)
   end
 
   it "raises when confirmable is enabled while devise user generation is disabled" do

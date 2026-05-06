@@ -294,8 +294,65 @@ RSpec.describe Railwyrm::CLI do
       expect(prompt).to receive(:yes?)
         .with("🔑 Enable passkeys sign-in via WebAuthn?", default: false)
         .and_return(false)
+      expect(prompt).to receive(:yes?)
+        .with("🪄 Show install command for the Claude marketplace by @kurenn?", default: false)
+        .and_return(false)
 
       expect { described_class.start(["new", app_name, "--path", workspace, "--no-banner"]) }.not_to raise_error
+    end
+  end
+
+  it "always prints the Claude marketplace recommendation in non-interactive new flow" do
+    Dir.mktmpdir do |workspace|
+      app_name = "marketplace_recommend_app"
+      app_path = File.join(workspace, app_name)
+      generator = instance_double(Railwyrm::Generator, run!: app_path)
+      allow(Railwyrm::Generator).to receive(:new).and_return(generator)
+
+      expect do
+        described_class.start(
+          [
+            "new",
+            app_name,
+            "--interactive=false",
+            "--path",
+            workspace,
+            "--no-banner"
+          ]
+        )
+      end.to output(
+        %r{Recommended: Claude marketplace by @kurenn.*https://github.com/kurenn/marketplace.*To install later.*/plugin marketplace add kurenn/marketplace}m
+      ).to_stdout
+    end
+  end
+
+  it "prints the marketplace install command when --claude_marketplace=true" do
+    Dir.mktmpdir do |workspace|
+      app_name = "marketplace_optin_app"
+      app_path = File.join(workspace, app_name)
+      generator = instance_double(Railwyrm::Generator, run!: app_path)
+
+      expect(Railwyrm::Generator).to receive(:new) do |config, ui:|
+        expect(config.claude_marketplace?).to be(true)
+        expect(ui).to be_a(Railwyrm::UI::Console)
+        generator
+      end
+
+      expect do
+        described_class.start(
+          [
+            "new",
+            app_name,
+            "--interactive=false",
+            "--path",
+            workspace,
+            "--claude_marketplace=true",
+            "--no-banner"
+          ]
+        )
+      end.to output(
+        %r{Inside Claude Code, run:.*/plugin marketplace add kurenn/marketplace}m
+      ).to_stdout
     end
   end
 end
