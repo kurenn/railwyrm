@@ -5,19 +5,18 @@ require_relative "lib/railwyrm/version"
 Gem::Specification.new do |spec|
   spec.name = "railwyrm"
   spec.version = Railwyrm::VERSION
-  spec.authors = ["Codex + Abraham"]
+  spec.authors = ["Abraham Kuri"]
   spec.email = ["abraham@example.com"]
 
   spec.summary = "Epic interactive Rails project kickstarter"
   spec.description = "Railwyrm is a Claude-CLI-inspired generator for bootstrapping production-ready Rails apps and serving creation requests over HTTP."
-  spec.homepage = "https://example.com/railwyrm"
+  spec.homepage = "https://github.com/kurenn/railwyrm"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
 
   spec.metadata = {
-    "homepage_uri" => spec.homepage,
     "source_code_uri" => spec.homepage,
-    "changelog_uri" => spec.homepage
+    "bug_tracker_uri" => "#{spec.homepage}/issues"
   }
 
   spec.files = Dir.glob(
@@ -28,7 +27,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency "pastel", "~> 0.8"
-  spec.add_dependency "erb"
   spec.add_dependency "puma", "~> 6.6"
   spec.add_dependency "rackup", "~> 2.2"
   spec.add_dependency "sinatra", "~> 4.1"

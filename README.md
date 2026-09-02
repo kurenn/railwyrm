@@ -31,7 +31,8 @@ Every generated app includes:
 
 Rails compatibility behavior:
 
-- Railwyrm pins generated apps to Ruby `3.3.0` by writing `.ruby-version` and `ruby "3.3.0"` in the generated Gemfile.
+- Railwyrm targets Ruby `3.3` for generated apps: `.ruby-version` gets `3.3.0`, and the Gemfile gets
+  `ruby "~> 3.3.0"` so any 3.3.x patch release can bundle.
 - Because generated apps target Ruby `3.3.0`, Railwyrm pins Rails to `~> 8.0.3` before `bundle install`.
 
 ## Wizard Features
@@ -188,7 +189,10 @@ bundle exec rspec
 
 - `exe/railwyrm` CLI entrypoint
 - `lib/railwyrm/cli.rb` Thor commands
-- `lib/railwyrm/generator.rb` generation workflow
+- `lib/railwyrm/generator.rb` new-app generation workflow
+- `lib/railwyrm/feature_installer.rb` feature installs for existing apps
+- `lib/railwyrm/app_patcher.rb` the in-place edits both of those share
 - `lib/railwyrm/rails_blueprint.rb` stack defaults and setup commands
+- `spec/e2e/` generates a real Rails app; run with `RUN_E2E=1 bundle exec rspec spec/e2e`
 - `lib/railwyrm/templates/devise/{passkeys,passwordless}` magic-link and passkey auth templates
 - `AGENTS.md` Codex repo instructions

@@ -178,7 +178,6 @@ RSpec.describe Railwyrm::Generator do
       ui = Railwyrm::UI::Buffer.new
 
       generator = described_class.new(configuration, ui: ui, shell: shell)
-      allow(generator).to receive(:current_ruby_version).and_return("3.3.0")
 
       generator.run!
 
@@ -188,7 +187,7 @@ RSpec.describe Railwyrm::Generator do
 
       expect(ruby_version).to eq("3.3.0\n")
       expect(gemfile).to include('gem "rails", "~> 8.0.3"')
-      expect(gemfile).to include('ruby "3.3.0"')
+      expect(gemfile).to include('ruby "~> 3.3.0"')
       expect(application_config).to include("config.load_defaults 8.0")
       expect(gemfile).to include('gem "devise"')
       expect(gemfile).to include('gem "rspec-rails"')
@@ -259,7 +258,7 @@ RSpec.describe Railwyrm::Generator do
       application_config = File.read(File.join(configuration.app_path, "config/application.rb"))
 
       expect(ruby_version).to eq("3.3.0\n")
-      expect(gemfile).to include('ruby "3.3.0"')
+      expect(gemfile).to include('ruby "~> 3.3.0"')
       expect(gemfile).to include('gem "rails", "~> 8.0.3"')
       expect(application_config).to include("config.load_defaults 8.0")
     end
