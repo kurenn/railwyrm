@@ -2,6 +2,12 @@
 
 module Railwyrm
   class FeatureDetector
+    COLUMN_BACKED_MODULES = {
+      "confirmable" => "confirmation_token",
+      "lockable" => "unlock_token",
+      "trackable" => "sign_in_count"
+    }.freeze
+
     def initialize(app_path:, devise_user_model: "User")
       @app_path = File.expand_path(app_path)
       @devise_user_model = devise_user_model.to_s.strip.empty? ? "User" : devise_user_model.to_s.strip
@@ -16,10 +22,10 @@ module Railwyrm
       devise_modules = extract_devise_modules(model_content)
 
       detected = []
-      detected << "confirmable" if devise_modules.include?("confirmable")
-      detected << "lockable" if devise_modules.include?("lockable")
+      detected << "confirmable" if devise_module_installed?("confirmable", devise_modules)
+      detected << "lockable" if devise_module_installed?("lockable", devise_modules)
       detected << "timeoutable" if devise_modules.include?("timeoutable")
-      detected << "trackable" if devise_modules.include?("trackable")
+      detected << "trackable" if devise_module_installed?("trackable", devise_modules)
 
       if devise_modules.include?("magic_link_authenticatable") ||
          routes_content.include?('controllers: { sessions: "devise/passwordless/sessions" }') ||
@@ -44,6 +50,24 @@ module Railwyrm
     private
 
     attr_reader :app_path, :devise_user_model
+
+    # A column-backed module counts as installed only once its columns exist;
+    # the declaration on its own can outlive a failed migration.
+    def devise_module_installed?(name, devise_modules)
+      return false unless devise_modules.include?(name)
+
+      column = COLUMN_BACKED_MODULES.fetch(name)
+      schema_defines_column?(column) || migrations_define_column?(column)
+    end
+
+    def schema_defines_column?(column)
+      read_optional_file("db/schema.rb").include?(column) ||
+        read_optional_file("db/structure.sql").include?(column)
+    end
+
+    def migrations_define_column?(column)
+      Dir.glob(File.join(app_path, "db/migrate/*.rb")).any? { |path| File.read(path).include?(column) }
+    end
 
     def read_optional_file(relative_path)
       path = File.join(app_path, relative_path)

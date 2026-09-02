@@ -8,7 +8,7 @@ Keep UX interactive, command flow deterministic, and generated output reproducib
 ## Canonical product reference
 
 - Treat `VISION.md` as the source of truth for product direction.
-- When proposing roadmap items, recipe changes, or feature workflow behavior, align decisions to `VISION.md` (scope, principles, metrics, recipe contract).
+- When proposing roadmap items or feature workflow behavior, align decisions to `VISION.md` (scope, principles, metrics, generated-app and feature contracts).
 - If a request conflicts with `VISION.md`, call out the conflict and propose a `VISION.md` update or an explicit exception.
 
 ## Skills
@@ -29,7 +29,8 @@ A skill is a local instruction package in a `SKILL.md` file.
 ## Working conventions
 
 - Run `bundle exec rspec` after any change in `lib/`.
-- Prefer adding/changing behavior in `lib/railwyrm/rails_blueprint.rb` and `lib/railwyrm/generator.rb` instead of scattering stack logic.
+- Prefer adding/changing behavior in `lib/railwyrm/rails_blueprint.rb` (gems and setup commands) and `lib/railwyrm/app_patcher.rb` (edits to an existing app) instead of scattering stack logic.
+- `Generator` (new apps) and `FeatureInstaller` (existing apps) both delegate to `AppPatcher`; do not reintroduce per-caller copies of a patch.
 - Keep `--dry_run` behavior safe: never write files when dry-run is enabled.
 - Keep interactive prompts optional; non-interactive mode must be script-friendly.
 - For server mode, avoid blocking API responses indefinitely; use job status polling.

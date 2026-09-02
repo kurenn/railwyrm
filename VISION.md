@@ -1,61 +1,68 @@
 # Railwyrm Vision
 
-> **Note (2026-05-04):** the recipe roadmap and the Untitled UI design baseline have been shelved. Railwyrm now ships deterministic Rails scaffolding only — auth (Devise), tests (RSpec), styling (plain Tailwind), CI/quality. The recipe contract and AI-asset sections below remain as historical context.
-
 ## North Star
 
-Railwyrm exists to help teams kickstart production-ready Rails applications and expand them with AI-native feature delivery. Every recipe should produce a reproducible base app first, then provide recipe-specific expert assets that make feature delivery faster with Claude or Codex.
+Railwyrm exists to help teams kickstart production-ready Rails applications and to expand
+existing ones with the same defaults later. Generation is deterministic: the same inputs
+produce the same app, and every step is inspectable before it runs.
 
 ## v1 Audience
 
 - Solo founders shipping their first production app
 - Small product teams that want a strong Rails baseline without rebuilding the same setup
-- AI-assisted teams that want guided feature workflows, not open-ended prompt chaos
+- Teams that want their auth and quality tooling decided once, not re-litigated per project
 
 ## v1 Scope
 
-- Deliver deterministic recipe execution for flagship recipes, starting with `ats` as the reference implementation
-- Ensure every generated app includes a ready-to-ship baseline (auth, roles, seeds, tests, deploy sanity)
-- Provide per-recipe AI assets and workflows compatible with Claude and Codex
-- Keep interactive CLI UX optional so non-interactive/script mode remains first-class
+- A deterministic `railwyrm new` that produces a running Rails app with auth, tests, styling, and CI
+- A `railwyrm feature` family that installs the same capabilities into apps generated earlier
+- Feature state tracked in the generated app, reconcilable against what the app actually contains
+- Non-interactive/script mode as a first-class path, with the interactive wizard optional
 
 ## v1 Non-Goals
 
-- Supporting every framework or language outside Rails
+- Supporting frameworks or languages outside Rails
 - One-off custom enterprise workflows in core
-- Opaque AI-only generation that cannot be previewed or reproduced
-- Unversioned recipe changes that break existing generated apps
+- Generation that cannot be previewed or reproduced
+- Unversioned changes to generated output that silently break existing apps
 
 ## Product Principles
 
-- Deterministic by default: generation must be reproducible without AI
-- AI is optional but first-class: API keys unlock additional capability, not core reliability
-- Preview before apply: feature workflows should support plan and review prior to mutation
+- Deterministic by default: generation must be reproducible
+- Preview before apply: `--dry_run` must never write files
 - Safety by design: execution must be constrained, validated, and auditable
-- Versioned evolution: recipes and agent packs evolve with explicit versions and upgrade paths
+- Idempotent features: installing a feature twice is a no-op, and a partial install can be repaired
+- Versioned evolution: changes to generated output ship with explicit upgrade paths
 
 ## Success Metrics
 
-- Time to first running app from a recipe
-- Time to first shipped feature using recipe AI assets
+- Time to first running app
 - Generated app verification pass rate (`rspec`, routes, Zeitwerk, lint/security checks)
-- Recipe adoption and repeat usage across new projects
+- Share of `feature install` runs that complete without manual repair
+- Repeat usage across new projects
 
-## Recipe Contract
+## Generated App Contract
 
-Each recipe must ship with:
+Every app `railwyrm new` produces must ship with:
 
-- Deterministic scaffold and install flow
-- Core domain schema, routes, and seed data
-- Authentication and role baseline
-- Responsive UI baseline with accessibility sanity checks using `untitled_ui`
-- Test suite and validation checks that pass on generation
-- Deployment and observability baseline
-- Background jobs module standard based on Solid Queue (`solid_queue`)
-- AI assets organized by convention (`agents/`, `skills/`, `prompts/`, `playbooks/`)
+- PostgreSQL and Tailwind CSS, installed and working
+- Devise authentication, with optional modules the wizard can enable
+- RSpec, plus Active Storage and ActionText
+- A quality baseline: Brakeman, RuboCop, Bullet
+- A GitHub Actions CI workflow that runs the test suite, RuboCop, and Brakeman
+- A `.railwyrm/features.yml` manifest recording what was installed
+
+## Feature Contract
+
+Every installable feature must:
+
+- Detect its own presence from the app's real contents, not only from the manifest
+- Be safe to install twice
+- Declare its dependencies in `FeatureRegistry`
+- Leave the app's test suite passing
 
 ## Operating Cadence
 
-- Review this vision monthly against roadmap milestones
-- Require new major features to map to at least one product principle and one success metric
+- Review this vision against the roadmap monthly
+- Require new features to map to at least one product principle and one success metric
 - Keep roadmap execution details in `ROADMAP.local.md`; keep this file stable as the product contract

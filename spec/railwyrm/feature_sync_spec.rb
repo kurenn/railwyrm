@@ -36,6 +36,12 @@ RSpec.describe Railwyrm::FeatureSync do
         RUBY
       )
 
+      FileUtils.mkdir_p(File.join(app_path, "db/migrate"))
+      File.write(
+        File.join(app_path, "db/migrate/20260101000000_add_trackable_to_users.rb"),
+        "add_column :users, :sign_in_count, :integer\n"
+      )
+
       state = Railwyrm::FeatureState.new(app_path: app_path, ui: Railwyrm::UI::Buffer.new)
       state.replace!(["confirmable"])
 
@@ -67,6 +73,12 @@ RSpec.describe Railwyrm::FeatureSync do
             devise :database_authenticatable, :registerable, :trackable
           end
         RUBY
+      )
+
+      FileUtils.mkdir_p(File.join(app_path, "db/migrate"))
+      File.write(
+        File.join(app_path, "db/migrate/20260101000000_add_trackable_to_users.rb"),
+        "add_column :users, :sign_in_count, :integer\n"
       )
 
       ui = Railwyrm::UI::Buffer.new
