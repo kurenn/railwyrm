@@ -182,11 +182,11 @@ module Railwyrm
       updated_model = inject_devise_modules_into_model(model_content, module_names, model_relative_path)
       File.write(model_path, updated_model) unless updated_model == model_content
 
-      migration_created = false
-      migration_created ||= ensure_confirmable_migration! if module_names.include?("confirmable")
-      migration_created ||= ensure_lockable_migration! if module_names.include?("lockable")
-      migration_created ||= ensure_trackable_migration! if module_names.include?("trackable")
-      shell.run!("bin/rails", "db:migrate", chdir: app_path) if migration_created
+      created = []
+      created << ensure_confirmable_migration! if module_names.include?("confirmable")
+      created << ensure_lockable_migration! if module_names.include?("lockable")
+      created << ensure_trackable_migration! if module_names.include?("trackable")
+      shell.run!("bin/rails", "db:migrate", chdir: app_path) if created.any?
     end
 
     def enable_magic_link_authentication!
@@ -625,7 +625,7 @@ module Railwyrm
         return false
       end
 
-      timestamp = Time.now.utc.strftime("%Y%m%d%H%M%S")
+      timestamp = next_migration_version
       migration_filename = "#{timestamp}_add_confirmable_to_#{table_name}.rb"
       migration_path = File.join(migration_dir, migration_filename)
       migration_class = "AddConfirmableTo#{camelize(table_name)}"
@@ -658,7 +658,7 @@ module Railwyrm
         return false
       end
 
-      timestamp = Time.now.utc.strftime("%Y%m%d%H%M%S")
+      timestamp = next_migration_version
       migration_filename = "#{timestamp}_add_lockable_to_#{table_name}.rb"
       migration_path = File.join(migration_dir, migration_filename)
       migration_class = "AddLockableTo#{camelize(table_name)}"
@@ -690,7 +690,7 @@ module Railwyrm
         return false
       end
 
-      timestamp = Time.now.utc.strftime("%Y%m%d%H%M%S")
+      timestamp = next_migration_version
       migration_filename = "#{timestamp}_add_trackable_to_#{table_name}.rb"
       migration_path = File.join(migration_dir, migration_filename)
       migration_class = "AddTrackableTo#{camelize(table_name)}"
@@ -710,6 +710,11 @@ module Railwyrm
         RUBY
       )
       true
+    end
+
+    def next_migration_version
+      latest = Dir.glob(File.join(app_path, "db/migrate/*.rb")).map { |path| File.basename(path).to_i }.max.to_i
+      [Time.now.utc.strftime("%Y%m%d%H%M%S").to_i, latest + 1].max.to_s
     end
 
     def migration_version

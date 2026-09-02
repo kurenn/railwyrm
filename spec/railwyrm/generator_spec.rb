@@ -469,4 +469,29 @@ RSpec.describe Railwyrm::Generator do
       expect(executed.count { |line| line == "bin/rails db:migrate" }).to eq(2)
     end
   end
+
+  it "writes a migration for every requested devise module, not just the first" do
+    Dir.mktmpdir do |workspace|
+      configuration = Railwyrm::Configuration.new(
+        name: "multi_module_app",
+        workspace: workspace,
+        devise_confirmable: true,
+        devise_lockable: true,
+        devise_trackable: true
+      )
+      shell = FakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+
+      described_class.new(configuration, ui: ui, shell: shell).run!
+
+      versions = %w[confirmable lockable trackable].map do |devise_module|
+        pattern = File.join(configuration.app_path, "db/migrate/*_add_#{devise_module}_to_users.rb")
+        migration = Dir.glob(pattern).first
+        expect(migration).not_to be_nil, "expected an add_#{devise_module}_to_users migration"
+        File.basename(migration).to_i
+      end
+
+      expect(versions.uniq.length).to eq(3), "migrations share a version: #{versions.inspect}"
+    end
+  end
 end
