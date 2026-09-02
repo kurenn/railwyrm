@@ -117,6 +117,23 @@ RSpec.describe Railwyrm::Generator do
         )
       end
 
+      if command[0] == "bin/rails" && command[1] == "generate" && command[2] == "devise:views"
+        session_view = File.join(chdir, "app/views/devise/sessions/new.html.erb")
+        FileUtils.mkdir_p(File.dirname(session_view))
+        File.write(
+          session_view,
+          <<~ERB
+            <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+              <%= f.email_field :email %>
+            <% end %>
+
+            <% if devise_mapping.registerable? %>
+              <%= link_to "Sign up", new_registration_path(resource_name) %>
+            <% end %>
+          ERB
+        )
+      end
+
       if command[0] == "bin/rails" && command[1] == "generate" && command[2] == "devise:install"
         FileUtils.mkdir_p(File.join(chdir, "config/initializers"))
         File.write(
@@ -515,6 +532,41 @@ RSpec.describe Railwyrm::Generator do
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
       expect(executed.first).to start_with("rails _8.1.3_ new override_app")
+    end
+  end
+  it "adds the passkey sign-in button to a generated app that had no devise views" do
+    Dir.mktmpdir do |workspace|
+      configuration = Railwyrm::Configuration.new(
+        name: "passkey_button_app",
+        workspace: workspace,
+        devise_passkeys: true
+      )
+      shell = FakeShell.new
+
+      described_class.new(configuration, ui: Railwyrm::UI::Buffer.new, shell: shell).run!
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed).to include("bin/rails generate devise:views -v sessions")
+
+      session_view = File.read(File.join(configuration.app_path, "app/views/devise/sessions/new.html.erb"))
+      expect(session_view).to include("login_with_passkey_button")
+    end
+  end
+
+  it "warns instead of silently skipping when the sign-in view cannot be created" do
+    Dir.mktmpdir do |app_path|
+      ui = Railwyrm::UI::Buffer.new
+      patcher = Railwyrm::AppPatcher.new(
+        app_path: app_path,
+        ui: ui,
+        shell: FakeShell.new,
+        devise_user_model: "User"
+      )
+
+      patcher.send(:ensure_passkey_sign_in_button!)
+
+      warning = ui.logs.find { |entry| entry[:level] == "warn" }
+      expect(warning[:message]).to match(/passkey sign-in button/)
     end
   end
 end

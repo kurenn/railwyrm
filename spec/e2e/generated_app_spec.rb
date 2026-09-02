@@ -35,6 +35,7 @@ RSpec.describe "a generated Rails app", e2e: true do
         devise_confirmable: true,
         devise_lockable: true,
         devise_trackable: true,
+        devise_passkeys: true,
         verbose: true
       )
 
@@ -51,6 +52,11 @@ RSpec.describe "a generated Rails app", e2e: true do
       # Generation is pinned, so the Gemfile should be right without a rewrite.
       expect(File.read(File.join(app_path, "Gemfile"))).to match(/gem "rails", "~> 8\.1\./)
 
+      # devise:install writes no views, so this button had nowhere to go and was
+      # silently skipped on every generated app.
+      session_view = File.read(File.join(app_path, "app/views/devise/sessions/new.html.erb"))
+      expect(session_view).to include("login_with_passkey_button")
+
       expect(File).to exist(File.join(app_path, ".github/workflows/ci.yml"))
 
       capture!("bin/rails", "runner", "User.new", chdir: app_path)
@@ -65,12 +71,18 @@ RSpec.describe "a generated Rails app", e2e: true do
             it "has the devise modules Railwyrm enabled" do
               expect(User.devise_modules).to include(:confirmable, :lockable, :trackable)
             end
+
+            it "can register a passkey" do
+              expect(User.new).to respond_to(:passkeys)
+            end
           end
         SPEC
       )
 
       output = capture!("bundle", "exec", "rspec", chdir: app_path)
-      expect(output).to match(/1 example, 0 failures/)
+      # devise:webauthn:install generates a pending spec of its own, so pin the
+      # outcome rather than an exact count.
+      expect(output).to match(/[1-9]\d* examples?, 0 failures/)
     end
   end
 end
