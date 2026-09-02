@@ -43,8 +43,11 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
 
-      - name: Install Rails
-        run: gem install rails --no-document
+      - name: Install the Rails version Railwyrm generates with
+        run: |
+          version="$(bundle exec ruby -e 'require "./lib/railwyrm"; puts Railwyrm::RailsBlueprint.new.default_rails_version')"
+          echo "Railwyrm generates with Rails ${version}"
+          gem install rails -v "${version}" --no-document
 
       - name: Generate and verify a Rails app
         run: bundle exec rspec spec/e2e

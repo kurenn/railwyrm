@@ -15,15 +15,17 @@ RSpec.describe Railwyrm::RailsBlueprint do
         ["rails", "new", "demo_app", "--database=postgresql", "--css=tailwind", "--skip-test", "--skip-bundle"]
       )
     end
+
+    it "generates with an explicit Rails version when one is given" do
+      command = blueprint.rails_new_command(configuration, rails_version: "8.0.3")
+
+      expect(command.first(4)).to eq(["rails", "_8.0.3_", "new", "demo_app"])
+    end
   end
 
-  describe "#compatible_rails_requirement" do
-    it "pins Rails 8.0 for Ruby 3.3" do
-      expect(blueprint.compatible_rails_requirement("3.3.0")).to eq("~> 8.0.3")
-    end
-
-    it "does not pin Rails for Ruby 3.4 or newer" do
-      expect(blueprint.compatible_rails_requirement("3.4.0")).to be_nil
+  describe "#default_rails_version" do
+    it "names the Rails version Railwyrm generates with" do
+      expect(blueprint.default_rails_version).to eq("8.1.3.1")
     end
   end
 
@@ -31,6 +33,13 @@ RSpec.describe Railwyrm::RailsBlueprint do
     it "includes tailwind installer command" do
       commands = blueprint.post_bundle_steps(configuration).map { |(_label, command)| command.join(" ") }
       expect(commands).to include("./bin/rails tailwindcss:install")
+    end
+
+    it "re-bundles after the installers that can edit the Gemfile" do
+      commands = blueprint.post_bundle_steps(configuration).map { |(_label, command)| command.join(" ") }
+
+      expect(commands.index("bundle install")).to be > commands.index("bin/rails active_storage:install")
+      expect(commands.index("bundle install")).to be < commands.index("bin/rails generate rspec:install")
     end
 
     it "can skip devise user generation" do

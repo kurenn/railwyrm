@@ -11,6 +11,8 @@ module Railwyrm
       @verbose = verbose
     end
 
+    FAILURE_CONTEXT_LINES = 8
+
     def run!(*command, chdir: nil)
       raise ArgumentError, "Command cannot be empty" if command.empty?
 
@@ -22,22 +24,46 @@ module Railwyrm
         Open3.popen2e(*command, chdir: chdir) do |stdin, output, wait_thr|
           stdin.close
 
-          output.each_line do |line|
-            next unless @verbose
+          head = []
+          tail = []
+          dropped = 0
 
+          output.each_line do |line|
             stripped = line.rstrip
-            @ui.stream(stripped) unless stripped.empty?
+            next if stripped.empty?
+
+            @ui.stream(stripped) if @verbose
+
+            if head.length < FAILURE_CONTEXT_LINES
+              head << stripped
+            else
+              tail << stripped
+              if tail.length > FAILURE_CONTEXT_LINES
+                tail.shift
+                dropped += 1
+              end
+            end
           end
 
           status = wait_thr.value
           return true if status.success?
 
-          raise CommandFailed, "Command failed with status #{status.exitstatus}: #{pretty_command}"
+          raise CommandFailed, failure_message(pretty_command, status, head, tail, dropped)
         end
       end
     end
 
     private
+
+    def failure_message(pretty_command, status, head, tail, dropped)
+      message = "Command failed with status #{status.exitstatus}: #{pretty_command}"
+      context = head
+      context += ["... #{dropped} more line(s) ..."] if dropped.positive?
+      context += tail
+      return message if context.empty?
+
+      [message, *context].join("\n")
+    end
 
     def with_unbundled_env
       if defined?(Bundler)

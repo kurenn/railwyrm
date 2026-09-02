@@ -14,8 +14,8 @@ RSpec.describe Railwyrm::Generator do
     def run!(*command, chdir: nil)
       commands << { command: command, chdir: chdir }
 
-      if command[0] == "rails" && command[1] == "new"
-        app_name = command[2]
+      if command[0] == "rails" && command.include?("new")
+        app_name = command[command.index("new") + 1]
         app_path = File.join(chdir, app_name)
         FileUtils.mkdir_p(app_path)
         File.write(
@@ -23,7 +23,7 @@ RSpec.describe Railwyrm::Generator do
           <<~RUBY
             source "https://rubygems.org"
 
-            gem "rails", "~> 8.1.2"
+            gem "rails", "~> 8.1.3.1"
           RUBY
         )
         FileUtils.mkdir_p(File.join(app_path, "app/views/layouts"))
@@ -186,9 +186,9 @@ RSpec.describe Railwyrm::Generator do
       application_config = File.read(File.join(configuration.app_path, "config/application.rb"))
 
       expect(ruby_version).to eq("3.3.0\n")
-      expect(gemfile).to include('gem "rails", "~> 8.0.3"')
+      expect(gemfile).to include('gem "rails", "~> 8.1.3.1"')
       expect(gemfile).to include('ruby "~> 3.3.0"')
-      expect(application_config).to include("config.load_defaults 8.0")
+      expect(application_config).to include("config.load_defaults 8.1")
       expect(gemfile).to include('gem "devise"')
       expect(gemfile).to include('gem "rspec-rails"')
       expect(gemfile).to include('gem "dotenv-rails"')
@@ -248,10 +248,7 @@ RSpec.describe Railwyrm::Generator do
       shell = FakeShell.new
       ui = Railwyrm::UI::Buffer.new
 
-      generator = described_class.new(configuration, ui: ui, shell: shell)
-      allow(generator).to receive(:current_ruby_version).and_return("3.4.0")
-
-      generator.run!
+      described_class.new(configuration, ui: ui, shell: shell).run!
 
       gemfile = File.read(File.join(configuration.app_path, "Gemfile"))
       ruby_version = File.read(File.join(configuration.app_path, ".ruby-version"))
@@ -259,8 +256,8 @@ RSpec.describe Railwyrm::Generator do
 
       expect(ruby_version).to eq("3.3.0\n")
       expect(gemfile).to include('ruby "~> 3.3.0"')
-      expect(gemfile).to include('gem "rails", "~> 8.0.3"')
-      expect(application_config).to include("config.load_defaults 8.0")
+      expect(gemfile).to include('gem "rails", "~> 8.1.3.1"')
+      expect(application_config).to include("config.load_defaults 8.1")
     end
   end
 
@@ -491,6 +488,33 @@ RSpec.describe Railwyrm::Generator do
       end
 
       expect(versions.uniq.length).to eq(3), "migrations share a version: #{versions.inspect}"
+    end
+  end
+  it "generates with the Rails version Railwyrm chose, not whatever is installed" do
+    Dir.mktmpdir do |workspace|
+      configuration = Railwyrm::Configuration.new(name: "pinned_app", workspace: workspace)
+      shell = FakeShell.new
+
+      described_class.new(configuration, ui: Railwyrm::UI::Buffer.new, shell: shell).run!
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed.first).to start_with("rails _8.1.3.1_ new pinned_app")
+    end
+  end
+
+  it "honours an explicit Rails version override" do
+    Dir.mktmpdir do |workspace|
+      configuration = Railwyrm::Configuration.new(
+        name: "override_app",
+        workspace: workspace,
+        rails_version: "8.1.3"
+      )
+      shell = FakeShell.new
+
+      described_class.new(configuration, ui: Railwyrm::UI::Buffer.new, shell: shell).run!
+
+      executed = shell.commands.map { |entry| entry[:command].join(" ") }
+      expect(executed.first).to start_with("rails _8.1.3_ new override_app")
     end
   end
 end

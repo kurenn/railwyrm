@@ -20,12 +20,13 @@ module Railwyrm
 
       ui.headline("Forging #{configuration.name} in #{configuration.workspace}")
 
-      ui.step("Bootstrapping base Rails app") do
-        shell.run!(*blueprint.rails_new_command(configuration), chdir: configuration.workspace)
-      end
+      ui.info("Generating with Rails #{rails_version}") if rails_version
 
-      ui.step("Checking Rails and Ruby compatibility") do
-        ensure_generated_rails_version_compatible!
+      ui.step("Bootstrapping base Rails app") do
+        shell.run!(
+          *blueprint.rails_new_command(configuration, rails_version: rails_version),
+          chdir: configuration.workspace
+        )
       end
 
       ui.step("Pinning generated Ruby version") do
@@ -130,30 +131,6 @@ module Railwyrm
       ui.success("Gemfile updated with Rails starter stack.")
     end
 
-    def ensure_generated_rails_version_compatible!
-      if configuration.dry_run
-        ui.info("Dry run enabled: Rails compatibility check skipped.")
-        return
-      end
-
-      gemfile_path = File.join(configuration.app_path, "Gemfile")
-      raise InvalidConfiguration, "Gemfile not found at #{gemfile_path}" unless File.exist?(gemfile_path)
-
-      required_version = blueprint.compatible_rails_requirement(target_ruby_version)
-      return if required_version.nil?
-
-      gemfile = File.read(gemfile_path)
-      rails_line_pattern = /^(gem ["']rails["'],\s*["'])~> 8\.1\.[^"']+(["'])$/
-      return unless gemfile.match?(rails_line_pattern)
-
-      updated = gemfile.sub(rails_line_pattern, "\\1#{required_version}\\2")
-      return if updated == gemfile
-
-      File.write(gemfile_path, updated)
-      ensure_generated_load_defaults_version!(required_version)
-      ui.info("Generated app targets Ruby #{target_ruby_version}; pinning Rails to #{required_version}.")
-    end
-
     def ensure_generated_ruby_version!
       if configuration.dry_run
         ui.info("Dry run enabled: Ruby version pin skipped.")
@@ -177,18 +154,6 @@ module Railwyrm
                 end
 
       File.write(gemfile_path, updated) unless updated == gemfile
-    end
-
-    def ensure_generated_load_defaults_version!(rails_requirement)
-      application_path = File.join(configuration.app_path, "config/application.rb")
-      return unless File.exist?(application_path)
-
-      load_defaults_version = rails_requirement[/\d+\.\d+/]
-      return if load_defaults_version.nil?
-
-      application = File.read(application_path)
-      updated = application.gsub(/config\.load_defaults\s+\d+\.\d+/, "config.load_defaults #{load_defaults_version}")
-      File.write(application_path, updated) unless updated == application
     end
 
     def normalize_application_main_layout!
@@ -311,6 +276,10 @@ module Railwyrm
 
     def target_ruby_version
       TARGET_RUBY_VERSION
+    end
+
+    def rails_version
+      @rails_version ||= configuration.rails_version || blueprint.default_rails_version
     end
 
   end

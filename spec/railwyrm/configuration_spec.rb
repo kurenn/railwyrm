@@ -99,4 +99,15 @@ RSpec.describe Railwyrm::Configuration do
     expect(config.devise_magic_link?).to be(true)
     expect(config.devise_trackable?).to be(true)
   end
+  it "rejects a rails version that is not a version" do
+    expect do
+      described_class.new(name: "demo_app", workspace: "/tmp", rails_version: "edge")
+    end.to raise_error(Railwyrm::InvalidConfiguration, /Rails version must look like/)
+  end
+
+  it "treats a blank rails version as unset" do
+    config = described_class.new(name: "demo_app", workspace: "/tmp", rails_version: "  ")
+
+    expect(config.rails_version).to be_nil
+  end
 end

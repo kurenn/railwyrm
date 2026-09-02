@@ -2,7 +2,10 @@
 
 module Railwyrm
   class RailsBlueprint
-    RUBY_33_RAILS_REQUIREMENT = "~> 8.0.3".freeze
+    # Generation uses this exact version so the Gemfile it writes is already
+    # correct, rather than being patched afterwards. Rails 8.1 needs Ruby
+    # >= 3.2, so it is happy on the 3.3 that generated apps target.
+    DEFAULT_RAILS_VERSION = "8.1.3.1"
     RAILS_NEW_FLAGS = [
       "--database=postgresql",
       "--css=tailwind",
@@ -10,14 +13,13 @@ module Railwyrm
       "--skip-bundle"
     ].freeze
 
-    def rails_new_command(configuration)
-      ["rails", "new", configuration.name, *RAILS_NEW_FLAGS]
+    def rails_new_command(configuration, rails_version: nil)
+      selector = rails_version.to_s.strip.empty? ? [] : ["_#{rails_version}_"]
+      ["rails", *selector, "new", configuration.name, *RAILS_NEW_FLAGS]
     end
 
-    def compatible_rails_requirement(ruby_version)
-      return RUBY_33_RAILS_REQUIREMENT if Gem::Version.new(ruby_version) < Gem::Version.new("3.4.0")
-
-      nil
+    def default_rails_version
+      DEFAULT_RAILS_VERSION
     end
 
     def gem_entries
@@ -92,6 +94,9 @@ module Railwyrm
         ["Install Tailwind CSS", ["./bin/rails", "tailwindcss:install"]],
         ["Install Active Storage", ["bin/rails", "active_storage:install"]],
         ["Install ActionText", ["bin/rails", "action_text:install"]],
+        # The two installers above can uncomment gems (image_processing), which
+        # leaves the bundle stale and breaks every bin/rails call after them.
+        ["Install gems added by the installers", ["bundle", "install"]],
         ["Install RSpec", ["bin/rails", "generate", "rspec:install"]],
         ["Install Devise", ["bin/rails", "generate", "devise:install"]]
       ]

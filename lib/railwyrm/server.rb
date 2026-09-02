@@ -87,6 +87,7 @@ module Railwyrm
         name: payload["name"],
         workspace: resolve_workspace(payload["workspace"]),
         devise_user_model: payload["devise_user_model"] || "User",
+        rails_version: payload["rails_version"],
         install_devise_user: !truthy?(payload["skip_devise_user"]),
         devise_confirmable: truthy?(payload["devise_confirmable"]),
         devise_lockable: truthy?(payload["devise_lockable"]),
