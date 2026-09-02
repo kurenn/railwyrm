@@ -3,7 +3,7 @@
 require_relative "lib/railwyrm"
 
 server = Railwyrm::Server.new(
-  host: ENV.fetch("RAILWYRM_HOST", "127.0.0.1"),
+  host: ENV.fetch("RAILWYRM_HOST", "0.0.0.0"),
   port: ENV.fetch("RAILWYRM_PORT", "4567").to_i,
   workspace: ENV.fetch("RAILWYRM_WORKSPACE", Dir.pwd)
 )

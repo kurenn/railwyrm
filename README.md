@@ -154,8 +154,9 @@ Common flags:
 
 Server mode (`railwyrm serve`):
 
-- Binds `127.0.0.1` by default; pass `--host 0.0.0.0` to expose it deliberately.
-- `POST /api/apps` only generates inside `--workspace`; paths outside it are rejected with `422`.
+- Binds `0.0.0.0` by default; pass `--host 127.0.0.1` to keep it local.
+- `POST /api/apps` runs `rails new` and `bundle install` on the host, so only serve on networks you trust.
+- Generation is confined to `--workspace`; paths outside it are rejected with `422`.
 
 Feature install options:
 
