@@ -40,7 +40,7 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           # Matches Generator::TARGET_RUBY_VERSION, which generated apps pin.
-          ruby-version: "3.3"
+          ruby-version: "3.4"
           bundler-cache: true
 
       - name: Install the Rails version Railwyrm generates with

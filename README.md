@@ -31,8 +31,8 @@ Every generated app includes:
 
 Rails compatibility behavior:
 
-- Railwyrm targets Ruby `3.3` for generated apps: `.ruby-version` gets `3.3.0`, and the Gemfile gets
-  `ruby "~> 3.3.0"` so any 3.3.x patch release can bundle.
+- Railwyrm targets Ruby `3.4` for generated apps: `.ruby-version` gets `3.4.0`, and the Gemfile gets
+  `ruby "~> 3.4.0"` so any 3.4.x patch release can bundle.
 - Railwyrm generates with a Rails version it chooses rather than whatever happens to be installed:
   it runs `rails _8.1.3.1_ new`, so the Gemfile it produces is already correct instead of being
   rewritten afterwards. Install it with `gem install rails -v 8.1.3.1`; `railwyrm doctor` checks for it.

@@ -185,9 +185,9 @@ RSpec.describe Railwyrm::Generator do
       ruby_version = File.read(File.join(configuration.app_path, ".ruby-version"))
       application_config = File.read(File.join(configuration.app_path, "config/application.rb"))
 
-      expect(ruby_version).to eq("3.3.0\n")
+      expect(ruby_version).to eq("3.4.0\n")
       expect(gemfile).to include('gem "rails", "~> 8.1.3.1"')
-      expect(gemfile).to include('ruby "~> 3.3.0"')
+      expect(gemfile).to include('ruby "~> 3.4.0"')
       expect(application_config).to include("config.load_defaults 8.1")
       expect(gemfile).to include('gem "devise"')
       expect(gemfile).to include('gem "rspec-rails"')
@@ -242,7 +242,7 @@ RSpec.describe Railwyrm::Generator do
     end
   end
 
-  it "pins the generated app to Ruby 3.3 even on newer local Ruby versions" do
+  it "pins the generated app to the Ruby version Railwyrm targets" do
     Dir.mktmpdir do |workspace|
       configuration = Railwyrm::Configuration.new(name: "rails_81_ok", workspace: workspace)
       shell = FakeShell.new
@@ -254,8 +254,8 @@ RSpec.describe Railwyrm::Generator do
       ruby_version = File.read(File.join(configuration.app_path, ".ruby-version"))
       application_config = File.read(File.join(configuration.app_path, "config/application.rb"))
 
-      expect(ruby_version).to eq("3.3.0\n")
-      expect(gemfile).to include('ruby "~> 3.3.0"')
+      expect(ruby_version).to eq("3.4.0\n")
+      expect(gemfile).to include('ruby "~> 3.4.0"')
       expect(gemfile).to include('gem "rails", "~> 8.1.3.1"')
       expect(application_config).to include("config.load_defaults 8.1")
     end
