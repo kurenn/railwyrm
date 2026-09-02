@@ -3,13 +3,15 @@
 module Railwyrm
   class Configuration
     NAME_PATTERN = /\A[a-z][a-z0-9_]*\z/
+    RAILS_VERSION_PATTERN = /\A\d+(\.\d+)*(\.[a-z0-9]+)?\z/
 
-    attr_reader :name, :workspace, :devise_user_model, :dry_run, :verbose
+    attr_reader :name, :workspace, :devise_user_model, :rails_version, :dry_run, :verbose
 
     def initialize(
       name:,
       workspace:,
       devise_user_model: "User",
+      rails_version: nil,
       install_devise_user: true,
       devise_confirmable: false,
       devise_lockable: false,
@@ -24,6 +26,7 @@ module Railwyrm
       @name = name.to_s.strip
       @workspace = File.expand_path(workspace.to_s.strip.empty? ? Dir.pwd : workspace)
       @devise_user_model = devise_user_model.to_s.strip.empty? ? "User" : devise_user_model.to_s.strip
+      @rails_version = rails_version.to_s.strip.empty? ? nil : rails_version.to_s.strip
       @install_devise_user = install_devise_user
       @devise_confirmable = !!devise_confirmable
       @devise_lockable = !!devise_lockable
@@ -79,6 +82,7 @@ module Railwyrm
         name: name,
         workspace: workspace,
         devise_user_model: devise_user_model,
+        rails_version: rails_version,
         install_devise_user: install_devise_user?,
         devise_confirmable: devise_confirmable?,
         devise_lockable: devise_lockable?,
@@ -98,6 +102,9 @@ module Railwyrm
       raise InvalidConfiguration, "App name is required." if name.empty?
       raise InvalidConfiguration, "App name must be snake_case and start with a letter." unless name.match?(NAME_PATTERN)
       raise InvalidConfiguration, "Workspace path is required." if workspace.empty?
+      if rails_version && !rails_version.match?(RAILS_VERSION_PATTERN)
+        raise InvalidConfiguration, "Rails version must look like 8.0.3, got: #{rails_version}"
+      end
       if devise_confirmable? && !install_devise_user?
         raise InvalidConfiguration, "Devise confirmable requires generating a Devise user model."
       end

@@ -138,6 +138,8 @@ module Railwyrm
     option :devise_trackable, type: :boolean, default: false, desc: "Enable Devise trackable module"
     option :devise_magic_link, type: :boolean, default: false, desc: "Enable magic-link sign-in via email"
     option :devise_passkeys, type: :boolean, default: false, desc: "Enable passkeys via WebAuthn (devise-webauthn)"
+    option :rails_version, type: :string,
+                           desc: "Rails version used to generate the app (default: #{RailsBlueprint::RUBY_33_RAILS_VERSION})"
     option :claude_marketplace, type: :boolean, default: false,
                                 desc: "Print the kurenn/marketplace install command after generation"
     def new(app_name = nil)
@@ -194,6 +196,18 @@ module Railwyrm
           failures << name
           ui.warn("#{name} missing or broken")
           ui.stream(output.strip) unless output.strip.empty?
+        end
+      end
+
+      wanted_rails = RailsBlueprint.new.default_rails_version(Generator::TARGET_RUBY_VERSION)
+      if wanted_rails
+        _output, status = run_check("gem list -i rails -v #{wanted_rails}")
+        if status.success?
+          ui.success("rails #{wanted_rails} available for generation")
+        else
+          failures << "rails #{wanted_rails}"
+          ui.warn("rails #{wanted_rails} is not installed; `railwyrm new` generates with it")
+          ui.info("Install it with: gem install rails -v #{wanted_rails}")
         end
       end
 
@@ -295,6 +309,7 @@ module Railwyrm
         name: name,
         workspace: workspace,
         devise_user_model: devise_user_model,
+        rails_version: options[:rails_version],
         install_devise_user: install_devise_user,
         devise_confirmable: devise_confirmable,
         devise_lockable: devise_lockable,
