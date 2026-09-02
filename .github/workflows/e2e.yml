@@ -45,7 +45,7 @@ jobs:
 
       - name: Install the Rails version Railwyrm generates with
         run: |
-          version="$(bundle exec ruby -e 'require "./lib/railwyrm"; puts Railwyrm::RailsBlueprint.new.default_rails_version(Railwyrm::Generator::TARGET_RUBY_VERSION)')"
+          version="$(bundle exec ruby -e 'require "./lib/railwyrm"; puts Railwyrm::RailsBlueprint.new.default_rails_version')"
           echo "Railwyrm generates with Rails ${version}"
           gem install rails -v "${version}" --no-document
 

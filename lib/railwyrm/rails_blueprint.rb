@@ -2,10 +2,10 @@
 
 module Railwyrm
   class RailsBlueprint
-    # Generated apps target Ruby 3.3, which Rails 8.1 does not support well
-    # enough for us to hand people. Generation uses this exact version so the
-    # Gemfile it writes is already correct, rather than being patched after.
-    RUBY_33_RAILS_VERSION = "8.0.3"
+    # Generation uses this exact version so the Gemfile it writes is already
+    # correct, rather than being patched afterwards. Rails 8.1 needs Ruby
+    # >= 3.2, so it is happy on the 3.3 that generated apps target.
+    DEFAULT_RAILS_VERSION = "8.1.3.1"
     RAILS_NEW_FLAGS = [
       "--database=postgresql",
       "--css=tailwind",
@@ -18,12 +18,8 @@ module Railwyrm
       ["rails", *selector, "new", configuration.name, *RAILS_NEW_FLAGS]
     end
 
-    # nil means "whatever rails is installed" -- only reached if the target Ruby
-    # moves past 3.3, at which point the pin stops being needed.
-    def default_rails_version(ruby_version)
-      return RUBY_33_RAILS_VERSION if Gem::Version.new(ruby_version) < Gem::Version.new("3.4.0")
-
-      nil
+    def default_rails_version
+      DEFAULT_RAILS_VERSION
     end
 
     def gem_entries

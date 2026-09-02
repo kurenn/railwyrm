@@ -49,7 +49,7 @@ RSpec.describe "a generated Rails app", e2e: true do
       expect(schema).to include("sign_in_count")
 
       # Generation is pinned, so the Gemfile should be right without a rewrite.
-      expect(File.read(File.join(app_path, "Gemfile"))).to match(/gem "rails", "~> 8\.0\./)
+      expect(File.read(File.join(app_path, "Gemfile"))).to match(/gem "rails", "~> 8\.1\./)
 
       expect(File).to exist(File.join(app_path, ".github/workflows/ci.yml"))
 

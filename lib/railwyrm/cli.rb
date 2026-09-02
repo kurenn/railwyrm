@@ -139,7 +139,7 @@ module Railwyrm
     option :devise_magic_link, type: :boolean, default: false, desc: "Enable magic-link sign-in via email"
     option :devise_passkeys, type: :boolean, default: false, desc: "Enable passkeys via WebAuthn (devise-webauthn)"
     option :rails_version, type: :string,
-                           desc: "Rails version used to generate the app (default: #{RailsBlueprint::RUBY_33_RAILS_VERSION})"
+                           desc: "Rails version used to generate the app (default: #{RailsBlueprint::DEFAULT_RAILS_VERSION})"
     option :claude_marketplace, type: :boolean, default: false,
                                 desc: "Print the kurenn/marketplace install command after generation"
     def new(app_name = nil)
@@ -199,7 +199,7 @@ module Railwyrm
         end
       end
 
-      wanted_rails = RailsBlueprint.new.default_rails_version(Generator::TARGET_RUBY_VERSION)
+      wanted_rails = RailsBlueprint.new.default_rails_version
       if wanted_rails
         _output, status = run_check("gem list -i rails -v #{wanted_rails}")
         if status.success?

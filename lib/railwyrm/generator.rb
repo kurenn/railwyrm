@@ -279,7 +279,7 @@ module Railwyrm
     end
 
     def rails_version
-      @rails_version ||= configuration.rails_version || blueprint.default_rails_version(target_ruby_version)
+      @rails_version ||= configuration.rails_version || blueprint.default_rails_version
     end
 
   end

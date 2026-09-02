@@ -24,12 +24,8 @@ RSpec.describe Railwyrm::RailsBlueprint do
   end
 
   describe "#default_rails_version" do
-    it "chooses Rails 8.0.3 for Ruby 3.3" do
-      expect(blueprint.default_rails_version("3.3.0")).to eq("8.0.3")
-    end
-
-    it "leaves the version to the installed gem for Ruby 3.4 or newer" do
-      expect(blueprint.default_rails_version("3.4.0")).to be_nil
+    it "names the Rails version Railwyrm generates with" do
+      expect(blueprint.default_rails_version).to eq("8.1.3.1")
     end
   end
 

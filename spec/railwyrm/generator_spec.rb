@@ -23,7 +23,7 @@ RSpec.describe Railwyrm::Generator do
           <<~RUBY
             source "https://rubygems.org"
 
-            gem "rails", "~> 8.0.3"
+            gem "rails", "~> 8.1.3.1"
           RUBY
         )
         FileUtils.mkdir_p(File.join(app_path, "app/views/layouts"))
@@ -36,7 +36,7 @@ RSpec.describe Railwyrm::Generator do
           <<~RUBY
             module #{app_name.split("_").map(&:capitalize).join}
               class Application < Rails::Application
-                config.load_defaults 8.0
+                config.load_defaults 8.1
               end
             end
           RUBY
@@ -110,7 +110,7 @@ RSpec.describe Railwyrm::Generator do
         File.write(
           migration_file,
           <<~RUBY
-            class DeviseCreate#{model_name}s < ActiveRecord::Migration[8.0]
+            class DeviseCreate#{model_name}s < ActiveRecord::Migration[8.1]
               def change; end
             end
           RUBY
@@ -148,7 +148,7 @@ RSpec.describe Railwyrm::Generator do
         File.write(
           migration_file,
           <<~RUBY
-            class DeviseWebauthnCreateCredentials < ActiveRecord::Migration[8.0]
+            class DeviseWebauthnCreateCredentials < ActiveRecord::Migration[8.1]
               def change; end
             end
           RUBY
@@ -186,9 +186,9 @@ RSpec.describe Railwyrm::Generator do
       application_config = File.read(File.join(configuration.app_path, "config/application.rb"))
 
       expect(ruby_version).to eq("3.3.0\n")
-      expect(gemfile).to include('gem "rails", "~> 8.0.3"')
+      expect(gemfile).to include('gem "rails", "~> 8.1.3.1"')
       expect(gemfile).to include('ruby "~> 3.3.0"')
-      expect(application_config).to include("config.load_defaults 8.0")
+      expect(application_config).to include("config.load_defaults 8.1")
       expect(gemfile).to include('gem "devise"')
       expect(gemfile).to include('gem "rspec-rails"')
       expect(gemfile).to include('gem "dotenv-rails"')
@@ -256,8 +256,8 @@ RSpec.describe Railwyrm::Generator do
 
       expect(ruby_version).to eq("3.3.0\n")
       expect(gemfile).to include('ruby "~> 3.3.0"')
-      expect(gemfile).to include('gem "rails", "~> 8.0.3"')
-      expect(application_config).to include("config.load_defaults 8.0")
+      expect(gemfile).to include('gem "rails", "~> 8.1.3.1"')
+      expect(application_config).to include("config.load_defaults 8.1")
     end
   end
 
@@ -498,7 +498,7 @@ RSpec.describe Railwyrm::Generator do
       described_class.new(configuration, ui: Railwyrm::UI::Buffer.new, shell: shell).run!
 
       executed = shell.commands.map { |entry| entry[:command].join(" ") }
-      expect(executed.first).to start_with("rails _8.0.3_ new pinned_app")
+      expect(executed.first).to start_with("rails _8.1.3.1_ new pinned_app")
     end
   end
 

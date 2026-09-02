@@ -34,9 +34,9 @@ Rails compatibility behavior:
 - Railwyrm targets Ruby `3.3` for generated apps: `.ruby-version` gets `3.3.0`, and the Gemfile gets
   `ruby "~> 3.3.0"` so any 3.3.x patch release can bundle.
 - Railwyrm generates with a Rails version it chooses rather than whatever happens to be installed:
-  it runs `rails _8.0.3_ new`, so the Gemfile it produces is already correct instead of being
-  rewritten afterwards. Install it with `gem install rails -v 8.0.3`; `railwyrm doctor` checks for it.
-- Override with `--rails_version 8.1.3` if you want a different one.
+  it runs `rails _8.1.3.1_ new`, so the Gemfile it produces is already correct instead of being
+  rewritten afterwards. Install it with `gem install rails -v 8.1.3.1`; `railwyrm doctor` checks for it.
+- Override with `--rails_version 8.0.3` if you need an older one.
 
 ## Wizard Features
 
@@ -155,7 +155,7 @@ Common flags:
 - `--devise_trackable` enable Devise trackable
 - `--devise_magic_link` enable magic-link sign-in
 - `--devise_passkeys` enable passkeys sign-in (WebAuthn)
-- `--rails_version` Rails version used to generate the app (default `8.0.3`)
+- `--rails_version` Rails version used to generate the app (default `8.1.3.1`)
 
 Server mode (`railwyrm serve`):
 
