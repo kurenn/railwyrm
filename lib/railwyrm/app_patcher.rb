@@ -72,6 +72,7 @@ module Railwyrm
       ensure_webauthn_javascript_include!
       ensure_webauthn_initializer_defaults!
       ensure_webauthn_env_example_defaults!
+      ensure_devise_session_views!
       ensure_passkey_sign_in_button!
       ensure_passkey_enrollment_redirect!
       shell.run!("bin/rails", "db:migrate", chdir: app_path)
@@ -334,9 +335,20 @@ module Railwyrm
       File.write(layout_path, updated) unless updated == content
     end
 
+    # devise:install stops at the initializer, so a freshly generated app has no
+    # sign-in view of its own until we ask for one.
+    def ensure_devise_session_views!
+      return if File.exist?(devise_session_view_path)
+
+      shell.run!("bin/rails", "generate", "devise:views", "-v", "sessions", chdir: app_path)
+    end
+
     def ensure_passkey_sign_in_button!
-      session_view_path = File.join(app_path, "app/views/devise/sessions/new.html.erb")
-      return unless File.exist?(session_view_path)
+      session_view_path = devise_session_view_path
+      unless File.exist?(session_view_path)
+        ui.warn("No sign-in view at app/views/devise/sessions/new.html.erb; skipped the passkey sign-in button.")
+        return
+      end
 
       content = File.read(session_view_path)
       return if content.include?("login_with_passkey_button")
@@ -356,6 +368,10 @@ module Railwyrm
                   "#{content.rstrip}\n#{passkey_button_block}"
                 end
       File.write(session_view_path, updated) unless updated == content
+    end
+
+    def devise_session_view_path
+      File.join(app_path, "app/views/devise/sessions/new.html.erb")
     end
 
     def ensure_passkey_enrollment_redirect!
