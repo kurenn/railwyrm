@@ -327,4 +327,25 @@ RSpec.describe Railwyrm::FeatureInstaller do
       expect(executed).to include("bundle install")
     end
   end
+
+  it "writes a migration for every requested devise module, not just the first" do
+    Dir.mktmpdir do |app_path|
+      build_minimal_app!(app_path)
+
+      shell = FeatureInstallerFakeShell.new
+      ui = Railwyrm::UI::Buffer.new
+      installer = described_class.new(app_path: app_path, ui: ui, shell: shell)
+
+      installer.install!(%w[confirmable lockable trackable])
+
+      versions = %w[confirmable lockable trackable].map do |devise_module|
+        pattern = File.join(app_path, "db/migrate/*_add_#{devise_module}_to_users.rb")
+        migration = Dir.glob(pattern).first
+        expect(migration).not_to be_nil, "expected an add_#{devise_module}_to_users migration"
+        File.basename(migration).to_i
+      end
+
+      expect(versions.uniq.length).to eq(3), "migrations share a version: #{versions.inspect}"
+    end
+  end
 end

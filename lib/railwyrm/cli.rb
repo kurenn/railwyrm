@@ -158,7 +158,7 @@ module Railwyrm
     end
 
     desc "serve", "Run Railwyrm as a web forge server"
-    option :host, type: :string, default: "0.0.0.0", desc: "Host binding"
+    option :host, type: :string, default: "127.0.0.1", desc: "Host binding"
     option :port, type: :numeric, default: 4567, desc: "Server port"
     option :workspace, aliases: "-w", type: :string, default: Dir.pwd, desc: "Default workspace root"
     def serve

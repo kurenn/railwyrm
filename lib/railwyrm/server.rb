@@ -31,16 +31,6 @@ module Railwyrm
         set :port, server.port
         set :show_exceptions, false
 
-        before do
-          headers "Access-Control-Allow-Origin" => "*"
-        end
-
-        options "*" do
-          headers "Access-Control-Allow-Methods" => "GET,POST,OPTIONS"
-          headers "Access-Control-Allow-Headers" => "Content-Type"
-          200
-        end
-
         get "/" do
           content_type :html
           server.dashboard_html
@@ -76,7 +66,7 @@ module Railwyrm
               raw = request.body.read
               return {} if raw.nil? || raw.empty?
 
-              JSON.parse(raw)
+              return JSON.parse(raw)
             end
 
             params
@@ -93,10 +83,9 @@ module Railwyrm
     end
 
     def enqueue(payload)
-      name = payload.fetch("name")
       config = Configuration.new(
-        name: name,
-        workspace: payload["workspace"] || workspace,
+        name: payload["name"],
+        workspace: resolve_workspace(payload["workspace"]),
         devise_user_model: payload["devise_user_model"] || "User",
         install_devise_user: !truthy?(payload["skip_devise_user"]),
         devise_confirmable: truthy?(payload["devise_confirmable"]),
@@ -119,7 +108,7 @@ module Railwyrm
         logs: []
       }
 
-      @mutex.synchronize { @jobs[job_id] = job }
+      @mutex.synchronize { @jobs[job_id] = job.dup }
 
       Thread.new do
         run_job(job_id, config)
@@ -344,6 +333,32 @@ module Railwyrm
         job = @jobs.fetch(job_id)
         yield job
       end
+    end
+
+    def resolve_workspace(requested)
+      root = resolved_path(workspace)
+      requested = root if requested.to_s.strip.empty?
+
+      path = resolved_path(File.expand_path(requested.to_s, root))
+      return path if path == root || path.start_with?("#{root}#{File::SEPARATOR}")
+
+      raise InvalidConfiguration, "Workspace must be inside #{root}"
+    end
+
+    # Symlinks can only hide in the part of the path that already exists.
+    def resolved_path(path)
+      missing = []
+      existing = File.expand_path(path)
+
+      until File.exist?(existing)
+        parent = File.dirname(existing)
+        break if parent == existing
+
+        missing.unshift(File.basename(existing))
+        existing = parent
+      end
+
+      File.join(File.realpath(existing), *missing)
     end
 
     def truthy?(value)

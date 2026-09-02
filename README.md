@@ -152,6 +152,11 @@ Common flags:
 - `--devise_magic_link` enable magic-link sign-in
 - `--devise_passkeys` enable passkeys sign-in (WebAuthn)
 
+Server mode (`railwyrm serve`):
+
+- Binds `127.0.0.1` by default; pass `--host 0.0.0.0` to expose it deliberately.
+- `POST /api/apps` only generates inside `--workspace`; paths outside it are rejected with `422`.
+
 Feature install options:
 
 - `--app` path to the existing Rails app
