@@ -3,8 +3,7 @@
 module Railwyrm
   class RailsBlueprint
     # Generation uses this exact version so the Gemfile it writes is already
-    # correct, rather than being patched afterwards. Rails 8.1 needs Ruby
-    # >= 3.2, so it is happy on the 3.3 that generated apps target.
+    # correct, rather than being patched afterwards.
     DEFAULT_RAILS_VERSION = "8.1.3.1"
     RAILS_NEW_FLAGS = [
       "--database=postgresql",

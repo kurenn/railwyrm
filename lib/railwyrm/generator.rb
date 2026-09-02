@@ -5,7 +5,7 @@ require "fileutils"
 module Railwyrm
   class Generator
     RESPONSIVE_MAIN_CLASSES = "w-full min-h-screen flex justify-center".freeze
-    TARGET_RUBY_VERSION = "3.3.0".freeze
+    TARGET_RUBY_VERSION = "3.4.0".freeze
 
     def initialize(configuration, ui:, shell: nil, blueprint: RailsBlueprint.new)
       @configuration = configuration
