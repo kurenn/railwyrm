@@ -15,9 +15,13 @@ RSpec.describe Railwyrm::Server do
     File.realpath(workspace)
   end
 
-  # Stub the worker so no example ever shells out to a real `rails new`.
+  # These examples exercise enqueue's validation, not the worker. `enqueue`
+  # spawns a thread nobody joins, and a stub only lives for the example -- so a
+  # thread scheduled late runs the real Generator after teardown and recreates
+  # the tmpdir mid-delete. Stub the spawn itself so there is no worker at all.
   def build_server
     described_class.new(host: "127.0.0.1", port: 4567, workspace: workspace).tap do |server|
+      allow(Thread).to receive(:new)
       allow(server).to receive(:run_job)
     end
   end
