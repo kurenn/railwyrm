@@ -23,3 +23,42 @@ jobs:
 
       - name: Run test suite
         run: bundle exec rspec
+
+  package:
+    name: Built gem is usable
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: true
+
+      # `railwyrm new` failed at its last step for every gem-installed user
+      # because a template was missing from spec.files, and nothing here ever
+      # built the gem to notice. Install it the way a user would and run it.
+      - name: Build and install the gem
+        run: |
+          gem build railwyrm.gemspec
+          gem install --no-document ./railwyrm-*.gem
+
+      - name: Smoke test the installed binary
+        run: |
+          railwyrm version
+          railwyrm feature list
+          railwyrm new smoke_app --interactive=false --no-banner --dry_run --path "${RUNNER_TEMP}"
+
+      - name: Every template reaches the installed gem
+        run: |
+          installed="$(gem contents railwyrm)"
+          for template in $(git ls-files 'lib/railwyrm/templates/*'); do
+            echo "${installed}" | grep -q "/${template#lib/}$" || {
+              echo "MISSING FROM GEM: ${template}"
+              exit 1
+            }
+          done
+          echo "all templates present in the installed gem"
