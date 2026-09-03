@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.name = "railwyrm"
   spec.version = Railwyrm::VERSION
   spec.authors = ["Abraham Kuri"]
-  spec.email = ["abraham@example.com"]
+  spec.email = ["abkuri88@gmail.com"]
 
   spec.summary = "Epic interactive Rails project kickstarter"
   spec.description = "Railwyrm is a Claude-CLI-inspired generator for bootstrapping production-ready Rails apps and serving creation requests over HTTP."

@@ -98,30 +98,51 @@ Quality feature behavior:
 - Ensures `brakeman`, `rubocop`, `rubocop-rails`, and `bullet` gems are present
 - Injects Bullet development config (`Bullet.enable`, alerts, and Rails logger hooks)
 
+## Install
+
+```bash
+git clone https://github.com/kurenn/railwyrm
+cd railwyrm
+./install.sh
+```
+
+That builds the gem and installs it for the current user, putting `railwyrm` in
+`~/.local/bin` (override with `RAILWYRM_BIN_DIR`, or set
+`RAILWYRM_INSTALL_SCOPE=system` to install system-wide). Add the bin directory to
+your `PATH` if it isn't already, then:
+
+```bash
+railwyrm doctor
+```
+
+`doctor` checks for Ruby, Bundler, git, and the exact Rails version Railwyrm
+generates with — install that one with `gem install rails -v 8.1.3.1`.
+
 ## Quick Start
 
 ```bash
-cd /path/to/railwyrm
-bundle install
-bundle exec ruby exe/railwyrm new
+railwyrm new
 ```
 
 Non-interactive example:
 
 ```bash
-bundle exec ruby exe/railwyrm new my_app --interactive=false --path /tmp --devise_magic_link
+railwyrm new my_app --interactive=false --path /tmp --devise_magic_link
 ```
 
 Install features into an existing app:
 
 ```bash
-bundle exec ruby exe/railwyrm feature list
-bundle exec ruby exe/railwyrm feature status --app /path/to/existing_app
-bundle exec ruby exe/railwyrm feature sync --app /path/to/existing_app
-bundle exec ruby exe/railwyrm feature install magic_link --app /path/to/existing_app
-bundle exec ruby exe/railwyrm feature install ci --app /path/to/existing_app
-bundle exec ruby exe/railwyrm feature install quality --app /path/to/existing_app
+railwyrm feature list
+railwyrm feature status --app /path/to/existing_app
+railwyrm feature sync --app /path/to/existing_app
+railwyrm feature install magic_link --app /path/to/existing_app
+railwyrm feature install ci --app /path/to/existing_app
+railwyrm feature install quality --app /path/to/existing_app
 ```
+
+To run from a clone without installing, prefix any command with
+`bundle exec ruby exe/railwyrm` instead of `railwyrm`.
 
 Feature state tracking:
 
@@ -133,14 +154,14 @@ Feature state tracking:
 ## CLI Commands
 
 ```bash
-bundle exec ruby exe/railwyrm new [APP_NAME]
-bundle exec ruby exe/railwyrm feature list
-bundle exec ruby exe/railwyrm feature status --app /path/to/app
-bundle exec ruby exe/railwyrm feature sync --app /path/to/app
-bundle exec ruby exe/railwyrm feature install FEATURE [FEATURE ...] --app /path/to/app
-bundle exec ruby exe/railwyrm serve
-bundle exec ruby exe/railwyrm doctor
-bundle exec ruby exe/railwyrm version
+railwyrm new [APP_NAME]
+railwyrm feature list
+railwyrm feature status --app /path/to/app
+railwyrm feature sync --app /path/to/app
+railwyrm feature install FEATURE [FEATURE ...] --app /path/to/app
+railwyrm serve
+railwyrm doctor
+railwyrm version
 ```
 
 Common flags:
@@ -188,6 +209,24 @@ Run tests:
 ```bash
 bundle exec rspec
 ```
+
+The end-to-end spec generates a real Rails app, so it is excluded by default. It
+needs PostgreSQL running and the Rails version from `railwyrm doctor`:
+
+```bash
+RUN_E2E=1 bundle exec rspec spec/e2e
+```
+
+CI runs it nightly, and builds and installs the gem on every push so a packaging
+mistake cannot reach users.
+
+## Releasing
+
+1. Bump `Railwyrm::VERSION` in `lib/railwyrm/version.rb`.
+2. `bundle exec rspec` and `RUN_E2E=1 bundle exec rspec spec/e2e`.
+3. Merge to `main` and confirm the `Built gem is usable` job passes.
+4. Tag it: `git tag v$(ruby -Ilib -rrailwyrm/version -e 'print Railwyrm::VERSION') && git push --tags`.
+5. Publish if desired: `gem build railwyrm.gemspec && gem push railwyrm-*.gem`.
 
 ## Project Layout
 
