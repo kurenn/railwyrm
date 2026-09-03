@@ -8,6 +8,7 @@ module Railwyrm
   # one the user already had. Both used to carry their own copy, which is how
   # the same bug came to be fixed twice.
   class AppPatcher
+    RESPONSIVE_MAIN_CLASSES = "w-full min-h-screen flex justify-center"
     PASSKEYS_SUPPORT_NOTE = "Passkey registration could not start. Please try again on a supported browser."
 
     def initialize(app_path:, ui:, shell:, dry_run: false, devise_user_model: "User", display_name: nil)
@@ -78,6 +79,41 @@ module Railwyrm
       shell.run!("bin/rails", "db:migrate", chdir: app_path)
     end
 
+    def normalize_application_main_layout!
+      layout_path = File.join(app_path, "app/views/layouts/application.html.erb")
+      layout = read_patch_target(layout_path, "the responsive main container")
+      return if layout.nil?
+
+      updated = if layout.match?(/<main\s+class="[^"]*">/)
+                  layout.sub(/<main\s+class="[^"]*">/, %(<main class="#{RESPONSIVE_MAIN_CLASSES}">))
+                elsif layout.match?(/<main>/)
+                  layout.sub(/<main>/, %(<main class="#{RESPONSIVE_MAIN_CLASSES}">))
+                else
+                  ui.warn("#{layout_path} has no <main> element; skipped the responsive main container.")
+                  return
+                end
+
+      File.write(layout_path, updated) unless updated == layout
+    end
+
+    def ensure_devise_initializer_lint_defaults!
+      initializer_path = File.join(app_path, "config/initializers/devise.rb")
+      content = read_patch_target(initializer_path, "Devise lint normalization")
+      return if content.nil?
+
+      updated = content.dup
+      updated.gsub!(
+        "config.mailer_sender = 'please-change-me-at-config-initializers-devise@example.com'",
+        %(config.mailer_sender = "please-change-me-at-config-initializers-devise@example.com")
+      )
+      updated.gsub!("require 'devise/orm/active_record'", %(require "devise/orm/active_record"))
+      updated.gsub!("config.case_insensitive_keys = [:email]", "config.case_insensitive_keys = [ :email ]")
+      updated.gsub!("config.strip_whitespace_keys = [:email]", "config.strip_whitespace_keys = [ :email ]")
+      updated.gsub!("config.skip_session_storage = [:http_auth]", "config.skip_session_storage = [ :http_auth ]")
+
+      File.write(initializer_path, updated) unless updated == content
+    end
+
     def ensure_ci_workflow_file!
       source = File.join(template_root, "ci", "github_actions_ci.yml")
       raise InvalidConfiguration, "CI workflow template missing: #{source}" unless File.exist?(source)
@@ -89,10 +125,8 @@ module Railwyrm
 
     def ensure_bullet_development_configuration!
       development_path = File.join(app_path, "config/environments/development.rb")
-      return unless File.exist?(development_path)
-
-      content = File.read(development_path)
-      return if content.include?("Bullet.enable = true")
+      content = read_patch_target(development_path, "Bullet development config")
+      return if content.nil? || content.include?("Bullet.enable = true")
 
       bullet_block = <<~RUBY
 
@@ -219,9 +253,9 @@ module Railwyrm
 
     def ensure_devise_paranoid_mode!
       initializer_path = File.join(app_path, "config/initializers/devise.rb")
-      return unless File.exist?(initializer_path)
+      content = read_patch_target(initializer_path, "Devise paranoid mode")
+      return if content.nil?
 
-      content = File.read(initializer_path)
       updated = if content.match?(/^\s*#?\s*config\.paranoid\s*=.*$/)
                   content.gsub(/^\s*#?\s*config\.paranoid\s*=.*$/, "  config.paranoid = true")
                 else
@@ -232,9 +266,9 @@ module Railwyrm
 
     def ensure_development_mail_file_delivery!
       development_path = File.join(app_path, "config/environments/development.rb")
-      return unless File.exist?(development_path)
+      content = read_patch_target(development_path, "development mail delivery")
+      return if content.nil?
 
-      content = File.read(development_path)
       updated = content
 
       delivery_method_line = "  config.action_mailer.delivery_method = :file"
@@ -257,9 +291,9 @@ module Railwyrm
 
     def ensure_webauthn_initializer_defaults!
       initializer_path = File.join(app_path, "config/initializers/webauthn.rb")
-      return unless File.exist?(initializer_path)
+      content = read_patch_target(initializer_path, "WebAuthn defaults")
+      return if content.nil?
 
-      content = File.read(initializer_path)
       updated = content
 
       app_label = app_display_name
@@ -316,9 +350,9 @@ module Railwyrm
 
     def ensure_webauthn_javascript_include!
       layout_path = File.join(app_path, "app/views/layouts/application.html.erb")
-      return unless File.exist?(layout_path)
+      content = read_patch_target(layout_path, "the WebAuthn javascript include")
+      return if content.nil?
 
-      content = File.read(layout_path)
       module_include_line = '<%= javascript_include_tag "devise/webauthn", type: "module" %>'
       updated = content
 
@@ -330,6 +364,9 @@ module Railwyrm
         updated = updated.sub("<%= stylesheet_link_tag", "#{module_include_line}\n    <%= stylesheet_link_tag")
       elsif updated.include?("</head>")
         updated = updated.sub("</head>", "    #{module_include_line}\n  </head>")
+      else
+        ui.warn("#{layout_path} has no stylesheet tag or </head>; skipped the WebAuthn javascript include.")
+        return
       end
 
       File.write(layout_path, updated) unless updated == content
@@ -370,16 +407,24 @@ module Railwyrm
       File.write(session_view_path, updated) unless updated == content
     end
 
+    # Every patcher below edits a file Rails generated. When one is missing, the
+    # edit cannot happen -- and the feature manifest will still record the
+    # feature as installed, so silence here reads as success. Say something.
+    def read_patch_target(path, purpose)
+      return File.read(path) if File.exist?(path)
+
+      ui.warn("#{path} not found; skipped #{purpose}.")
+      nil
+    end
+
     def devise_session_view_path
       File.join(app_path, "app/views/devise/sessions/new.html.erb")
     end
 
     def ensure_passkey_enrollment_redirect!
       controller_path = File.join(app_path, "app/controllers/application_controller.rb")
-      return unless File.exist?(controller_path)
-
-      content = File.read(controller_path)
-      return if content.include?("def after_sign_in_path_for")
+      content = read_patch_target(controller_path, "the passkey enrollment redirect")
+      return if content.nil? || content.include?("def after_sign_in_path_for")
 
       snippet = <<~RUBY
 

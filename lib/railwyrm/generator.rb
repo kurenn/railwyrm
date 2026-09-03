@@ -4,7 +4,6 @@ require "fileutils"
 
 module Railwyrm
   class Generator
-    RESPONSIVE_MAIN_CLASSES = "w-full min-h-screen flex justify-center".freeze
     TARGET_RUBY_VERSION = "3.4.0".freeze
 
     def initialize(configuration, ui:, shell: nil, blueprint: RailsBlueprint.new)
@@ -162,19 +161,7 @@ module Railwyrm
         return
       end
 
-      layout_path = File.join(configuration.app_path, "app/views/layouts/application.html.erb")
-      return unless File.exist?(layout_path)
-
-      layout = File.read(layout_path)
-      updated = if layout.match?(/<main\s+class="[^"]*">/)
-                  layout.sub(/<main\s+class="[^"]*">/, %(<main class="#{RESPONSIVE_MAIN_CLASSES}">))
-                elsif layout.match?(/<main>/)
-                  layout.sub(/<main>/, %(<main class="#{RESPONSIVE_MAIN_CLASSES}">))
-                else
-                  layout
-                end
-
-      File.write(layout_path, updated) unless updated == layout
+      patcher.normalize_application_main_layout!
     end
 
     def ensure_bullet_development_configuration!
@@ -192,22 +179,7 @@ module Railwyrm
         return
       end
 
-      initializer_path = File.join(configuration.app_path, "config/initializers/devise.rb")
-      return unless File.exist?(initializer_path)
-
-      content = File.read(initializer_path)
-      updated = content.dup
-
-      updated.gsub!(
-        "config.mailer_sender = 'please-change-me-at-config-initializers-devise@example.com'",
-        'config.mailer_sender = "please-change-me-at-config-initializers-devise@example.com"'
-      )
-      updated.gsub!("require 'devise/orm/active_record'", 'require "devise/orm/active_record"')
-      updated.gsub!("config.case_insensitive_keys = [:email]", "config.case_insensitive_keys = [ :email ]")
-      updated.gsub!("config.strip_whitespace_keys = [:email]", "config.strip_whitespace_keys = [ :email ]")
-      updated.gsub!("config.skip_session_storage = [:http_auth]", "config.skip_session_storage = [ :http_auth ]")
-
-      File.write(initializer_path, updated) unless updated == content
+      patcher.ensure_devise_initializer_lint_defaults!
     end
 
     def ensure_ci_workflow!
