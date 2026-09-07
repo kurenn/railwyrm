@@ -85,4 +85,76 @@ RSpec.describe "a generated Rails app", e2e: true do
       expect(output).to match(/[1-9]\d* examples?, 0 failures/)
     end
   end
+
+  it "installs features into an app that was generated without them" do
+    Dir.mktmpdir do |workspace|
+      configuration = Railwyrm::Configuration.new(
+        name: "e2e_install_app",
+        workspace: workspace,
+        verbose: true
+      )
+
+      # A bare app: Devise user, ci and quality, but none of the optional
+      # modules. Everything below is installed after the fact.
+      Railwyrm::Generator.new(configuration, ui: Railwyrm::UI::Console.new(verbose: true)).run!
+      app_path = configuration.app_path
+
+      ui = Railwyrm::UI::Console.new(verbose: true)
+      installer = Railwyrm::FeatureInstaller.new(
+        app_path: app_path,
+        ui: ui,
+        shell: Railwyrm::Shell.new(ui: ui, dry_run: false, verbose: true)
+      )
+
+      # magic_link depends on trackable, which a bare app does not have.
+      installed = installer.install!(%w[magic_link confirmable])
+      expect(installed).to eq(%w[trackable magic_link confirmable])
+
+      expect(File.read(File.join(app_path, "Gemfile"))).to include('gem "devise-passwordless"')
+
+      # The installer has its own copy of the migration code, and only the
+      # generator's copy is covered by the example above.
+      schema = File.read(File.join(app_path, "db/schema.rb"))
+      expect(schema).to include("confirmation_token")
+      expect(schema).to include("sign_in_count")
+
+      routes = capture!("bin/rails", "routes", chdir: app_path)
+      expect(routes).to include("passwordless")
+
+      expect(File).to exist(File.join(app_path, "app/views/devise/mailer/magic_link.text.erb"))
+
+      # Detection has to agree with reality. Believing the manifest over the
+      # app is what let the passkey button go missing.
+      status = Railwyrm::FeatureStatus.new(app_path: app_path).snapshot
+      expect(status.fetch(:installed)).to include("trackable", "magic_link", "confirmable", "ci", "quality")
+      expect(status.fetch(:tracked_only)).to be_empty
+
+      capture!("bin/rails", "runner", "User.new", chdir: app_path)
+
+      FileUtils.mkdir_p(File.join(app_path, "spec/models"))
+      File.write(
+        File.join(app_path, "spec/models/user_spec.rb"),
+        <<~SPEC
+          require "rails_helper"
+
+          RSpec.describe User do
+            it "has the modules the installer added" do
+              expect(User.devise_modules).to include(:trackable, :confirmable, :magic_link_authenticatable)
+            end
+          end
+        SPEC
+      )
+      expect(capture!("bundle", "exec", "rspec", chdir: app_path)).to match(/[1-9]\d* examples?, 0 failures/)
+
+      # Installing twice is a no-op: VISION's feature contract requires it, and
+      # a second migration for the same column would break db:migrate.
+      gemfile_before = File.read(File.join(app_path, "Gemfile"))
+      migrations_before = Dir.glob(File.join(app_path, "db/migrate/*.rb")).length
+
+      installer.install!(%w[magic_link confirmable])
+
+      expect(File.read(File.join(app_path, "Gemfile"))).to eq(gemfile_before)
+      expect(Dir.glob(File.join(app_path, "db/migrate/*.rb")).length).to eq(migrations_before)
+    end
+  end
 end
